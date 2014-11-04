@@ -3,6 +3,7 @@ from scrapy.contrib.linkextractors import LinkExtractor
 
 from news_crawler.items import NewsItem
 import json
+import urlparse
 
 
 class NewsSpider(CrawlSpider):
@@ -10,32 +11,34 @@ class NewsSpider(CrawlSpider):
     allowed_domains = ['udn.com']
     start_urls = ['http://udn.com/NEWS/OPINION/']
     rules = [Rule(LinkExtractor(allow=['.*']), callback='parse_news', follow=False)]
-    parsed_error_log = 'parsed_error_log'
 
     def __init__(self, config_file=None,  *args, **kwargs):
         super(NewsSpider, self).__init__(*args, **kwargs)
-        self.read_config(config_file)
-        self.parsed_error_log = '1234dska;dsa'
 
+        # read in configuration file
+        self.read_config(config_file)
+        
     def read_config(self, filename):
-        pass
-        '''
         with open(filename, 'r') as f:
             config = json.load(f)
-        print config
-        #self.allowed_domains = config['allowed_domains']
-        #self.start_urls = config['start_urls']
-        '''
+        self.config = config
+        NewsSpider.allowed_domains = config['allowed_domains']
+        NewsSpider.start_urls = config['start_urls']
+        NewsSpider.error_log = config['error_log']
 
     def parse_news(self, response):
         news = NewsItem()
         #print response.url
         news['url'] = response.url
         #print response.xpath("//div[@id='story_title']").extract()
-        news['title'] = response.xpath("//div[@id='story_title']").extract()
+        news['title'] = response.xpath("//div[@id='story_title']/text()").extract()
+        print news['title']
+        if len(news['title']) == 1:
+            print news['title'][0].encode('utf-8')
         #print response.xpath("//div[@id='story']").extract()
-        news['content'] = response.xpath("//div[@id='story']").extract()
-        return news
+        news['content'] = response.xpath("string(//div[@id='story'])").extract()
+        print news['content']
+        if len(news['content']) == 1:
+            print news['content'][0].encode('utf-8')
 
-    def process_item(self, item, spider):
-        print 'test process item'    
+        return news

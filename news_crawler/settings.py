@@ -19,3 +19,6 @@ NEWSPIDER_MODULE = 'news_crawler.spiders'
 ITEM_PIPELINES = {
 	"news_crawler.pipelines.NewsCrawlerPipeline": 1,
 }
+
+
+

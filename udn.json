@@ -1,0 +1,17 @@
+{
+    "allowed_domains": [ "udn.com" ],
+    "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
+    "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
+    "error_log" : "udn.error_log", 
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "barry800414",
+        "database": "news_database",
+        "password": "van791206",
+        "table": "udn"
+    }
+}

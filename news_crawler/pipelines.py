@@ -6,42 +6,38 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
 from scrapy.exceptions import DropItem
+#import MySQLdb
 
 class NewsCrawlerPipeline(object):
-    def __init__(self, db_info):
-        self.db_info = db_info
-
-    @classmethod
-    def from_crawler(cls, crawler):
-        print crawler.spiders.crawler.NewsSpider
-        print crawler.parsed_error_log 
-        return cls(db_info = crawler.parsed_error_log)
-        '''
-        return cls(
-            mongo_uri=crawler.settings.get('MONGO_URI'),
-            mongo_db=crawler.settings.get('MONGO_DATABASE', 'items')
-        )
-		'''
 
     def open_spider(self, spider):
         '''
-        self.client = pymongo.MongoClient(self.mongo_uri)
-        self.db = self.client[self.mongo_db]
+        # initialize the connection to database
+        db_info = spider.db_info
+        self.db = MySQLdb.connect(db_info['host'], db_info['user'], db_info['password'], port=db_info['port'])
+        self.cursor = self.db.cursor()
         '''
-        print 'open_spider'
+        # load history file
+        print 'open spider'
 
     def close_spider(self, spider):
-        #self.client.close()
+        '''
+        self.db.close()
+        '''
         print 'close spider'
 
     def process_item(self, item, spider):
     	if len(item['title']) != 1:
-    		raise DropItem('Not exactly 1 title in, %s' % item['url'])
+            print 'Not exactly 1 title in, %s' % item['url']
+            raise DropItem('Not exactly 1 title in, %s' % item['url'])
     	elif len(item['content']) != 1:
-    		raise DropItem('Not exactly 1 content in, %s' % item['url'])
+            print 'Not exactly 1 content in, %s' % item['url']
+            raise DropItem('Not exactly 1 content in, %s' % item['url'])
     	elif len(item['title'][0].strip()) == 0:
-    		raise DropItem('Title is empty in, %s' % item['url'])
-    	elif len(item['content'][0].strip()) == 0:
-    		raise DropItem('Content is empty in, %s' % item['url'])
+            print 'Title is empty in, %s' % item['url']
+            raise DropItem('Title is empty in, %s' % item['url'])
+        elif len(item['content'][0].strip()) == 0:
+            print 'Content is empty in, %s' % item['url']
+            raise DropItem('Content is empty in, %s' % item['url'])
     	else:
-        	return item
+            return item
