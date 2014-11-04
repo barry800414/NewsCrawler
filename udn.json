@@ -1,17 +1,25 @@
 {
     "allowed_domains": [ "udn.com" ],
+    "deny_domains": ["paper.udn.com", "co.udn.com", "member.udn.com"],
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
     "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
     "error_log" : "udn.error_log", 
+    "xpath": {
+        "title": "//div[@id='story_title']/text()",
+        "content": "string(//div[@id='story'])"
+    },
     "content_process" : {
     },
     "keywords": [],
     "db_info" : {
         "host": "localhost",
         "port": 3666,
-        "user": "barry800414",
-        "database": "news_database",
-        "password": "van791206",
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
         "table": "udn"
-    }
+    },
+    "src_name": "聯合新聞網",
+    "encoding": "utf-8"
+    
 }
