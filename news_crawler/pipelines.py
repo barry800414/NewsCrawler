@@ -31,22 +31,30 @@ class NewsCrawlerPipeline(object):
         print 'close spider'
 
     def process_item(self, item, spider):
-    	if len(item['title']) != 1:
-            print 'Not exactly 1 title in, %s' % item['url']
+        if item['title'] == None:
+            print 'Can not find title in %s' % item['url']
             sys.stdout.flush()
-            raise DropItem('Not exactly 1 title in, %s' % item['url'])
-    	elif len(item['content']) != 1:
-            print 'Not exactly 1 content in, %s' % item['url']
+            raise DropItem('Can not find title in %s' % item['url'])
+        #elif len(item['title'].strip()) == 0:
+        #    print 'Can not find title in %s' % item['url']
+        #    sys.stdout.flush()
+        #    raise DropItem('Can not find title in %s' % item['url'])
+        elif item['content'] == None:
+            print 'Can not find title in %s' % item['url']
             sys.stdout.flush()
-            raise DropItem('Not exactly 1 content in, %s' % item['url'])
-    	elif len(item['title'][0].strip()) == 0:
-            print 'Title is empty in, %s' % item['url']
+            raise DropItem('Can not find content in %s' % item['url'])
+        #elif len(item['content'].strip()) == 0:
+        #    print 'Can not find title in %s' % item['url']
+        #    sys.stdout.flush()
+        #    raise DropItem('Can not find content in %s' % item['url'])
+        elif item['time'] == None:
+            print 'Can not find time in %s' % item['url']
             sys.stdout.flush()
-            raise DropItem('Title is empty in, %s' % item['url'])
-        elif len(item['content'][0].strip()) == 0:
-            print 'Content is empty in, %s' % item['url']
-            sys.stdout.flush()
-            raise DropItem('Content is empty in, %s' % item['url'])
+            raise DropItem('Can not find time in %s' % item['url'])
+        #elif len(item['time'].strip()) == 0:
+        #    print 'Can not find time in %s' % item['url']
+        #    sys.stdout.flush()
+        #    raise DropItem('Can not find time in %s' % item['url'])
     	else:
             # pass the basic evaluation, then preprocess the news content in details
             item = self.preprocess_news(item)
@@ -57,18 +65,16 @@ class NewsCrawlerPipeline(object):
             return item
 
     def preprocess_news(self, news):
-        news['title'] = news['title'][0] #.encode(self.encoding)
-        news['content'] = news['content'][0] #.encode(self.encoding)
-        
         # more detailed preproces
         return news
 
     def insert_news(self, news):
-        sql = u"INSERT INTO %s(title, content, url, source) VALUES ('%s', '%s', '%s', '%s')" % (self.db_table, 
-                news['title'], news['content'], news['url'], self.src_name)
+        sql = u"INSERT INTO %s(title, content, time, url, source) VALUES " % self.db_table
         #print sql.encode('utf-8')
         try:
-            self.cursor.execute(sql)
+            self.cursor.execute(sql + u"(%s, %s, %s, %s, %s)",
+                    (news['title'], news['content'], news['time'], 
+                        news['url'], self.src_name))
             self.db.commit()
         except Exception, e:
             print '%s' % e

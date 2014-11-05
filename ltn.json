@@ -1,0 +1,29 @@
+{
+    "allowed_domains": [ "ltn.com.tw" ],
+    "deny_domains": [],
+    "start_urls": [ "http://www.ltn.com.tw" ],
+    "xpath": {
+        "title": [
+            { "xpath": "//div[@class='sort_menu']/following-sibling::h1/text()", "expect":1, "index": 0 },
+        ],
+        "content": [ 
+            { "xpath": "string(//div[@id='news_text']/p)", "expect":1, "index":0 },
+        "time": [
+            { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
+                    ]
+    },
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "ltn"
+    },
+    "src_name": "自由時報電子報",
+    "encoding": "utf-8"
+    
+}

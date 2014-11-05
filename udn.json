@@ -1,12 +1,53 @@
 {
     "allowed_domains": [ "udn.com" ],
-    "deny_domains": ["paper.udn.com", "co.udn.com", "member.udn.com"],
+    "deny_domains": [
+        "paper.udn.com", 
+        "co.udn.com", 
+        "member.udn.com", 
+        "blog.udn.com", 
+        "classic-album.udn.com",
+        "classic-blog.udn.com",
+        "shopping.udn.com",
+        "edu.udn.com",
+        "geft.edn.udn.com",
+        "reading.udn.com",
+        "gmg.udn.com",
+        "event.udn.com",
+        "video.udn.com",
+        "stars.udn.com",
+        "cs.udn.com",
+        "act.udn.com",
+        "album.udn.com",
+        "city.udn.com",
+        "member.udn.com",
+        "co.udn.com",
+        "learning.udn.com",
+        "ipost.udn.com",
+        "style.udn.com"
+            ],
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
     "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
     "error_log" : "udn.error_log", 
     "xpath": {
-        "title": "//div[@id='story_title']/text()",
-        "content": "string(//div[@id='story'])"
+        "title": [
+            { "xpath": "//div[@class='story_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']//div/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']//div[@style='float:left']/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@id='story_body_content']//h2[@id='story_art_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 }
+        ],
+        "content": [ 
+            { "xpath": "string(//div[@id='story'])", "expect":1, "index":0 },
+            { "xpath": "string(//div[@id='story_body_content']//p)", "expect":1, "index":0 },
+            { "xpath": "string(//div[@class='article_content']//p)", "expect":1, "index":0 }
+        ],
+        "time": [
+            { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
+            { "xpath": "//div[@id='story_bady_info']//h3/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
+            { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }
+                    ]
     },
     "content_process" : {
     },

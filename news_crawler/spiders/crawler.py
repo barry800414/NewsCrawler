@@ -25,27 +25,29 @@ class NewsSpider(CrawlSpider):
         self.config = config
         self.allowed_domains = config['allowed_domains']
         self.start_urls = config['start_urls']
-        NewsSpider.error_log = config['error_log']
         self.rules = [Rule(LinkExtractor(allow=['.*'], deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
 
     def parse_news(self, response):
         news = NewsItem()
         #print response.url
         news['url'] = response.url
-        news['title'] = response.xpath(self.config['xpath']['title']).extract()
-        
-        #news['title'] = response.css('#story_title::text').extract()
-        '''      
-        print news['title']
-        if len(news['title']) == 1:
-            print news['title'][0].encode('utf-8')
-        '''
-        news['content'] = response.xpath(self.config['xpath']['content']).extract()
 
-        #news['content'] = response.css('#story p').extract()
+        # try different xpath
+        for field in self.config['xpath'].keys():
+            news[field] = None
+            for x in self.config['xpath'][field]: 
+                tmp = response.xpath(x['xpath']).extract() 
+                #if field == u'time':
+                #    print tmp
+                if len(tmp) == x['expect']:
+                    if len(tmp[x['index']].strip()) != 0:
+                        news[field] = tmp[x['index']].strip()
+                        break
         '''
-        print news['content']
-        if len(news['content']) == 1:
-            print news['content'][0].encode('utf-8')
+        if news['title'] != None:
+            print 'title:', news['title'].encode('utf-8')
+        else:
+            print 'title: None'
         '''
+
         return news
