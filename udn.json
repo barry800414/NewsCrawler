@@ -37,7 +37,8 @@
             { "xpath": "//div[@id='story_body_content']//h2[@id='story_art_title']/text()", "expect":1, "index": 0 },
             { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 }
         ],
-        "content": [ 
+        "content": [
+            { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "string(//div[@id='story'])", "expect":1, "index":0 },
             { "xpath": "string(//div[@id='story_body_content']//p)", "expect":1, "index":0 },
             { "xpath": "string(//div[@class='article_content']//p)", "expect":1, "index":0 }

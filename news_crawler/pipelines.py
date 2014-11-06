@@ -35,26 +35,14 @@ class NewsCrawlerPipeline(object):
             print 'Can not find title in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find title in %s' % item['url'])
-        #elif len(item['title'].strip()) == 0:
-        #    print 'Can not find title in %s' % item['url']
-        #    sys.stdout.flush()
-        #    raise DropItem('Can not find title in %s' % item['url'])
         elif item['content'] == None:
-            print 'Can not find title in %s' % item['url']
+            print 'Can not find content in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find content in %s' % item['url'])
-        #elif len(item['content'].strip()) == 0:
-        #    print 'Can not find title in %s' % item['url']
-        #    sys.stdout.flush()
-        #    raise DropItem('Can not find content in %s' % item['url'])
         elif item['time'] == None:
             print 'Can not find time in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find time in %s' % item['url'])
-        #elif len(item['time'].strip()) == 0:
-        #    print 'Can not find time in %s' % item['url']
-        #    sys.stdout.flush()
-        #    raise DropItem('Can not find time in %s' % item['url'])
     	else:
             # pass the basic evaluation, then preprocess the news content in details
             item = self.preprocess_news(item)
@@ -62,6 +50,8 @@ class NewsCrawlerPipeline(object):
             # insert into database 
             self.insert_news(item)
 
+            if spider.single_url != None:
+                self.print_news(item, sys.stderr)
             return item
 
     def preprocess_news(self, news):
@@ -80,4 +70,9 @@ class NewsCrawlerPipeline(object):
             print '%s' % e
             self.db.rollback()
     
-    
+    def print_news(self, item, fp):
+        print >>fp, 'Final Parsed Result:'
+        print >>fp, 'Title:', item['title']
+        print >>fp, 'Content:', item['content']
+        print >>fp, 'Time:', item['time']
+        print >>fp, 'Url:', item['url']

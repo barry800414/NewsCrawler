@@ -4,13 +4,14 @@
     "start_urls": [ "http://www.ltn.com.tw" ],
     "xpath": {
         "title": [
-            { "xpath": "//div[@class='sort_menu']/following-sibling::h1/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@class='content']/h1/text()", "expect":1, "index": 0 }
         ],
         "content": [ 
-            { "xpath": "string(//div[@id='news_text']/p)", "expect":1, "index":0 },
+            { "xpath": "//div[@id='newstext']/p/text()", "expect":-1, "index": "merge_all" }
+        ],
         "time": [
-            { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
-                    ]
+            { "xpath": "//td[@class='newstext']/span/text()", "expect":1, "index":0 }
+        ]
     },
     "content_process" : {
     },
