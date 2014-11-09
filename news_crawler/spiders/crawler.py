@@ -23,9 +23,11 @@ class NewsSpider(CrawlSpider):
         super(NewsSpider, self).__init__(*args, **kwargs)
         
     def set_debug_mode(self, debug):
-        if debug == 1 or debug == '1' or debug or debug=='True': 
+        if debug == 1 or debug == '1' or debug == 'True': 
+            print 'true'
             self.debug=True
         else:
+            print 'false'
             self.debug=False
 
     def set_single_url(self, single_url):
@@ -43,10 +45,9 @@ class NewsSpider(CrawlSpider):
         self.allowed_domains = config['allowed_domains']
         if self.single_url == None:
             self.start_urls = config['start_urls']
-            self.rules = [Rule(LinkExtractor(allow=['.*'], deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
+            self.rules = [Rule(LinkExtractor(allow=['.*'], deny=config['deny'], deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
         else: # if single_url is setted, we only craw the data from the url
             self.start_urls = [self.single_url]
-            print self.start_urls
             self.rules = [Rule(LinkExtractor(allow=[self.single_url]), callback='parse_news', follow=False)]
 
     def parse_news(self, response):
@@ -97,3 +98,15 @@ class NewsSpider(CrawlSpider):
         for s in parsed_result:
             print s.encode('utf-8')
 
+
+from scrapy import log
+from scrapy import logformatter
+
+class PoliteLogFormatter(logformatter.LogFormatter):
+    def dropped(self, item, exception, response, spider):
+        return {
+            'level': log.DEBUG,
+            'format': logformatter.DROPPEDFMT,
+            'exception': exception,
+            'item': item,
+    }

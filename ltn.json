@@ -1,16 +1,32 @@
 {
     "allowed_domains": [ "ltn.com.tw" ],
-    "deny_domains": [],
+    "deny_domains": [
+        "m.ltn.com.tw",
+        "iservice.ltn.com.tw",
+        "week.ltn.com.tw",
+        "3c.ltn.com.tw"
+        ],
+    "deny": [ 
+        ".*print", 
+        ".*_[0-9]",
+        "news\\.ltn\\.com\\.tw\\/photo\\/*"
+        ],
     "start_urls": [ "http://www.ltn.com.tw" ],
     "xpath": {
         "title": [
-            { "xpath": "//div[@class='content']/h1/text()", "expect":1, "index": 0 }
+            { "xpath": "//div[@class='content']/h1/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@class='cont']/h1/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@class='content']/h2/text()", "expect":1, "index": 0 }
+
         ],
         "content": [ 
-            { "xpath": "//div[@id='newstext']/p/text()", "expect":-1, "index": "merge_all" }
+            { "xpath": "//div[@id='newstext']/p/text()", "expect":-1, "index": "merge_all" },
+            { "xpath": "//div[@class='cont']/p/text()", "expect":-1, "index": "merge_all" }
         ],
         "time": [
-            { "xpath": "//td[@class='newstext']/span/text()", "expect":1, "index":0 }
+            { "xpath": "//td[@class='newstext']/span/text()", "expect":1, "index":0 },
+            { "xpath": "//div[@id='newstext']/span/text()", "expect":1, "index":0 },
+            { "xpath": "//div[@class='cont']/h1/span/text()", "expect":1, "index":0 }
         ]
     },
     "content_process" : {

@@ -31,16 +31,22 @@ class NewsCrawlerPipeline(object):
         print 'close spider'
 
     def process_item(self, item, spider):
+        if spider.single_url != None:
+                self.print_news(item, sys.stderr)
+        
         if item['title'] == None:
             print 'Can not find title in %s' % item['url']
+            print >>sys.stderr, 'Can not find title in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find title in %s' % item['url'])
         elif item['content'] == None:
             print 'Can not find content in %s' % item['url']
+            print >>sys.stderr, 'Can not find content in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find content in %s' % item['url'])
         elif item['time'] == None:
             print 'Can not find time in %s' % item['url']
+            print >>sys.stderr, 'Can not find time in %s' % item['url']
             sys.stdout.flush()
             raise DropItem('Can not find time in %s' % item['url'])
     	else:
@@ -50,8 +56,6 @@ class NewsCrawlerPipeline(object):
             # insert into database 
             self.insert_news(item)
 
-            if spider.single_url != None:
-                self.print_news(item, sys.stderr)
             return item
 
     def preprocess_news(self, news):

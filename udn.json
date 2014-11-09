@@ -25,6 +25,7 @@
         "ipost.udn.com",
         "style.udn.com"
             ],
+    "deny" : [], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
     "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
     "error_log" : "udn.error_log", 

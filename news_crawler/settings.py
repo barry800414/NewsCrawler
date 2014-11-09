@@ -20,5 +20,6 @@ ITEM_PIPELINES = {
 	"news_crawler.pipelines.NewsCrawlerPipeline": 1,
 }
 
+LOG_FORMATTER = 'news_crawler.spiders.crawler.PoliteLogFormatter'
 
 
