@@ -4,7 +4,8 @@
         "m.ltn.com.tw",
         "iservice.ltn.com.tw",
         "week.ltn.com.tw",
-        "3c.ltn.com.tw"
+        "3c.ltn.com.tw",
+        "video.ltn.com.tw"
         ],
     "deny": [ 
         ".*print", 
@@ -26,7 +27,8 @@
         "time": [
             { "xpath": "//td[@class='newstext']/span/text()", "expect":1, "index":0 },
             { "xpath": "//div[@id='newstext']/span/text()", "expect":1, "index":0 },
-            { "xpath": "//div[@class='cont']/h1/span/text()", "expect":1, "index":0 }
+            { "xpath": "//div[@class='cont']/h1/span/text()", "expect":1, "index":0 },
+            { "xpath": "//div[@class='content']/h2/span[@class='date']/text()", "expect":1, "index": 0 }
         ]
     },
     "content_process" : {
@@ -40,6 +42,7 @@
         "password": "news_crawler",
         "table": "ltn"
     },
+    "short_name": "ltn",
     "src_name": "自由時報電子報",
     "encoding": "utf-8"
     
