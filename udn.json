@@ -24,7 +24,17 @@
         "learning.udn.com",
         "ipost.udn.com",
         "style.udn.com",
-        "dignews.udn.com"
+        "dignews.udn.com",
+        "mag.udn.com",
+        "gb.udn.com",
+        "tv.udn.com",
+        "mobile.udn.com",
+        "autos.udn.com",
+        "house.udn.com",
+        "productions.udn.com",
+        "tickets.udn.com",
+        "conference.udn.com",
+        "udntalks.udn.com"
             ],
     "deny" : [], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
@@ -50,9 +60,12 @@
             { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
             { "xpath": "//div[@id='story_bady_info']//h3/text()", "expect":1, "index": 0 },
             { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
-            { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }
+            { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
+            { "xpath": "//div[@id='story_body_content']/div[@id='story_bady_info']/h3/text()", "expect":1, "index":0 }
+
                     ]
     },
+    "ignore_urls_regex": ["printpage\\.jsp", "member\\.udn\\.com"],
     "content_process" : {
     },
     "keywords": [],

@@ -8,13 +8,16 @@
 from scrapy.exceptions import DropItem
 import MySQLdb
 import sys
+import re
 
 class NewsCrawlerPipeline(object):
 
     def open_spider(self, spider):
         self.db_table = spider.config['db_info']['table']
         self.src_name = spider.config['src_name']
-        self.encoding = spider.config['encoding']
+        
+        # if url match the regex, then do not ouput dropped message
+        self.ignore_urls_regex = spider.config['ignore_urls_regex']
 
         # initialize the connection to database
         db_info = spider.config['db_info']
@@ -32,24 +35,22 @@ class NewsCrawlerPipeline(object):
 
     def process_item(self, item, spider):
         if spider.single_url != None:
-                self.print_news(item, sys.stderr)
+            self.print_news(item, sys.stderr)
         
-        if item['title'] == None:
-            print 'Can not find title in %s' % item['url']
-            print >>sys.stderr, 'Can not find title in %s' % item['url']
-            sys.stdout.flush()
-            raise DropItem('Can not find title in %s' % item['url'])
-        elif item['content'] == None:
-            print 'Can not find content in %s' % item['url']
-            print >>sys.stderr, 'Can not find content in %s' % item['url']
-            sys.stdout.flush()
-            raise DropItem('Can not find content in %s' % item['url'])
-        elif item['time'] == None:
-            print 'Can not find time in %s' % item['url']
-            print >>sys.stderr, 'Can not find time in %s' % item['url']
-            sys.stdout.flush()
-            raise DropItem('Can not find time in %s' % item['url'])
-    	else:
+        to_drop = False
+        lack_field = None
+        for field in item.keys():
+            if field == 'url':
+                continue
+            if item[field] == None:
+                to_drop = True
+                lack_field = field
+
+    	if to_drop:
+            if not self.should_ignore(item):
+                self.print_drop_message(lack_field, item['url'])
+            raise DropItem('Can not find %s in %s' % (lack_field, item['url']))
+        else:
             # pass the basic evaluation, then preprocess the news content in details
             item = self.preprocess_news(item)
             
@@ -61,6 +62,12 @@ class NewsCrawlerPipeline(object):
     def preprocess_news(self, news):
         # more detailed preproces
         return news
+
+    def should_ignore(self, news):
+        for regex in self.ignore_urls_regex:
+            if re.match(regex, news['url']) != None:
+                return True
+        return False
 
     def insert_news(self, news):
         sql = u"INSERT INTO %s(title, content, time, url, source) VALUES " % self.db_table
@@ -74,6 +81,11 @@ class NewsCrawlerPipeline(object):
             print '%s' % e
             self.db.rollback()
     
+    def print_drop_message(self, field, url):
+        print 'Can not find %s in %s' % (field, url)
+        print >>sys.stderr, 'Can not find %s in %s' % (field, url)
+        sys.stdout.flush()
+
     def print_news(self, item, fp):
         print >>fp, 'Final Parsed Result:'
         print >>fp, 'Title:', item['title']

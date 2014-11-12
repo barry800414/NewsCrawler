@@ -39,8 +39,6 @@ class NewsSpider(CrawlSpider):
     def read_config(self, filename):
         with open(filename, 'r') as f:
             config = json.load(f)
-        #config['src_name'] = config['src_name'].encode('utf-8')
-        #config['db_info']['table'] = config['db_info']['table'].encode('utf-8')
         self.config = config
         self.allowed_domains = config['allowed_domains']
         if self.single_url == None:
@@ -79,8 +77,7 @@ class NewsSpider(CrawlSpider):
                         if len(tmp[x['index']].strip()) != 0:
                             news[field] = tmp[x['index']].strip()
                             break
-
-        return news
+        return news  #then the object will fed into pipeline
 
     def merge_result(self, parsed_result):
         if len(parsed_result) == 0:
@@ -99,6 +96,7 @@ class NewsSpider(CrawlSpider):
             print s.encode('utf-8')
 
 
+# for disabling dropping messages
 from scrapy import log
 from scrapy import logformatter
 
