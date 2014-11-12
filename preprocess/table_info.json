@@ -1,0 +1,4 @@
+{
+    "target_table": "merge",
+    "src_table": [ "ltn" ]
+}

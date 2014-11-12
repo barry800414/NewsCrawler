@@ -1,0 +1,84 @@
+{
+    "allowed_domains": [ "udn.com" ],
+    "deny_domains": [
+        "paper.udn.com", 
+        "co.udn.com", 
+        "member.udn.com", 
+        "blog.udn.com", 
+        "classic-album.udn.com",
+        "classic-blog.udn.com",
+        "shopping.udn.com",
+        "edu.udn.com",
+        "geft.edn.udn.com",
+        "reading.udn.com",
+        "gmg.udn.com",
+        "event.udn.com",
+        "video.udn.com",
+        "stars.udn.com",
+        "cs.udn.com",
+        "act.udn.com",
+        "album.udn.com",
+        "city.udn.com",
+        "member.udn.com",
+        "co.udn.com",
+        "learning.udn.com",
+        "ipost.udn.com",
+        "style.udn.com",
+        "dignews.udn.com",
+        "mag.udn.com",
+        "gb.udn.com",
+        "tv.udn.com",
+        "mobile.udn.com",
+        "autos.udn.com",
+        "house.udn.com",
+        "productions.udn.com",
+        "tickets.udn.com",
+        "conference.udn.com",
+        "udntalks.udn.com"
+            ],
+    "deny" : [], 
+    "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
+    "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
+    "error_log" : "udn.error_log", 
+    "xpath": {
+        "title": [
+            { "xpath": "//div[@class='story_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']//div/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_title']//div[@style='float:left']/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@id='story_body_content']//h2[@id='story_art_title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 }
+        ],
+        "content": [
+            { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@class='article_content']/text() | //div[@class='article_content']/p/text()", "expect":-1, "index":"merge_all" },
+            { "xpath": "string(//div[@id='story'])", "expect":1, "index":0 },
+            { "xpath": "string(//div[@id='story_body_content']//p)", "expect":1, "index":0 },
+            { "xpath": "string(//div[@class='article_content']//p)", "expect":1, "index":0 }
+        ],
+        "time": [
+            { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
+            { "xpath": "//div[@id='story_bady_info']//h3/text()", "expect":1, "index": 0 },
+            { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
+            { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
+            { "xpath": "//div[@id='story_body_content']/div[@id='story_bady_info']/h3/text()", "expect":1, "index":0 }
+
+                    ]
+    },
+    "ignore_urls_regex": ["printpage\\.jsp", "member\\.udn\\.com"],
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "udn"
+    },
+    "short_name": "udn",
+    "src_name": "聯合新聞網",
+    "encoding": "utf-8"
+    
+}
