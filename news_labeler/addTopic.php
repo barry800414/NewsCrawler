@@ -43,11 +43,11 @@
             }
             $stmt->close();
 
-            return 'Add a user successfully';
+            return 'Add a topic successfully';
 
         } 
         else{
-            return 'User id and password cannot be empty';
+            return 'topic content cannot be empty';
         }
     }
 
@@ -101,7 +101,7 @@
     <td width="105" nowrap>&nbsp;</td>
   </tr>
   <tr>
-    <td nowrap>ID </td>
+    <td nowrap>Content </td>
     <td nowrap><input type="text" name="topic" size="100"></td>
   </tr>
   <tr>

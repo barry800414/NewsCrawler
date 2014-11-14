@@ -1,0 +1,293 @@
+<html>
+<head>
+	<title>Corpus Input Page</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/jquery-ui.min.js"></script>
+	<script>
+		$(document).ready(function(){
+			loadExistingData();
+
+			$("#submit").click(function(){
+				if(checkInput()){
+					upload();
+				}
+			});
+			$("#reset").click(function(){
+				reset();
+			});
+		});
+
+        //containing existing statement, author, source
+		function loadExistingData(){
+			$.ajax({
+				type: "POST",
+				url: "load_existing_data_tw.php",
+				dataType: "json",
+				success: function(response){
+					console.log(response);
+                    
+                    if(response['success']){
+						$("#statement").autocomplete({
+                            source: response['statement'],
+                            minLength:0, 
+                        }).on("focus", function(){
+                            $(this).autocomplete("search", "");   
+                        });
+	                    $("#author").autocomplete({
+                            source: response['author'],
+                            minLength:0, 
+                        }).on("focus", function(){
+                            $(this).autocomplete("search", "");   
+                        });
+                        $("#source").autocomplete({
+                            source: response['source'],
+                            minLength:0, 
+                        }).on("focus", function(){
+                            $(this).autocomplete("search", "");   
+                        });
+
+					}
+				}
+			});
+		}
+
+		function checkInput(){
+			var statement=$("#statement").val().trim();
+			var label=$(".label:checked").val();
+			var title=$("#title").val().trim();
+			var author=$("#author").val().trim(); //can be empty
+			var source=$("#source").val().trim();
+			var url=$("#url").val().trim();
+            var content=$("#content").val().trim();
+            var comment=$("#comment").val().trim();
+
+			console.log(statement);
+			console.log(label);
+			console.log(title);
+			console.log(author);
+			console.log(source);
+			console.log(url);
+            console.log(content);
+            console.log(comment);
+
+			var err_msg="";
+
+			if(statement.length==0){
+				err_msg += "請填寫敘述句\n";
+			}
+			if(typeof(label)=='undefined'){
+				err_msg += "請選擇標記\n";
+			}
+			if(title.length==0){
+				err_msg += "請填寫標題\n";
+			}
+			if(source.length==0){
+				err_msg += "請填寫來源\n";
+			}
+			if(url.length==0){
+				err_msg += "請填寫來源網址\n";
+			}
+			if(content.length==0){
+				err_msg += "請填寫內容\n";
+			}
+			
+			if(err_msg.length!=0){
+				alert(err_msg);
+				return false;
+			}
+			else{
+				return true;
+			}
+			
+		}
+
+        function upload(){
+            var statement=$("#statement").val().trim();
+			var label=$(".label:checked").val();
+			var title=$("#title").val().trim();
+			var author=$("#author").val().trim(); //can be empty
+			var source=$("#source").val().trim();
+			var url=$("#url").val().trim();
+            var content=$("#content").val().trim();
+            var comment=$("#comment").val().trim();
+
+			$.ajax({
+				type: "POST",
+				url: "upload_tw.php",
+				data: { 
+					statement: statement,
+					label: label,
+					title: title,
+					author: author,
+					source: source,
+					url: url,
+                    content: content,
+                    comment: comment,
+				},
+                success: function(response){
+                    console.log(response);
+					if(response == 'success'){
+						alert("上傳成功，感謝大大無私奉獻^_^");
+					    location.reload();
+					}
+					else{
+						alert("上傳失敗QQQQQ，請聯絡");
+					}
+				}
+			});
+		}
+
+		function reset(){
+			$("#statement").val("");
+			$(".label").attr("checked", false);
+			$("#title").val("")
+			$("#author").val(""); 
+			$("#source").val("");
+			$("#url").val("");
+            $("#content").val("");
+            $("#comment").val("");
+		}
+
+	</script>
+	<style>
+		body{
+			text-align: center;
+			font-family: "微軟正黑體";
+		}
+		table, tr, td{
+			border-width: 1px;
+			border-collapse: collapse;
+			border-color: black;
+			border-style: solid;
+		}
+
+		input[type="text"]{
+			width: 97%;
+			height: 95%;
+			position: relative;
+			font-size: 14pt;
+			font-family: "微軟正黑體";
+		}
+
+		input[type="text"]:focus::-webkit-input-placeholder {
+ 			color: transparent;	
+		}
+
+		input[type="radio"]{
+			width: 20px;
+			height: 20px;
+		}
+		textarea{
+			width: 97%;
+			height: 97%;
+		}
+
+
+		#submit {
+			width: 100px;
+			height: 50px;
+			font-size: 20pt;
+			font-family: "微軟正黑體";
+		}
+
+		#reset {
+			width: 50px;
+			height: 30px;
+			font-size: 10pt;
+			font-family: "微軟正黑體";
+		}
+
+		.title{
+			font-size: 22pt;
+		}
+
+		.main_table{
+			position: relative;
+			margin: auto;
+			width: 800px;
+			height: 800px;
+			font-size: 18pt;
+		}
+
+		.small_row{
+			height: 45px;
+		}
+
+		.first_col{
+			text-align: center;
+			width: 100px;
+		}
+		.second_col{
+			padding-left: 10px; 
+		}
+
+		ul.ui-autocomplete li.ui-menu-item{
+			text-align:left;
+            background-color: rgb(254, 238, 137);
+            font-family: "微軟正黑體";
+		}
+
+        ul.ui-autocomplete{
+            max-height: 200px;
+            overflow-y: auto;
+            /* prevent horizontal scrollbar */
+            overflow-x: hidden;
+        }
+
+        #label_hint_text{
+            font-size:9pt;
+            color: red;
+            
+        }
+
+	</style>
+</head>
+<body>
+	<span class="title"> 「文章」對「敘述句」支持/反對/中立預測 資料庫建立頁面 </span>
+	<br>
+	<br>
+	<table class="main_table">
+		<tr class="small_row">
+			<td class="first_col">敘述句(論點)</td>
+			<td class="second_col"><input type="text" id="statement" placeholder="請清楚陳述論點  e.g.支持廢除死刑"></td>
+		</tr>
+		<tr class="small_row">
+			<td class="first_col">標記</td>
+			<td class="second_col">
+				支持<input type="radio" name="label" class="label" value="1">
+				　中立<input type="radio" name="label" class="label" value="0">
+                　反對<input type="radio" name="label" class="label" value="-1">
+                <span id="label_hint_text"> 請標記本篇文章同意(支持)/不同意(反對)這個論點，或持中立立場。</span>
+			</td>
+		</tr>
+		<tr class="small_row">
+			<td class="first_col">標題</td>
+			<td class="second_col"><input type="text" id="title" placeholder="e.g.人們為什麼支持死刑？"></td>
+		</tr>
+		<tr class="small_row">
+			<td class="first_col">作者</td>
+			<td class="second_col"><input type="text" id="author" placeholder="請只留人的名稱 e.g.陳小銘"></td>
+		</tr>
+		<tr class="small_row">
+			<td class="first_col">來源</td>
+			<td class="second_col"><input type="text" id="source" placeholder="e.g.廢除死刑推動聯盟"></td>
+		</tr>
+		<tr class="small_row">
+			<td class="first_col">來源網址</td>
+			<td class="second_col"><input type="text" id="url" placeholder="e.g. http://www.taedp.org.tw/story/1785"></td>
+		</tr>
+		<tr class="large_row">
+			<td class="first_col">內文</td>
+			<td class="second_col"><textarea id="content"></textarea></td>
+        </tr>
+        <tr class="small_row">
+            <td class="first_col">註解</td>
+			<td class="second_col"><input type="text" id="comment" placeholder="有什麼話想說嗎?"></td>
+		</tr>
+	</table><br>
+	<button id="submit">上傳</button>
+	<button id="reset">清空</button>
+</body>
+</html>
