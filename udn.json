@@ -34,7 +34,8 @@
         "productions.udn.com",
         "tickets.udn.com",
         "conference.udn.com",
-        "udntalks.udn.com"
+        "udntalks.udn.com",
+	"travel.udn.com"
             ],
     "deny" : [], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
@@ -50,10 +51,10 @@
             { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 }
         ],
         "content": [
-            { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@id='story_body_content']//p/text()", "expect":-1, "index": "merge_all" },
+	    { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "//div[@class='article_content']/text() | //div[@class='article_content']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "string(//div[@id='story'])", "expect":1, "index":0 },
-            { "xpath": "string(//div[@id='story_body_content']//p)", "expect":1, "index":0 },
             { "xpath": "string(//div[@class='article_content']//p)", "expect":1, "index":0 }
         ],
         "time": [
@@ -61,11 +62,11 @@
             { "xpath": "//div[@id='story_bady_info']//h3/text()", "expect":1, "index": 0 },
             { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
             { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
-            { "xpath": "//div[@id='story_body_content']/div[@id='story_bady_info']/h3/text()", "expect":1, "index":0 }
+            { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" }
 
                     ]
     },
-    "ignore_urls_regex": ["printpage\\.jsp", "member\\.udn\\.com"],
+    "ignore_urls_regex": [".*printpage\\.jsp.*", ".*member\\.udn\\.com.*"],
     "content_process" : {
     },
     "keywords": [],

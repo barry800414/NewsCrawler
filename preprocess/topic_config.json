@@ -1,9 +1,82 @@
 [
     {
         "id": 1,
+        "topic": "死刑存廢爭議",
         "target_table": "topic_news",
         "src_table": "merge",
         "keywords": ["廢除死刑", "死刑廢除", "取消死刑", "恢復死刑", "死刑取消", "死刑恢復", "死刑政策", "支持死刑", "反對死刑", "廢止死刑", "死刑廢止", "保留死刑", "死刑保留", "死刑存廢", "反死刑" ],
         "max_filtered_news": -1    
-    }
+    },
+    {
+        "id": 2,
+        "topic": "核四爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["核一", "核二", "核三", "核四" ,"龍門核能發電廠", "第四核能發電廠", "第四核電廠", "核能第四發電廠", "反核", "核能", "核電", "廢核", "擁核", "核廢料", "核災", "核安" ],
+        "max_filtered_news": -1    
+    },
+    {
+        "id": 3,
+        "topic": "海峽兩岸服務貿易協議爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["服貿" , "服務貿易" ],
+        "max_filtered_news": -1    
+    },
+    {
+        "id": 4,
+        "topic": "自由經濟示範區爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["自由經濟示範區" , "示範區", "自經區" ],
+        "max_filtered_news": -1    
+    },
+    {
+        "id": 5,
+        "topic": "台灣進口美國牛肉爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["美牛", "美國牛肉"],
+        "max_filtered_news": -1    
+    },
+    {
+        "id": 6,
+        "topic": "多元成家方案爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["多元成家", "婚姻平權", "同性婚姻", "伴侶盟", "伴侶權益推動", "同性戀婚姻", "同性戀成家", "同志婚姻", "同志成家", "守護家庭", "護家盟"],
+        "max_filtered_news": -1    
+    },
+    {
+        "id": 7,
+        "topic": "通姦除罪化爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["通姦除罪化", "廢除通姦罪", "通姦除罪", "廢除通姦罪", "刑法第239條", "刑法第二三九條", "廢除刑事通姦罪", "支持通姦罪"],
+        "max_filtered_news": -1    
+    },
+	{
+        "id": 8,
+        "topic": "兩岸和平協議爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["兩岸和平協議", "兩岸簽訂和平協議", "兩岸締結和平協議", "兩岸永久和平協議", "兩岸和平發展"],
+        "max_filtered_news": -1    
+    },
+	{
+		"id": 9,
+        "topic": "內湖慈濟園區開發案爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["內湖慈濟", "慈濟內湖", "慈濟大愛園區", "慈濟志業園區"],
+        "max_filtered_news": -1 
+	},
+	{
+		"id": 10,
+        "topic": "都市房價偏高爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["巢運", "合宜住宅", "社會住宅", "社宅", "居住人權入憲", "房產稅", "房地產稅", "專業者都市改革組織", "高房價", "房價天梯", "房地產持有成本", "不動產稅", "不動產相關稅制", "房地產持有稅", "房地產炒作", "房地炒作"],
+        "max_filtered_news": -1 
+	}
 ]
