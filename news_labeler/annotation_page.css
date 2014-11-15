@@ -1,0 +1,52 @@
+body{
+    padding-top: 70px;
+}
+#main_interface{
+        max-width: 800px;
+        margin: auto;
+        text-align: center;
+        font-family: "微軟正黑體";
+}
+
+.first_col{
+        min-width: 120px;
+        font-size:14pt;
+}
+
+.second_col{
+        font-size: 12pt;
+}
+
+#title{
+        font-size: 14pt;
+}
+
+#user_label_hint_text{
+        color:red;
+}
+
+.statement_row{
+        background-color:rgb(218, 255, 218);
+}
+
+.user_label_row{
+        background-color:rgb(255, 255, 171);
+}
+
+.user_label_row .second_col{
+        font-size: 14pt;
+}
+.news_row{
+        background-color: rgb(237, 237, 255);
+}
+
+#statement{
+        font-size: 14pt;
+}
+
+#submit{
+        width: 80px;
+        height: 45px;
+        font-size: 16pt;
+}
+
