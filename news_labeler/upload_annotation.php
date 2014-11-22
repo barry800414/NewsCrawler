@@ -1,10 +1,10 @@
 <?php
 
-if( !isset($_POST['user_valid_format_label']) ||
-    !isset($_POST['user_relevance_label']) ||
-    !isset($_POST['user_mention_pos_label']) ||
-    !isset($_POST['user_mention_neg_label']) ||
-    !isset($_POST['user_label']) || !isset($_POST['statement_id']) || 
+if( !isset($_POST['valid_format']) ||
+    !isset($_POST['relevance']) ||
+    !isset($_POST['mention_agree']) ||
+    !isset($_POST['mention_disagree']) ||
+    !isset($_POST['overall_polarity']) || !isset($_POST['statement_id']) || 
 	!isset($_POST['news_id']) || !isset($_POST['user_id'])){
 	$return_value = array();
 	$return_value['success'] = FALSE;
@@ -12,11 +12,11 @@ if( !isset($_POST['user_valid_format_label']) ||
 	exit();
 }
 
-$valid_format = $_POST['user_valid_format_label'];
-$relevance = $_POST['user_relevance_label'];
-$mention_agree = $_POST['user_mention_pos_label'];
-$mention_disagree = $_POST['user_mention_neg_label'];
-$label = $_POST['user_label'];
+$valid_format = $_POST['valid_format'];
+$relevance = $_POST['relevance'];
+$mention_agree = $_POST['mention_agree'];
+$mention_disagree = $_POST['mention_disagree'];
+$overall_polarity = $_POST['overall_polarity'];
 $statement_id = $_POST['statement_id'];
 $news_id = $_POST['news_id'];
 $user_id = $_POST['user_id'];
@@ -33,7 +33,7 @@ if (!($stmt = $mysqli->prepare($query))) {
 }
 
 $success=TRUE;
-if (!$stmt->bind_param("ssssssss", $statement_id, $news_id, $valid_format, $relevance, $mention_agree, $mention_disagree, $label, $user_id)) {
+if (!$stmt->bind_param("ssssssss", $statement_id, $news_id, $valid_format, $relevance, $mention_agree, $mention_disagree, $overall_polarity, $user_id)) {
     echo "Binding parameters failed: (" . $stmt->errno . ") " . $stmt->error;
     $success=FALSE;
 }

@@ -21,7 +21,7 @@ body{
         font-size: 14pt;
 }
 
-#user_label_hint_text{
+#overall_polarity_hint_text{
         color:red;
 }
 
@@ -29,11 +29,11 @@ body{
         background-color:rgb(218, 255, 218);
 }
 
-.user_label_row{
+.overall_polarity_row{
         background-color:rgb(255, 255, 171);
 }
 
-.user_label_row .second_col{
+.overall_polarity_row .second_col{
         font-size: 14pt;
 }
 .news_row{
