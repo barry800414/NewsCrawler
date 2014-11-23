@@ -5,13 +5,16 @@
         "iservice.ltn.com.tw",
         "week.ltn.com.tw",
         "3c.ltn.com.tw",
-        "video.ltn.com.tw"
+        "video.ltn.com.tw",
+	"fun.ltn.com.tw",
+	"auto.ltn.com.tw"
         ],
     "deny": [ 
         ".*print", 
         ".*_[0-9]",
         "news\\.ltn\\.com\\.tw\\/photo\\/*"
         ],
+    "allow": [],
     "start_urls": [ "http://www.ltn.com.tw" ],
     "xpath": {
         "title": [
@@ -31,6 +34,7 @@
             { "xpath": "//div[@class='content']/h2/span[@class='date']/text()", "expect":1, "index": 0 }
         ]
     },
+    "ignore_urls_regex": [".*election\\.ltn\\.com\\.tw\/2014\/list\\.php.*", ".*election\\.ltn\\.com\\.tw\/2014\/pic\\.php.*", ".*news\\.ltn\\.com\\.tw\/list\/.*"],
     "content_process" : {
     },
     "keywords": [],

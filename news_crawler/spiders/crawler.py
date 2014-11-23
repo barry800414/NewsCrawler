@@ -24,10 +24,8 @@ class NewsSpider(CrawlSpider):
         
     def set_debug_mode(self, debug):
         if debug == 1 or debug == '1' or debug == 'True': 
-            print 'true'
             self.debug=True
         else:
-            print 'false'
             self.debug=False
 
     def set_single_url(self, single_url):
@@ -41,9 +39,15 @@ class NewsSpider(CrawlSpider):
             config = json.load(f)
         self.config = config
         self.allowed_domains = config['allowed_domains']
+
+        # If we don't give crawler a single url request, we crawl all webpages in this website
         if self.single_url == None:
             self.start_urls = config['start_urls']
-            self.rules = [Rule(LinkExtractor(allow=['.*'], deny=config['deny'], deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
+            allow_config = '.*' #default: all links
+            if 'allow' in config and len(config['allow']) > 0:
+                allow_config = config['allow']
+            self.rules = [Rule(LinkExtractor(allow=allow_config, deny=config['deny'], 
+                deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
         else: # if single_url is setted, we only craw the data from the url
             self.start_urls = [self.single_url]
             self.rules = [Rule(LinkExtractor(allow=[self.single_url]), callback='parse_news', follow=False)]

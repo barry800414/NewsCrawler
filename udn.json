@@ -35,12 +35,13 @@
         "tickets.udn.com",
         "conference.udn.com",
         "udntalks.udn.com",
-	"travel.udn.com"
+	"travel.udn.com",
+	"ireporter.udn.com",
+	"m.udn.com",
+	"reader.udn.com"
             ],
-    "deny" : [], 
+    "deny" : [".*member\\.udn\\.com.*", ".*udn\\.com\/.*NEWS\/SPORTS.*", ".*udn\\.com\/.*NEWS\/ENTERTAINMENT.*", ".*udn\\.com\/fifa2014.*"], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
-    "start_urls2": ["http://udn.com/NEWS/mainpage.shtml"],
-    "error_log" : "udn.error_log", 
     "xpath": {
         "title": [
             { "xpath": "//div[@class='story_title']/text()", "expect":1, "index": 0 },
@@ -54,19 +55,21 @@
             { "xpath": "//div[@id='story_body_content']//p/text()", "expect":-1, "index": "merge_all" },
 	    { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "//div[@class='article_content']/text() | //div[@class='article_content']/p/text()", "expect":-1, "index":"merge_all" },
-            { "xpath": "string(//div[@id='story'])", "expect":1, "index":0 },
-            { "xpath": "string(//div[@class='article_content']//p)", "expect":1, "index":0 }
+            { "xpath": "//div[@id='story']//p/text()", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@class='article_content']//p/text()", "expect":-1, "index":"merge_all" }
         ],
         "time": [
             { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
             { "xpath": "//div[@id='story_bady_info']//h3/text()", "expect":1, "index": 0 },
             { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
             { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
-            { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" }
+            { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" },
+	    { "xpath": "//div[@class='article_content']/p[last()]/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@id='story']/p[@class='clear']/preceding-sibling::p[1]/text()", "expect":1, "index": 0}
 
-                    ]
+        ]
     },
-    "ignore_urls_regex": [".*printpage\\.jsp.*", ".*member\\.udn\\.com.*"],
+    "ignore_urls_regex": [".*printpage\\.jsp.*", ".*index\\.shtml", "money\\.udn\\.com\/fund\/forward\\.jsp.*"],
     "content_process" : {
     },
     "keywords": [],

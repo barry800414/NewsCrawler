@@ -1,6 +1,6 @@
 <html>
 <head>
-	<title>Corpus Input Page</title>
+	<title>Corpus Annotation Page</title>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
 	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
@@ -57,6 +57,7 @@
         }
 
         function content_preprocess(content){
+            console.log(content);
             return content.replace("\n", "<br><br>");
         }
 

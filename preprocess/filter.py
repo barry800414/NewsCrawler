@@ -20,14 +20,15 @@ class NewsFilter():
         self.db = db
         self.cursor = cursor
 
-    def contain_keywords(self, news, keywords):
+    def contain_keywords(self, news, keywords, min_num):
         title = news['title']
         content = news['content']
 
+        cnt = 0
         for w in keywords:
-            if title.find(w) != -1:
-                return True
-            if content.find(w) != -1:
+            cnt += title.count(w)
+            cnt += content.count(w)
+            if cnt >= min_num:
                 return True
         return False
 
@@ -59,6 +60,7 @@ class NewsFilter():
         src_table = topic['src_table']
         keywords = topic['keywords']
         max_news = topic['max_filtered_news']
+        min_num = topic['minimum_frequency']
 
         news_list = list()
         self.exec_select_cmd(src_table)
@@ -67,7 +69,7 @@ class NewsFilter():
             news = self.fetch_one_news()
             if news == None:
                 break
-            if self.contain_keywords(news, keywords):
+            if self.contain_keywords(news, keywords, min_num):
                 news_list.append(news['id'])
                 if len(news_list) >= max_news and max_news != -1:
                     break
