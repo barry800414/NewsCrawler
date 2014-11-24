@@ -38,9 +38,13 @@
 	"travel.udn.com",
 	"ireporter.udn.com",
 	"m.udn.com",
-	"reader.udn.com"
+	"reader.udn.com",
+ 	"uevent.udn.com",
+	"linefriends.ishow.udn.com",
+	"edn.udn.com",
+	"oops.udn.com"
             ],
-    "deny" : [".*member\\.udn\\.com.*", ".*udn\\.com\/.*NEWS\/SPORTS.*", ".*udn\\.com\/.*NEWS\/ENTERTAINMENT.*", ".*udn\\.com\/fifa2014.*"], 
+    "deny" : [".*member\\.udn\\.com.*", ".*udn\\.com\/.*NEWS\/SPORTS.*", ".*udn\\.com\/.*NEWS\/ENTERTAINMENT.*", ".*udn\\.com\/fifa2014.*", "edn\\.udn\\.com\/ACT.*", "(https|http)\\:\\:member\\.udn\\.com.*"], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
     "xpath": {
         "title": [
@@ -49,7 +53,8 @@
             { "xpath": "//td[@class='story_title']//div/text()", "expect":1, "index": 0 },
             { "xpath": "//td[@class='story_title']//div[@style='float:left']/text()", "expect":1, "index": 0 },
             { "xpath": "//div[@id='story_body_content']//h2[@id='story_art_title']/text()", "expect":1, "index": 0 },
-            { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 }
+            { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 },
+	    { "xpath": "//div[@id='story']/h1/text()", "expect":1, "index": 0 }
         ],
         "content": [
             { "xpath": "//div[@id='story_body_content']//p/text()", "expect":-1, "index": "merge_all" },
@@ -65,7 +70,9 @@
             { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
             { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" },
 	    { "xpath": "//div[@class='article_content']/p[last()]/text()", "expect":1, "index": 0 },
-            { "xpath": "//div[@id='story']/p[@class='clear']/preceding-sibling::p[1]/text()", "expect":1, "index": 0}
+            { "xpath": "//div[@id='story']/p[@class='clear']/preceding-sibling::p[1]/text()", "expect":1, "index": 0},
+	    { "xpath": "//div[@class='article_content']/text()", "expect":2, "index": 1},
+	    { "xpath": "//div[@class='article_content']/text()", "expect":1, "index": 0}
 
         ]
     },
