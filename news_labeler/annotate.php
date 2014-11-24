@@ -57,8 +57,8 @@
         }
 
         function content_preprocess(content){
-            console.log(content);
-            return content.replace("\n", "<br><br>");
+            //console.log(content);
+            return content.replace(/\n/g, "<br><br>");
         }
 
         function checkInput(){
