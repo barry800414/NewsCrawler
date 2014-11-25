@@ -8,6 +8,9 @@ body{
         font-family: "微軟正黑體";
 }
 
+.disable_row{
+        background-color: #DDD;
+}
 .first_col{
         min-width: 120px;
         font-size:14pt;
@@ -29,11 +32,11 @@ body{
         background-color:rgb(218, 255, 218);
 }
 
-.overall_polarity_row{
+.label_row{
         background-color:rgb(255, 255, 171);
 }
 
-.overall_polarity_row .second_col{
+.label_row .second_col{
         font-size: 14pt;
 }
 .news_row{
@@ -49,4 +52,13 @@ body{
         height: 45px;
         font-size: 16pt;
 }
-
+.visible {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 2s linear;
+}
+.hidden {
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s 2s, opacity 2s linear;
+}

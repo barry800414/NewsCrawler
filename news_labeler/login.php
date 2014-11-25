@@ -61,14 +61,14 @@
     <label>Password</label>
     <input type="password" class="form-control" name="user_pwd" placeholder="Password">
   </div>
-  <button type="submit" class="btn btn-default">Submit</button>
+  <button type="submit" class="btn btn-primary">Submit</button>
   <button type="reset" class="btn btn-default">Reset</button>
 </form>
 <?php
 	if ($_GET['err']==1)
-		echo "<font color='red'>Wrong password!!</font><p>";
+		echo "<font color='red'>密碼錯誤! Wrong password!!</font><p>";
 	if ($_GET['err']==2)
-		echo "<font color='red'>Please log in first!</font><p>";
+		echo "<font color='red'>請先登入! Please log in first!</font><p>";
 ?>
 
 <div align="center">

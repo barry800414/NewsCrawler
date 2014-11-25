@@ -98,5 +98,25 @@
 		"statements": ["支持提高房地產持有稅"],
         "max_filtered_news": -1,
         "minimum_frequency": 3
+	},
+	{
+		"id": 11,
+        "topic": "健保是否開放陸生投保爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["陸生納保", "陸生納入健保", "陸生加保", "陸生納健保", "第6類第3目", "第六類第三目", "中國籍學生納保", "中國學生納保", "中國籍學生納入健保", "中國籍學生納健保", "中國學生納入健保", "中國學生納健保"],
+		"statements": ["支持陸生納入健保"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 12,
+        "topic": "台南鐵陸東移爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["台南鐵路東移", "臺南鐵路東移", "台南鐵路地下化", "臺南鐵路地下化", "南鐵東移", "臺南市區鐵路地下化計畫", "台南市區鐵路地下化計畫"],
+		"statements": ["支持台南鐵路東移"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
 	}
 ]
