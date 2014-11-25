@@ -7,7 +7,8 @@
         "3c.ltn.com.tw",
         "video.ltn.com.tw",
 	"fun.ltn.com.tw",
-	"auto.ltn.com.tw"
+	"auto.ltn.com.tw",
+	"blog.ltn.com.tw"
         ],
     "deny": [ 
         ".*print", 
@@ -34,7 +35,7 @@
             { "xpath": "//div[@class='content']/h2/span[@class='date']/text()", "expect":1, "index": 0 }
         ]
     },
-    "ignore_urls_regex": [".*election\\.ltn\\.com\\.tw\/2014\/list\\.php.*", ".*election\\.ltn\\.com\\.tw\/2014\/pic\\.php.*", ".*news\\.ltn\\.com\\.tw\/list\/.*"],
+    "ignore_urls_regex": [".*election\\.ltn\\.com\\.tw\/2014\/(list|pic|intro|candidate|statistics)\\.php.*", ".*news\\.ltn\\.com\\.tw\/(list|rss)\/.*"],
     "content_process" : {
     },
     "keywords": [],

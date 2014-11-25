@@ -24,6 +24,7 @@ class NewsSpider(CrawlSpider):
         
     def set_debug_mode(self, debug):
         if debug == 1 or debug == '1' or debug == 'True': 
+            print 'debug mode'
             self.debug=True
         else:
             self.debug=False
@@ -50,7 +51,16 @@ class NewsSpider(CrawlSpider):
                 deny_domains=config['deny_domains']), callback='parse_news', follow=True)]
         else: # if single_url is setted, we only craw the data from the url
             self.start_urls = [self.single_url]
-            self.rules = [Rule(LinkExtractor(allow=[self.single_url]), callback='parse_news', follow=False)]
+            print self.single_url
+            allow_url = self.single_url.replace('?', '\\?')
+            allow_url = allow_url.replace('.', '\\.')
+            allow_url = allow_url.replace('=', '\\=')
+            allow_url = allow_url.replace('&','\\&')
+            allow_url = allow_url.replace(':', '\\:')
+            allow_url = allow_url.replace('/', '\\/')
+            #allow_url = allow_url.replace('_', '\\_')
+            print allow_url
+            self.rules = [Rule(LinkExtractor(allow=[allow_url]), callback='parse_news', follow=False)]
 
     def parse_news(self, response):
         news = NewsItem()
