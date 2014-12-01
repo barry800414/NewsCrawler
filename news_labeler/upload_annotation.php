@@ -27,12 +27,12 @@ $query =
 "INSERT INTO `statement_news`(statement_id, news_id, valid_format, relevance, mention_agree, mention_disagree, label, labeler) VALUES(?,?,?,?,?,?,?,?)";
 
 /* prepare statements*/
+$success=TRUE;
 if (!($stmt = $mysqli->prepare($query))) {
     echo "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
     $success=FALSE;
 }
 
-$success=TRUE;
 if (!$stmt->bind_param("ssssssss", $statement_id, $news_id, $valid_format, $relevance, $mention_agree, $mention_disagree, $overall_polarity, $user_id)) {
     echo "Binding parameters failed: (" . $stmt->errno . ") " . $stmt->error;
     $success=FALSE;

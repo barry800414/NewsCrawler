@@ -36,6 +36,7 @@
         $("#statement_row").hide();
         $("#mention_row").hide();
         $("#label_row").hide();
+        $("#submit").hide();
     }
 
     function click_valid_format_button(){
@@ -82,7 +83,7 @@
                 $("#statement_row").show();
                 $("#mention_row").show();
                 $("#label_row").show();
-
+                $("#submit").show();
                 var destination = $("#statement_row").offset().top;
                 $("html:not(:animated),body:not(:animated)").animate({ scrollTop: destination-50}, 500 );
             }
@@ -96,12 +97,16 @@
 
     //containing existing statement, author, source
     function load_a_statement_news(){
+        var user_id = <?php echo '"'.$_SESSION['valid_user'].'";'; ?>
         $.ajax({
             type: "POST",
             url: "load_a_statement_news.php",
+            data: {
+                user_id: user_id
+            },
             dataType: "json",
             success: function(response){
-                console.log(response);
+                //console.log(response);
                 if(response['success']){
                     var data = response['data']; 
                     $("#statement_id").val(data["statement_id"]);
@@ -120,6 +125,9 @@
                         $(this).text(data["topic_name"]);
                     });
                 }
+                else{
+                    alert("1.資料可能已全部標記完畢 \n2.您已經沒有可以標記的文章了 \n3.發生錯誤。 \n\n1.There is no articles to be labeled. \n2.There is no article for you to label. \n3. Errors occurred.");
+                }
             }
         });
     }
@@ -132,7 +140,7 @@
             dataType: "json",
             data: { user_id: user_id },
             success: function(response){
-                console.log(response);
+                //console.log(response);
                 if(response['success']){
                     console.log(response['labeled_num']);
                     $("#labeled_num").text(response['labeled_num']);
@@ -144,7 +152,7 @@
 
     function content_preprocess(content){
         //console.log(content);
-        return content.replace(/\n/g, "<br><br>");
+        return content.replace(/[\n]+/g, "<br><br>");
     }
 
     function checkInput(){
