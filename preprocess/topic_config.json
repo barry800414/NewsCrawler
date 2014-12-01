@@ -11,7 +11,7 @@
     },
     {
         "id": 2,
-        "topic": "核四爭議",
+        "topic": "核四興建案爭議",
         "target_table": "topic_news",
         "src_table": "merge",
         "keywords": ["核一", "核二", "核三", "核四" ,"龍門核能發電廠", "第四核能發電廠", "第四核電廠", "核能第四發電廠", "反核", "核能", "核電", "廢核", "擁核", "核廢料", "核災", "核安" ],
@@ -91,7 +91,7 @@
 	},
 	{
 		"id": 10,
-        "topic": "都市房價偏高爭議",
+        "topic": "提高房地產持有稅爭議",
         "target_table": "topic_news",
         "src_table": "merge",
         "keywords": ["巢運", "合宜住宅", "社會住宅", "社宅", "居住人權入憲", "房產稅", "房地產稅", "專業者都市改革組織", "高房價", "房價天梯", "房地產持有成本", "不動產稅", "不動產相關稅制", "房地產持有稅", "房地產炒作", "房地炒作"],
@@ -116,6 +116,96 @@
         "src_table": "merge",
         "keywords": ["台南鐵路東移", "臺南鐵路東移", "台南鐵路地下化", "臺南鐵路地下化", "南鐵東移", "臺南市區鐵路地下化計畫", "台南市區鐵路地下化計畫"],
 		"statements": ["支持台南鐵路東移"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 13,
+        "topic": "基本薪資調漲爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["基本工資", "基本薪資", "最低薪資", "最低工資"],
+		"statements": ["支持調漲基本薪資"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 14,
+        "topic": "無薪實習爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["無薪實習"],
+		"statements": ["支持無薪實習"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 15,
+        "topic": "歷史課綱微調(去台灣化)爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["課綱微調", "微調課綱", "歷史課綱", "去台灣化", "課綱爭議"],
+		"statements": ["支持歷史課綱去台灣化"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 16,
+        "topic": "美麗灣渡假村開發案爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["美麗灣", "杉原海岸"],
+		"statements": ["支持美麗灣渡假村公司開發杉原海岸"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 17,
+        "topic": "苑裡鎮風力發電廠興建爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["苑裡鎮風力發電廠", "苑裡鎮風力發電機", "苑裡鎮大型風力發電機", "苑裡反瘋車", "苑裡反風車"],
+		"statements": ["支持興建苑裡風力發電機"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 18,
+        "topic": "派遣人力合法化爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["派遣人力合法化",  "派遣勞工合法化", "派遣勞力合法化", "派遣勞工保護法", "派遣保護法"],
+		"statements": ["支持遣人力合法化"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 19,
+        "topic": "十二年國教-超額比序爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["超額比序"],
+		"statements": ["支持超額比序制度"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 20,
+        "topic": "十二年國教-特色招生制度爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["特色招生"],
+		"statements": ["支持特色招生制度"],
+        "max_filtered_news": -1,
+        "minimum_frequency": 3
+	},
+	{
+		"id": 21,
+        "topic": "十二年國教-免學費是否排富爭議",
+        "target_table": "topic_news",
+        "src_table": "merge",
+        "keywords": ["十二年國教排富", "12年國教排富", "十二年國教是否排富", "12年國教是否排富","十二年國教是否應排富", "12年國教是否應排富","十二年國教是要排富", "12年國教是否要排富", "十二年國教應該排富", "12二年國教應該排富", "十二年國教若排富", "12年國教若排富"],
+		"statements": ["支持免學費應排富"],
         "max_filtered_news": -1,
         "minimum_frequency": 3
 	}

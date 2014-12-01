@@ -1,12 +1,7 @@
 <?php
-
-
 require_once('connect.php');
 
-
-$query = 
-"";
-
+/*Get a piece of news-statement*/
 $query =
 "SELECT 
 	A.diff, C.topic_id, D.name, C.id as statement_id,
@@ -24,7 +19,7 @@ WHERE
 //echo $query;
 
 $success=TRUE;
-/*statement*/
+
 if (!($stmt = $mysqli->prepare($query))) {
     echo "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
     $success=FALSE;
@@ -73,6 +68,7 @@ else{
     $return_value = array();
     $return_value['success'] = FALSE;
 }
+
 echo json_encode($return_value);
 
 
