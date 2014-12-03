@@ -122,7 +122,6 @@ class DuplicateRemover():
     def remove_duplicated_news(self):
         for topic in self.topic_config:
             self.clean_one_topic_news(topic)
-            break
         return
 
     def remove_data_from_table(self, table_name, topic_id, news_id_set):
