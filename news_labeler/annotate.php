@@ -301,7 +301,7 @@
                     </label>
                     <br>
                     <label class="radio-inline">
-                        <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼等等）
+                        <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼、內文主題不一致等等）
                     </label>
                     <br>
                     <label class="radio-inline">
@@ -315,7 +315,7 @@
             </tr>
             <tr id="topic_row" class="statement_row" >
                 <td class="first_col">主題</td>
-                <td class="second_col"><span id="topic" class="second_col topic"></span></td>
+                <td class="second_col"><span id="topic" class="second_row topic"></span></td>
             </tr>
             <tr id="relevance_row" class="label_row">
     			<td class="first_col">文章與主題相關性</td>
@@ -380,11 +380,11 @@
     			</td>
     		</tr>
         </table>
-            <br>
+        <p style="text-align:right"> 若欲取消或放棄標記此篇文章，請按重新整理即可</p>
+            <br><br>
             <button class="btn btn-primary" id="submit">上傳</button>
     	    <div style="height:100px"></div>
         </div>
-
-    	<!--<button id="reset">清空</button>-->
+            	<!--<button id="reset">清空</button>-->
     </body>
     </html>

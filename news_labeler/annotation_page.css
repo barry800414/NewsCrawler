@@ -13,7 +13,7 @@ body{
 }
 .first_col{
         min-width: 120px;
-        font-size:14pt;
+        font-size: 14pt;
 }
 
 .second_col{
@@ -33,6 +33,7 @@ body{
 }
 .topic{
     color:blue;
+    font-size:14pt;
 }
 .this_article{
     font-weight:bold;
