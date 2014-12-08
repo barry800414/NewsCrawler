@@ -4,6 +4,7 @@
         "paper.udn.com", 
         "co.udn.com", 
         "member.udn.com", 
+        "https://member.udn.com",
         "blog.udn.com", 
         "classic-album.udn.com",
         "classic-blog.udn.com",
@@ -35,16 +36,26 @@
         "tickets.udn.com",
         "conference.udn.com",
         "udntalks.udn.com",
-	"travel.udn.com",
-	"ireporter.udn.com",
-	"m.udn.com",
-	"reader.udn.com",
- 	"uevent.udn.com",
-	"linefriends.ishow.udn.com",
-	"edn.udn.com",
-	"oops.udn.com"
+	    "travel.udn.com",
+	    "ireporter.udn.com",
+	    "m.udn.com",
+	    "reader.udn.com",
+ 	    "uevent.udn.com",
+	    "linefriends.ishow.udn.com",
+	    "edn.udn.com",
+	    "oops.udn.com",
+        "novel.udn.com"
             ],
-    "deny" : [".*member\\.udn\\.com.*", ".*udn\\.com\/.*NEWS\/SPORTS.*", ".*udn\\.com\/.*NEWS\/ENTERTAINMENT.*", ".*udn\\.com\/fifa2014.*", "edn\\.udn\\.com\/ACT.*", "(https|http)\\:\\:member\\.udn\\.com.*"], 
+    "deny" : [ 
+        ".*member\\.udn\\.com.*", 
+        ".*udn\\.com\/.*NEWS\/SPORTS.*", 
+        ".*udn\\.com\/.*NEWS\/ENTERTAINMENT.*", 
+        ".*udn\\.com\/fifa2014.*", 
+        "edn\\.udn\\.com\/ACT.*", 
+        "(https|http)\\:\/\/member\\.udn\\.com.*", 
+        ".*forum\\.udn\\.com\/forum\/letter\\.jsp.*", 
+        ".*vision\\.udn\\.com\/event\/youth_future\/.*"
+    ], 
     "start_urls": [ "http://udn.com/NEWS/OPINION/" ],
     "xpath": {
         "title": [
@@ -54,14 +65,17 @@
             { "xpath": "//td[@class='story_title']//div[@style='float:left']/text()", "expect":1, "index": 0 },
             { "xpath": "//div[@id='story_body_content']//h2[@id='story_art_title']/text()", "expect":1, "index": 0 },
             { "xpath": "//div[@class='article_title']/text()", "expect":1, "index": 0 },
-	    { "xpath": "//div[@id='story']/h1/text()", "expect":1, "index": 0 }
+	        { "xpath": "//div[@id='story']/h1/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@id='story_body']/h2/text()", "expect":1, "index": 0 }
+
         ],
         "content": [
             { "xpath": "//div[@id='story_body_content']//p/text()", "expect":-1, "index": "merge_all" },
 	    { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "//div[@class='article_content']/text() | //div[@class='article_content']/p/text()", "expect":-1, "index":"merge_all" },
             { "xpath": "//div[@id='story']//p/text()", "expect":-1, "index":"merge_all" },
-            { "xpath": "//div[@class='article_content']//p/text()", "expect":-1, "index":"merge_all" }
+            { "xpath": "//div[@class='article_content']//p/text()", "expect":-1, "index":"merge_all" }, 
+            { "xpath": "//div[@id='story_body']//p/text()", "expect":-1, "index":"merge_all" }
         ],
         "time": [
             { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
@@ -69,14 +83,25 @@
             { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
             { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
             { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" },
-	    { "xpath": "//div[@class='article_content']/p[last()]/text()", "expect":1, "index": 0 },
+	    { "xpath": "//div[@class='article_content']/p/text()", "expect":-1, "index": -1 },
+        { "xpath": "//div[@class='article_content']/text()", "expect":-1, "index": -1 },
             { "xpath": "//div[@id='story']/p[@class='clear']/preceding-sibling::p[1]/text()", "expect":1, "index": 0},
 	    { "xpath": "//div[@class='article_content']/text()", "expect":2, "index": 1},
-	    { "xpath": "//div[@class='article_content']/text()", "expect":1, "index": 0}
-
+	    { "xpath": "//div[@class='article_content']/text()", "expect":1, "index": 0},
+        { "xpath": "//div[@id='story_body']/h3/text()", "expect":1, "index": 0}
         ]
     },
-    "ignore_urls_regex": [".*printpage\\.jsp.*", ".*index\\.shtml", "money\\.udn\\.com\/fund\/forward\\.jsp.*"],
+    "ignore_urls_regex": [
+        ".*printpage\\.jsp.*", 
+        ".*index\\.shtml", 
+        ".*money\\.udn\\.com\/fund\/(forward|itempage)\\.jsp.*", 
+        ".*money\\.udn\\.com\/story_author\\.php.*", 
+        ".*opinion\\.udn\\.com\/author\/articles.*", 
+        ".*fe3\\.udn\\.com.*",
+        ".*(fund|theme|opinion)\\.udn\\.com\/(author|rank)\/.*",
+        ".*member\\.udn\\.com.*",
+        "(https|http)\\:\/\/member\\.udn\\.com.*"
+    ],
     "content_process" : {
     },
     "keywords": [],

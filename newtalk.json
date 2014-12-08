@@ -1,0 +1,42 @@
+{
+    "allowed_domains": [ "newtalk.tw" ],
+    "deny_domains": [],
+    "deny": [ ".*newtalk\\.tw\/mobile.*", ".*newtalk\\.tw\/blog_read\\.php.*", ".*newtalk\\.tw\/pkbar\\.php.*", ".*newtalk\\.tw\/index_video\\.php.*"
+        ],
+    "allow": [],
+    "start_urls": ["http://newtalk.tw/pkbar_list.php"],
+    "xpath": {
+        "title": [
+            { "xpath": "//*[@id='content']/div[4]/label/text()", "expect":1, "index":0 },
+            { "xpath": "//*[@id='content']/div[3]/label/text()", "expect":1, "index":0 }
+        ],
+        "content": [
+            { "xpath": "//*[@id='content']/div[5]/div[2]/div[1]/text()", "expect":-1, "index": "1:" },
+	    { "xpath": "//*[@id='content']/div[4]/div[3]/text()","expect":-1, "index": "1:"},
+	    { "xpath": "//*[@id='content']/div[6]/div[1]/table/tbody/tr[2]/text()","expect":-1, "index": "1:"},
+	    { "xpath": "//*[@id='content']/div[6]/div[2]/table/tbody/tr[2]/td/div/text()","expect":-1, "index": "1:"},
+	    { "xpath": "//*[@id='content']/div[6]/div[2]/table/tbody/tr[1]/td/text()","expect":-1, "index": "1:"},
+	    { "xpath": "//*[@id='content']/div[6]/div[1]/table/tbody/tr[1]/td/text()","expect":-1, "index": "1:"},
+        { "xpath": "//div[@class='news_ctxt_area_word']/text()", "expect":-1, "index": "1:"}
+        ],
+	"time":[{ "xpath": "//div[@class='news_ctxt_area_word']/text()","expect":-1,"index":0}
+	]
+    },
+    "ignore_urls_regex": [ ".*newtalk\\.tw\/news_list\\.php\\?.*"],
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "newtalk"
+    },
+    "short_name": "newtalk",
+    "src_name": "新頭殼",
+    "encoding": "utf-8"
+
+}
+

@@ -1,0 +1,37 @@
+{
+    "allowed_domains": [ "pnn.pts.org.tw" ],
+    "deny_domains": [],
+    "deny": [".*pnn\\.pts\\.org\\.tw\/main\/.*(\\?replytocom\\=|comment\\-page).*"],
+    "allow": [],
+    "start_urls": [ "http://pnn.pts.org.tw/main" ],
+    "xpath": {
+        "title": [
+            { "xpath": "//div[@id='content']//h2[@class='title']/text()", "expect":1, "index": 0 },
+            { "xpath": "//div[@id='content']//h2[@class='title']/text()", "expect":-1, "index": 0 }
+        ],
+        "content": [ 
+            { "xpath": "//div[@id='content']//div[@class='entry']/p/text() | //div[@id='content']//div[@class='entry']/p/a/text() | //div[@id='content']//div[@class='entry']/p/span/text()", "expect":-1, "index": "merge_all" },
+            { "xpath": "//div[@id='content']//div[@class='entry']/div/p/text() | //div[@id='content']//div[@class='entry']/div/p/a/text() | //div[@id='content']//div[@class='entry']/div/p/span/text()", "expect":-1, "index": "merge_all" }
+        ],
+        "time": [
+            { "xpath": "//div[@id='content']//div[@class='postdate']/text()", "expect":1, "index": 0 }
+        ]
+    },
+    "ignore_urls_regex": [".*pnn\\.pts\\.org\\.tw\/main\/(category\/|tag\/|page\/|\\?s\\=).*", ".*pnn\\.pts\\.org\\.tw\/main\/.*edd_.*", ".*pnn\\.pts\\.org\\.tw\/main\/.*\/[0-9a-zA-Z]+[\\-_][0-9]+\/"
+    ],
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "pnn"
+    },
+    "short_name": "pnn",
+    "src_name": "PNN公視新聞議題中心",
+    "encoding": "utf-8"
+    
+}

@@ -1,4 +1,4 @@
 {
     "target_table": "merge",
-    "src_table": [ "ltn", "thenewslens", "setn" ]
+    "src_table": [ "ltn", "thenewslens", "setn", "pnn", "udn" ]
 }
