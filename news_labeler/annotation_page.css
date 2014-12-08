@@ -28,6 +28,21 @@ body{
         color:red;
 }
 
+.statement{
+    color:blue;
+}
+.topic{
+    color:blue;
+}
+.this_article{
+    font-weight:bold;
+}
+
+.highlight_text{
+    color:green;
+    font-weight: bold;
+}
+
 .statement_row{
         background-color:rgb(218, 255, 218);
 }
@@ -44,7 +59,7 @@ body{
 }
 
 #statement{
-        font-size: 14pt;
+    font-size: 14pt;
 }
 
 #submit{

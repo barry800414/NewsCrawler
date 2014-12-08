@@ -118,7 +118,13 @@
                     //$("#source").text(response["source"]);
                     $("#title").text(data["news_title"]);
                     $("#content").html(content_preprocess(data["news_content"]));
-                    $("#url").text(data["news_url"]);
+                    if(data["news_url"].length > 60){
+                        var shorten_url = data["news_url"].substring(0,59)+"...";
+                    }
+                    else{
+                        var shorten_url = data["news_url"];
+                    }
+                    $("#url").text(shorten_url);
                     $("#url").attr("href", data["news_url"]);
                     $("#topic").text(data["topic_name"]);
                     $(".topic").each(function(){
@@ -291,22 +297,25 @@
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
+                        <input type="radio" name="valid_format" class="valid_format" value="small_error">內文有些許錯誤，但不致影響閱讀
+                    </label>
+                    <br>
+                    <label class="radio-inline">
+                        <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼等等）
+                    </label>
+                    <br>
+                    <label class="radio-inline">
     				    <input type="radio" name="valid_format" class="valid_format" value="valid">內文無錯誤&nbsp;&nbsp;
                     </label>
-                    <label class="radio-inline">
-    				    <input type="radio" name="valid_format" class="valid_format" value="small_error">內文有些許錯誤&nbsp;&nbsp;
-                    </label>
-                    <label class="radio-inline">
-    				    <input type="radio" name="valid_format" class="valid_format" value="invalid">內文不完整/格式有大錯誤/有很多非文章內文的雜訊&nbsp;&nbsp;
-                    </label>
+
                 </div>
-                <br><span id="overall_polarity_hint_text"> 請標記本篇文章內，是否有缺漏、非內文的文字在內(例如廣告)、或格式上的錯誤。<br>若文章內有少許錯誤，請標記「內文有些許錯誤」。若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。若沒有錯誤，請標記「內文無錯誤」。</span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有缺漏、非內文的文字在內(例如廣告)、或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span>
                     <button class="btn btn-primary pull-right" id="valid_format_button">確定</button>
                 </td>
             </tr>
             <tr id="topic_row" class="statement_row" >
                 <td class="first_col">主題</td>
-                <td class="second_col"><span id="topic" class="second_col"></span></td>
+                <td class="second_col"><span id="topic" class="second_col topic"></span></td>
             </tr>
             <tr id="relevance_row" class="label_row">
     			<td class="first_col">文章與主題相關性</td>
@@ -315,13 +324,14 @@
                     <label class="radio-inline">
                         <input type="radio" name="relevance" class="relevance" value="relevant"> 與「<span class="topic"></span>」高度相關 &nbsp;&nbsp;
                     </label>
+                    <br>
                     </label>
                     <label class="radio-inline">
-                        <input type="radio" name="relevance" class="relevance " value="irrelevant"> 與 「<span class="topic"></span>」無相關或不太相關&nbsp;&nbsp;
+                        <input type="radio" name="relevance" class="relevance " value="irrelevant"> 與「<span class="topic"></span>」無相關或不太相關&nbsp;&nbsp;
                     </label>
                 </div>
     				
-                <br><span id="overall_polarity_hint_text"> 請標記<strong>本篇文章</strong>與「<span class="topic"></span> 」是否高度相關。若只是一篇剛好提及文章關鍵字的新聞，但內容並非以「<span class="topic"></span>」這個主題為主，請標記為無相關。</span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>與「<span class="topic"></span> 」是否高度相關。若只是一篇剛好提及文章關鍵字的新聞，但內容並非以「<span class="topic"></span>」這個主題為主，請標記為無相關。</span>
                     <button class="btn btn-primary pull-right" id="relevance_button">確定</button>
                 </td>
     		</tr>
@@ -336,15 +346,16 @@
     			<td class="second_col">
                 <div>
                     <label class="checkbox-inline">
-                        <input type="checkbox" name="user_mention_label" class="user_mention_label" value="positive"> 提及支持「<span class="statement"></span>」之論述 &nbsp;&nbsp;
+                        <input type="checkbox" name="user_mention_label" class="user_mention_label" value="positive"> 提及支持「<span class="statement"></span>」之論述
                     </label>
+                    <br>
                     </label>
                     <label class="checkbox-inline">
-                        <input type="checkbox" name="user_mention_label" class="user_mention_label " value="negative"> 提及反對「<span class="statement"></span>」之論述 &nbsp;&nbsp;
+                        <input type="checkbox" name="user_mention_label" class="user_mention_label " value="negative"> 提及反對「<span class="statement"></span>」之論述
                     </label>
                 </div>
     				
-                <br><span id="overall_polarity_hint_text"> 請標記<strong>本篇文章</strong>是否提及支持或反對「<span class="statement"></span>」的論述 (可複選或都不選) </span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>是否提及支持或反對「<span class="statement"></span>」的論述 (可複選或都不選) </span>
     			</td>
     		</tr>
             
@@ -353,17 +364,19 @@
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
-    				    <input type="radio" name="overall_polarity" class="overall_polarity" value="agree">支持&nbsp;&nbsp;
+    				    <input type="radio" name="overall_polarity" class="overall_polarity" value="agree">支持「<span class="statement"></span>」
                     </label>
+                    <br>
                     <label class="radio-inline">
-                        <input type="radio" name="overall_polarity" class="overall_polarity" value="neutral">中立 &nbsp;&nbsp;
+                        <input type="radio" name="overall_polarity" class="overall_polarity" value="neutral">中立
                     </label>
+                    <br>
                     <label class="radio-inline">
-                        <input type="radio" name="overall_polarity" class="overall_polarity" value="oppose">反對&nbsp;&nbsp;
+                        <input type="radio" name="overall_polarity" class="overall_polarity" value="oppose">反對「<span class="statement"></span>」
                     </label>
                 </div>
     				
-                <br><span id="overall_polarity_hint_text"> 請標記<span class="highlight_text">本篇文章</span>針對<span class="statement"></span> <span class="highlight_text2">整體而言</span> 表達 (1)支持、同意 (2)持中立立場。(3)反對、不同意 </span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>針對「<span class="statement"></span>」這個立場<span class="highlight_text">整體而言</span> 表達 (1)支持、同意 (2)持中立立場 或(3)反對、不同意 </span>
     			</td>
     		</tr>
         </table>
