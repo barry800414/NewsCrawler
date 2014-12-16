@@ -1,0 +1,8 @@
+[
+    {
+        "table": "thenewslens",
+        "title_regex_list": [".*懶人時報.*"],
+        "content_regex_list": []
+    }
+]
+      
