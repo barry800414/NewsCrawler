@@ -21,7 +21,9 @@
 
         <ul class="nav navbar-nav navbar-right">
         <?php     
-		    session_start();
+            if(session_id() == '') {
+                session_start();
+            }   
             if(!isset($_SESSION['valid_user'])){ 
                 echo '<li><a href="register.php">Register</a></li>';
 			    echo '<li><a href="login.php">Login</a></li>';

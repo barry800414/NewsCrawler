@@ -9,44 +9,50 @@
 <body style="padding-top:70px">
 <?php
 	require_once("head.php");
-    session_start();
+    #session_start();
     require_once("connect.php");
-	if ($_POST['user_id']!="" && $_POST['user_pwd']!="" && $_GET['err']==0){
-		$user_id = $_POST['user_id'];
-		$user_pwd = $_POST['user_pwd'];
-		$query = "select COUNT(*) from labeler where id =? AND password=?";
-		$success=TRUE;
-		/*statement*/
-		if (!($stmt = $mysqli->prepare($query))) {
-			echo "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
-			$success=FALSE;
-		}
+    if(!isset($_POST['user_id']) && !isset($_GET['err'])){
+        header("location: login.php?err=2");
+        exit();  
+    }
+    else{
+        if (isset($_POST['user_id']) && $_POST['user_id']!="" && $_POST['user_pwd']!="" && $_GET['err']==0){
+            $user_id = $_POST['user_id'];
+            $user_pwd = $_POST['user_pwd'];
+            $query = "select COUNT(*) from labeler where id =? AND password=?";
+            $success=TRUE;
+            /*statement*/
+            if (!($stmt = $mysqli->prepare($query))) {
+                echo "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
+                $success=FALSE;
+            }
 
-		if (!$stmt->bind_param("ss", $user_id, $user_pwd)) {
-			echo "Binding parameters failed: (" . $stmt->errno . ") " . $stmt->error;
-			$success=FALSE;
-		}
-		
-		if (!$stmt->execute()) {
-			echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
-			$success=FALSE;
-		}
-		
-		$num = NULL;
-		if (!$stmt->bind_result($num)) {
-			echo "Bind failed: (" . $stmt->errno . ") " . $stmt->error;
-			$success=FALSE;
-		}
-		$stmt->fetch();
-		if($success && $num == 1){
-            //login success
-			$_SESSION['valid_user'] = $_POST['user_id'];
-			header("location: annotate.php");
-		}
-		else{
-			header("location: login.php?err=1");  
-		}
-	}
+            if (!$stmt->bind_param("ss", $user_id, $user_pwd)) {
+                echo "Binding parameters failed: (" . $stmt->errno . ") " . $stmt->error;
+                $success=FALSE;
+            }
+            
+            if (!$stmt->execute()) {
+                echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
+                $success=FALSE;
+            }
+            
+            $num = NULL;
+            if (!$stmt->bind_result($num)) {
+                echo "Bind failed: (" . $stmt->errno . ") " . $stmt->error;
+                $success=FALSE;
+            }
+            $stmt->fetch();
+            if($success && $num == 1){
+                //login success
+                $_SESSION['valid_user'] = $_POST['user_id'];
+                header("location: annotate.php");
+            }
+            else{
+                header("location: login.php?err=1");  
+            }
+        }
+    }
 ?>
 
 <p>
