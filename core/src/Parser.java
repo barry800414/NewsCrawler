@@ -7,15 +7,36 @@ import edu.stanford.nlp.ling.Sentence;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.Tree;
 
+/*
+	The lexicalized parser for parsing Simplfied Chinese sentences only.
+*/
+public class Parser{
+	// Demo 
+    public static void main(String[] args){
+        //initialize the parser
+    	Parser p = new Parser("chinese");
 
-public class Parser {
+    	//Example 1: Parse tokenized sentences
+    	String[] tokenizedSent = ["今天", "天气", "很", "好"];
+    	Tree result = parseTokenizedSent(tokenizedSent);
+
+    	//Example 2: Parse tokenized sentences 
+    	//(original sentence which is separated by sep)
+    	String sepSent = "今天 天气 很 好";
+    	Tree result = parseSepSent(sepSent, ' ');
+    }
+
+    public static final int ZHT = 0;
+	public static final int ZHS = 1;
+	public static final int ENG = 2;
 	public LexicalizedParser lp = null;
-	
-	public Parser(String lang){
-		if(lang.equals("english")){
+	private int lang = -1;
+	public Parser(int lang){
+		this.lang = lang;
+		if(lang == Parser.ENG){
 			lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
 		}
-		else if(lang.equals("chinese")){
+		else if(lang == Parser.ZHS){
 			lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/chinesePCFG.ser.gz");
 		}
 	}
@@ -26,15 +47,9 @@ public class Parser {
 	    return parse;
 	}
 	
-	public Tree parseSpaceDeliminatedSent(String sent){
-		String[] tokenizedSent = sent.split(" ");
-		//TODO: need more preprocess
+	public Tree parseSepSent(String sent, String sep){
+		String[] tokenizedSent = sent.split(sep);
 		return parseTokenizedSent(tokenizedSent);
-	}
-	
-	//TODO
-	public Tree parseSent(String sent){
-		return null;
 	}
 	
 	public static Label[] getPOSTags(Tree parse){

@@ -6,13 +6,13 @@ import edu.stanford.nlp.ie.crf.CRFClassifier;
 import edu.stanford.nlp.ie.AbstractSequenceClassifier;
 import edu.stanford.nlp.ling.CoreLabel;
 
-import jopencc.Convertor;
+import jopencc.ZhtZhsConvertor;
 
 /**
  * General chinese segmenter interface
- *
+ * Date: 2014/12/15
  */
-public class Segmenter {
+public class Segmenter{
     
     // Demo 
     public static void main(String[] args){
@@ -28,21 +28,25 @@ public class Segmenter {
 
     private Properties props;
     private CRFClassifier<CoreLabel> segmenter;
-    private Convertor converter;
+    private ZhtZhsConvertor convertor;
 
     /**
      *  segPath: the path of the needed in stanford segmenter
      *  jopenccPath: the path of jopencc package
-     *  The segmenter will be able to deal with traditional chinese words
+     *  The segmenter will be ABLE to deal with traditional chinese words
+     *  The default model is CRF Segmenter
+     *  TODO: More model 
      * */
     public Segmenter(String segPath, String jopenccPath) {
         this(segPath);
-        converter = new Convertor(jopenccPath);
+        convertor = new ZhtZhsConvertor(jopenccPath);
     }
 
     /**
      *  segPath: the path of the needed in stanford segmenter
-     *  The segmenter will not be able to deal with traditional chinese words
+     *  The segmenter will NOT BE ABLE to deal with traditional chinese words
+     *  The default model is CRF Segmenter
+     *  TODO: More model 
      * */
     public Segmenter(String segPath) {
         props = new Properties();
@@ -58,33 +62,52 @@ public class Segmenter {
             System.err.println("Load dataset Error");
             e.printStackTrace();
         }
-        this.converter = null;
+        this.convertor = null;
     }
 
 
-    //segment the string (simplified chinese)
+    //segment the string (simplified chinese to simplified chinese)
     public String[] segmentStrZhs(String str){
-        List<String> words = segmenter.segmentString(str);
-        return (String[]) words.toArray();
+        return segmentStr(str, ZhtZhsConvertor.ZHS, ZhtZhsConvertor.ZHS);
     }
 
-    //segment the string (traditional chinese)
+    //segment the string (traditional chinese to traditional chinese)
     public String[] segmentStrZht(String str){
-        if(this.converter == null){
-            System.err.println("jopencc converter not found. View it as simplified Chinese");
-            return segmentStrZhs(str);
-        }
-        String zhsStr = converter.convertToZhs(str);
-        List<String> words = segmenter.segmentString(zhsStr);
-        String[] output = new String[words.size()];
-        for(int i = 0; i < words.size(); i++){
-            output[i] = converter.convertToZht(words.get(i));
-        }
-        return output;
+        return segmentStr(str, ZhtZhsConvertor.ZHT, ZhtZhsConvertor.ZHT);
     }
 
-    
-
+    //segment the string 
+    public String[] segmentStr(String str, int inLang, int outLang){
+        String strBuf = null;
+        // convert to zhs or not 
+        if(inLang == ZhtZhsConvertor.ZHT){ //convert to zht
+            if(this.convertor == null){
+                System.err.println("jopencc convertor not found. View it as simplified Chinese");
+                strBuf = str;
+            }
+            strBuf = convertor.convertToZhs(str); 
+        }
+        else{ //zhs
+            strBuf = str;
+        }
+        
+        //segment
+        List<String> words = segmenter.segmentString(strBuf);
+        String[] output = new String[words.size()];
+        
+        //convert back to zht or not
+        if(outLang == ZhtZhsConvertor.ZHT){  //convert back to zht
+            if(this.convertor == null){
+                System.err.println("jopencc convertor not found. Cannot convert it back to traditional Chinese");
+                return (String []) words.toArray();
+            }
+            return convertor.convertToZht((String[]) words.toArray()); 
+        }
+        else{
+            return (String []) words.toArray();
+        }
+    }
+        
 }
 
 
