@@ -25,8 +25,8 @@
 
         ],
         "content": [ 
-            { "xpath": "//div[@id='newstext']/p/text()", "expect":-1, "index": "merge_all" },
-            { "xpath": "//div[@class='cont']/p/text()", "expect":-1, "index": "merge_all" }
+            { "xpath": "//div[@id='newstext']/p", "expect":-1, "index": "merge_all", "inner": "//p/a/text() | //p/span/text() | //p/strong/text() | //p/text()"},
+            { "xpath": "//div[@class='cont']/p", "expect":-1, "index": "merge_all", "inner": "//p/a/text() | //p/span/text() | //p/strong/text() | //p/text()"}
         ],
         "time": [
             { "xpath": "//td[@class='newstext']/span/text()", "expect":1, "index":0 },
@@ -36,7 +36,11 @@
         ]
     },
     "ignore_urls_regex": [".*election\\.ltn\\.com\\.tw\/2014\/(list|pic|intro|candidate|statistics)\\.php.*", ".*news\\.ltn\\.com\\.tw\/(list|rss)\/.*"],
-    "content_process" : {
+    "preprocess" : {
+        "content": [ 
+            { "type": "tag", "name": "a", "action": "rm_concate" },
+            { "type": "tag", "name": "span", "action": "rm_concate" } 
+        ]
     },
     "keywords": [],
     "db_info" : {

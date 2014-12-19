@@ -1,0 +1,37 @@
+{
+    "allowed_domains": [ "coolloud.org.tw" ],
+    "deny_domains": [
+        ],
+    "deny": [  
+        ],
+    "allow":[],
+    "start_urls": [ "http://www.coolloud.org.tw" ],
+    "xpath": {
+        "title": [
+         {"xpath":"//head/title/text()","expect":1,"index":0}
+	],
+        "content":[
+         { "xpath":"//*[starts-with(@id,'node-')]/div[@class='field field-name-body field-type-text-with-summary field-label-hidden']/div/div/p", "expect":-1, "index":"merge_all"},
+    	 { "xpath":"//*[starts-with(@id,'node-')]/div[3]/div/div/p","expect":-1,"index":"merge_all" }
+	],
+	"time": [
+        {"xpath":"//*[starts-with(@id,'node-')]/div[@class='group-info field-group-div']/div[@class='field field-name-field-actdate field-type-datestamp field-label-hidden']/div/div/span/text()","expect":1,"index":0},
+	    {"xpath":"//*[starts-with(@id,'node-')]/div[1]/div[1]/div/div/span/text()","expect":1,"index":0}
+	]
+    },
+    "ignore_urls_regex":[],
+    "content_process" : {
+    },
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "coolloud"
+    },
+    "src_name": "苦勞網",
+    "encoding": "utf-8",
+    "download_delay": 2
+    
+}

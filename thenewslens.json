@@ -1,0 +1,47 @@
+{
+    "allowed_domains": [ "www.thenewslens.com" ],
+    "deny_domains": [ 
+	"forum.thenewslens.com"
+        ],
+    "deny": [ 
+	".*\\/videos\\/*",
+	".*\\/search\\/*",
+	".*\\/topic\\/*",
+	".*\\/tag\\/*",
+	".*\\/privacy\\/*",
+	".*\\/contactus\\/*",
+	".*\\/authors\\/*",
+	".*\\/aboutus\\/*",
+	".*\\/rss-list\\/*",
+	".*\\/feature_story\\/*",
+	".*\\/author\\/*",
+	".*\\/jobs\\/*"
+        ],
+    "start_urls": [ 
+	"http://www.thenewslens.com/news-list"
+	
+	],
+    "xpath": {
+        "title": [
+            { "xpath": "//div/h1[@class='text-center']/text()", "expect":1, "index": 0 }
+        ],
+        "content": [ 
+            { "xpath": "//div[@id='zh-content']/p", "expect":-1, "index": "merge_all" }
+        ],
+        "time": [
+            { "xpath": "//time/text()", "expect":1, "index":0 }
+        ]
+    },
+	"ignore_urls_regex": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "thenewslens"
+    },
+    "src_name": "關鍵評論網",
+    "encoding": "utf-8"
+    
+}

@@ -10,8 +10,8 @@
             { "xpath": "//div[@id='content']//h2[@class='title']/text()", "expect":-1, "index": 0 }
         ],
         "content": [ 
-            { "xpath": "//div[@id='content']//div[@class='entry']/p/text() | //div[@id='content']//div[@class='entry']/p/a/text() | //div[@id='content']//div[@class='entry']/p/span/text()", "expect":-1, "index": "merge_all" },
-            { "xpath": "//div[@id='content']//div[@class='entry']/div/p/text() | //div[@id='content']//div[@class='entry']/div/p/a/text() | //div[@id='content']//div[@class='entry']/div/p/span/text()", "expect":-1, "index": "merge_all" }
+            { "xpath": "//div[@id='content']//div[@class='entry']/p", "expect":-1, "index": "merge_all" },
+            { "xpath": "//div[@id='content']//div[@class='entry']/div/p", "expect":-1, "index": "merge_all" }
         ],
         "time": [
             { "xpath": "//div[@id='content']//div[@class='postdate']/text()", "expect":1, "index": 0 }

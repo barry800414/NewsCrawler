@@ -9,6 +9,7 @@ import codecs
 
 class NewsSpider(CrawlSpider):
     name = 'news_crawler'
+    
 
     def __init__(self, config_file=None, debug=False, single_url='',*args, **kwargs):
         # check whether debug mode is on or not
@@ -40,6 +41,8 @@ class NewsSpider(CrawlSpider):
             config = json.load(f)
         self.config = config
         self.allowed_domains = config['allowed_domains']
+        if 'download_delay' in config:
+            self.download_delay = config['download_delay']
 
         # If we don't give crawler a single url request, we crawl all webpages in this website
         if self.single_url == None:

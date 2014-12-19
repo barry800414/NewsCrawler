@@ -70,12 +70,12 @@
 
         ],
         "content": [
-            { "xpath": "//div[@id='story_body_content']//p/text()", "expect":-1, "index": "merge_all" },
-	    { "xpath": "//div[@id='story']/text() | //div[@id='story']/p/text()", "expect":-1, "index":"merge_all" },
-            { "xpath": "//div[@class='article_content']/text() | //div[@class='article_content']/p/text()", "expect":-1, "index":"merge_all" },
-            { "xpath": "//div[@id='story']//p/text()", "expect":-1, "index":"merge_all" },
-            { "xpath": "//div[@class='article_content']//p/text()", "expect":-1, "index":"merge_all" }, 
-            { "xpath": "//div[@id='story_body']//p/text()", "expect":-1, "index":"merge_all" }
+            { "xpath": "//div[@id='story_body_content']//p", "expect":-1, "index": "merge_all" },
+	        { "xpath": "//div[@id='story']", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@class='article_content']", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@id='story']//p", "expect":-1, "index":"merge_all" },
+            { "xpath": "//div[@class='article_content']//p", "expect":-1, "index":"merge_all" }, 
+            { "xpath": "//div[@id='story_body']//p", "expect":-1, "index":"merge_all" }
         ],
         "time": [
             { "xpath": "//div[@id='story_update']/text()", "expect":1, "index":0 },
@@ -83,12 +83,12 @@
             { "xpath": "//td[@class='story_author']/text()", "expect":2, "index":1 },
             { "xpath": "//td[@class='story_author']/text()", "expect":1, "index":0 }, 
             { "xpath": "//div[@id='story_bady_info']/h3/text()", "expect":-1, "index":"merge_all" },
-	    { "xpath": "//div[@class='article_content']/p/text()", "expect":-1, "index": -1 },
-        { "xpath": "//div[@class='article_content']/text()", "expect":-1, "index": -1 },
+	        { "xpath": "//div[@class='article_content']/p/text()", "expect":-1, "index": -1 },
+            { "xpath": "//div[@class='article_content']/text()", "expect":-1, "index": -1 },
             { "xpath": "//div[@id='story']/p[@class='clear']/preceding-sibling::p[1]/text()", "expect":1, "index": 0},
-	    { "xpath": "//div[@class='article_content']/text()", "expect":2, "index": 1},
-	    { "xpath": "//div[@class='article_content']/text()", "expect":1, "index": 0},
-        { "xpath": "//div[@id='story_body']/h3/text()", "expect":1, "index": 0}
+	        { "xpath": "//div[@class='article_content']/text()", "expect":2, "index": 1},
+	        { "xpath": "//div[@class='article_content']/text()", "expect":1, "index": 0},
+            { "xpath": "//div[@id='story_body']/h3/text()", "expect":1, "index": 0}
         ]
     },
     "ignore_urls_regex": [

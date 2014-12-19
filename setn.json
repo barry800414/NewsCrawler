@@ -1,0 +1,38 @@
+{
+    "allowed_domains": [ "setn.com" ],
+    "deny_domains": [
+        ],
+    "deny": [
+        ".*print",
+        ".*_[0-9]"
+        ],
+    "allow": [],
+    "start_urls": [ "http://www.setn.com" ],
+    "xpath": {
+        "title": [
+	        { "xpath": "//*[@id='conLt']/div[2]/h1/text()", "expect":1, "index": 0 }
+        ],
+        "content": [
+	        { "xpath": "//*[@id='Content1']/p", "expect":-1, "index": "merge_all" }
+        ],
+        "time": [
+            { "xpath": "//*[@id='conLt']/div[2]/div/h2/text()", "expect":1, "index": 0 }
+        ]
+    },
+ "ignore_urls_regex": [],
+    "content_process" : {
+    },
+    "keywords": [],
+    "db_info" : {
+        "host": "localhost",
+        "port": 3666,
+        "user": "news_crawler",
+        "database": "news_crawler",
+        "password": "news_crawler",
+        "table": "setn"
+    },
+    "short_name": "setn",
+    "src_name": "setn",
+    "encoding": "utf-8"
+}
+

@@ -3,7 +3,6 @@
     "port": 3666,
     "user": "news_crawler",
     "database": "news_crawler",
-    "password": "news_crawler",
-    "table": "ltn"
+    "password": "news_crawler"
 }
 
