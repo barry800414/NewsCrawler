@@ -9,34 +9,32 @@ import edu.stanford.nlp.trees.Tree;
 
 /*
 	The lexicalized parser for parsing Simplfied Chinese sentences only.
+	Besides, it does not support untokenized sentence
 */
 public class Parser{
 	// Demo 
     public static void main(String[] args){
         //initialize the parser
-    	Parser p = new Parser("chinese");
+    	Parser p = new Parser(Lang.ZHS);
 
     	//Example 1: Parse tokenized sentences
-    	String[] tokenizedSent = ["今天", "天气", "很", "好"];
-    	Tree result = parseTokenizedSent(tokenizedSent);
+    	String[] tokenizedSent = {"今天", "天气", "很", "好"};
+    	Tree result = p.parseTokenizedSent(tokenizedSent);
 
     	//Example 2: Parse tokenized sentences 
     	//(original sentence which is separated by sep)
     	String sepSent = "今天 天气 很 好";
-    	Tree result = parseSepSent(sepSent, ' ');
+    	result = p.parseSepSent(sepSent, " ");
     }
 
-    public static final int ZHT = 0;
-	public static final int ZHS = 1;
-	public static final int ENG = 2;
 	public LexicalizedParser lp = null;
 	private int lang = -1;
 	public Parser(int lang){
 		this.lang = lang;
-		if(lang == Parser.ENG){
+		if(lang == Lang.ENG){
 			lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz");
 		}
-		else if(lang == Parser.ZHS){
+		else if(lang == Lang.ZHS){
 			lp = LexicalizedParser.loadModel("edu/stanford/nlp/models/lexparser/chinesePCFG.ser.gz");
 		}
 	}

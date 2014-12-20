@@ -19,10 +19,31 @@ N_SIZE=2
 
 all: compile part1 part2
 
-compile:
-	mkdir -p ./jopencc/bin
-	$(JAVA_PATH)/javac -cp "./jopencc/src/" -d ./jopencc/ ./jopencc/src/jopencc/Convertor.java 
+convertor_compile:
+	$(JAVA_PATH)/javac -cp "./jopencc/src" -d ./jopencc ./jopencc/src/jopencc/ZhtZhsConvertor.java 
 	
+#convertor demo
+convertor: convertor_compile
+	$(JAVA_PATH)/java -cp "./jopencc" jopencc.ZhtZhsConvertor ./jopencc
+
+segmenter_compile: convertor_compile
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/Segmenter.java
+
+#segmentor demo
+segmenter: segmenter_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" Segmenter 
+
+parser_compile: segmenter_compile
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullParser.java
+
+# full parser demo
+parser: parser_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" FullParser
+
+
+	
+
+
 part1: compile
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):$(SRC)" $(SRC)/Main.java -d $(BIN)
 	#java -mx5000m -cp "$(PACKAGE):$(BIN)" Main $(FILE)

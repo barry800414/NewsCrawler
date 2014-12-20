@@ -46,9 +46,6 @@ public class ZhtZhsConvertor {
 		System.out.println(convertor.convertToZhs(zht));
 
 	}
-    
-    public static final int ZHT=0;
-    public static final int ZHS=0;
 
 	private Dict DICT_TO_ZHS, DICT_TO_ZHT;
     public ZhtZhsConvertor(String packagePath){
@@ -94,8 +91,8 @@ public class ZhtZhsConvertor {
 	 * @return Array of texts in Simplified Chinese
 	 */
 	public String[] convertToZht(String[] src){
-		if(zhs == null){ return null; }
-		String[] buf = String[src.length];
+		if(src == null){ return null; }
+		String[] buf = new String[src.length];
 		for(int i = 0; i < src.length; i++){
 			buf[i] = convertToZht(src[i]);
 		}
@@ -138,9 +135,9 @@ public class ZhtZhsConvertor {
 	 * @param src
 	 * @return Array of texts in Traditional Chinese
 	*/
-	public String[] convertToZhs(String src){
+	public String[] convertToZhs(String[] src){
 		if(src == null){ return null; }
-		String[] buf = String[src.length];
+		String[] buf = new String[src.length];
 		for(int i = 0; i < src.length; i++){
 			buf[i] = convertToZhs(src[i]);
 		}

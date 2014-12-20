@@ -16,8 +16,11 @@ public class Segmenter{
     
     // Demo 
     public static void main(String[] args){
+        //initialize the converter
+        ZhtZhsConvertor convertor = new ZhtZhsConvertor("./jopencc");
+
         //initialize the segmenter
-        Segmenter seg = new Segmenter("./stanford_segmenter", "./jopencc");
+        Segmenter seg = new Segmenter("./stanford_segmenter", convertor);
 
         String str = "今天天氣很好,我中餐吃麵" ;
         String[] buf = seg.segmentStrZht(str);
@@ -37,9 +40,9 @@ public class Segmenter{
      *  The default model is CRF Segmenter
      *  TODO: More model 
      * */
-    public Segmenter(String segPath, String jopenccPath) {
+    public Segmenter(String segPath, ZhtZhsConvertor convertor) {
         this(segPath);
-        convertor = new ZhtZhsConvertor(jopenccPath);
+        this.convertor = convertor;
     }
 
     /**
@@ -68,19 +71,19 @@ public class Segmenter{
 
     //segment the string (simplified chinese to simplified chinese)
     public String[] segmentStrZhs(String str){
-        return segmentStr(str, ZhtZhsConvertor.ZHS, ZhtZhsConvertor.ZHS);
+        return segmentStr(str, Lang.ZHS, Lang.ZHS);
     }
 
     //segment the string (traditional chinese to traditional chinese)
     public String[] segmentStrZht(String str){
-        return segmentStr(str, ZhtZhsConvertor.ZHT, ZhtZhsConvertor.ZHT);
+        return segmentStr(str, Lang.ZHT, Lang.ZHT);
     }
 
     //segment the string 
     public String[] segmentStr(String str, int inLang, int outLang){
         String strBuf = null;
         // convert to zhs or not 
-        if(inLang == ZhtZhsConvertor.ZHT){ //convert to zht
+        if(inLang == Lang.ZHT){ //convert to zht
             if(this.convertor == null){
                 System.err.println("jopencc convertor not found. View it as simplified Chinese");
                 strBuf = str;
@@ -96,7 +99,7 @@ public class Segmenter{
         String[] output = new String[words.size()];
         
         //convert back to zht or not
-        if(outLang == ZhtZhsConvertor.ZHT){  //convert back to zht
+        if(outLang == Lang.ZHT){  //convert back to zht
             if(this.convertor == null){
                 System.err.println("jopencc convertor not found. Cannot convert it back to traditional Chinese");
                 return (String []) words.toArray();
