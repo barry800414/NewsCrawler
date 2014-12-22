@@ -23,7 +23,7 @@ class DuplicateRemover():
 
     def fetch_all_topic_news(self, topic_id, topic_news_table, merge_table):
         news_list = list()
-        sql = '''SELECT B.id, B.title, B.content 
+        sql = '''SELECT B.id, B.title, B.content, B.url
                  FROM %s as A, %s as B ''' % (topic_news_table, merge_table)
         try:
             self.cursor.execute(sql + 'WHERE A.news_id = B.id AND A.topic_id = %s', (topic_id,))
@@ -36,17 +36,18 @@ class DuplicateRemover():
                     news['id'] = tmp[0]
                     news['title'] = tmp[1]
                     news['content'] = tmp[2]
+                    news['url'] = tmp[3]
                     news_list.append(news)
         except Exception, e:
             print e
         return news_list
 
     def clean_one_topic_news(self, topic):
-        topic_id = topic['id']
+        self.topic_id = topic['id']
         topic_news_table = topic['target_table']
         merge_table = topic['src_table']
 
-        news_list = self.fetch_all_topic_news(topic_id, topic_news_table, merge_table)
+        news_list = self.fetch_all_topic_news(self.topic_id, topic_news_table, merge_table)
         
         # calculating term frequency
         for news in news_list:
@@ -69,7 +70,7 @@ class DuplicateRemover():
                     print >>sys.stderr, 'Progress(%d/%d)' % (cnt, total_task)
         
         # remove duplicated news
-        self.remove_data_from_table(topic_news_table, topic_id, to_remove)   
+        self.remove_data_from_table(topic_news_table, self.topic_id, to_remove)   
 
     def get_term_frequency(self, string):
         tf = dict()
@@ -92,6 +93,9 @@ class DuplicateRemover():
             print 'NewsID2:' + news2['id']
             print 'Title1:' + news1['title'].encode('utf-8')
             print 'Title2:' + news2['title'].encode('utf-8')
+            print 'Url1:' + news1['url']
+            print 'Url2:' + news2['url']
+            sys.stdout.flush()
             '''
             print 'Content1:' + news1['content'].encode('utf-8')
             print 'Content2:' + news2['content'].encode('utf-8')
@@ -120,6 +124,7 @@ class DuplicateRemover():
         return value
 
     def remove_duplicated_news(self):
+        #print 'topic_id, news_id, news_title, news_url, ref_id, ref_title, ref_url, title_sim, content_sim'
         for topic in self.topic_config:
             self.clean_one_topic_news(topic)
         return
