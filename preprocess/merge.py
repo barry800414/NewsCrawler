@@ -4,6 +4,7 @@ import sys
 import MySQLdb
 import json
 
+# merge all news (after removing html tags) to one table
 class Merger():
     def __init__(self, db_info):
         self.connect_to_db(db_info)
@@ -21,11 +22,13 @@ class Merger():
 
     def merge_news_tables(self, table_info):
         target_table = table_info['target_table']
-        src_table = table_info['src_table']
-        for table in src_table:
+        src_table_config = table_info['src_table_config']
+        for config in src_table_config:
+            src_table = config['table']
+            priority = config['priority']
             sql = '''INSERT INTO `%s`(id, title, content, time, url, source, short_name)
-                    SELECT concat(short_name, '_', lpad(id, 8, '00000000')) as id, title, 
-                    content, time, url, source, short_name FROM `%s`''' % (target_table, table)
+                    SELECT concat('%02d_', short_name, '_', lpad(id, 8, '00000000')) as id, title, 
+                    content, time, url, source, short_name FROM `%s`''' % (target_table, priority, src_table)
             print sql
             try:
                 self.cursor.execute(sql) 

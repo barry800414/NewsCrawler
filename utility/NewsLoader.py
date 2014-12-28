@@ -37,7 +37,7 @@ class NewsLoader():
     def getNews(self, newsId, table, newsColumns = ['title', 'content']):
         sql = 'SELECT %s FROM %s' % (self.__convert_to_sql(newsColumns), table)
         try:
-            self.cursor.execute(sql + ' WHERE news_id=%s', (newsId, ))
+            self.cursor.execute(sql + ' WHERE id=%s', (newsId, ))
             tmp = self.cursor.fetchone()
             if tmp == None:
                 return None

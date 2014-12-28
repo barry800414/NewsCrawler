@@ -13,7 +13,7 @@
 	        { "xpath": "//*[@id='conLt']/div[2]/h1/text()", "expect":1, "index": 0 }
         ],
         "content": [
-	        { "xpath": "//*[@id='Content1']/p", "expect":-1, "index": "merge_all" }
+	        { "xpath": "//*[@id='Content1']/p | //*[@id='Content1']/div", "expect":-1, "index": "merge_all" }
         ],
         "time": [
             { "xpath": "//*[@id='conLt']/div[2]/div/h2/text()", "expect":1, "index": 0 }
@@ -26,9 +26,9 @@
     "db_info" : {
         "host": "localhost",
         "port": 3666,
-        "user": "news_crawler",
-        "database": "news_crawler",
-        "password": "news_crawler",
+        "user": "r02922010",
+        "database": "r02922010",
+        "password": "r02922010",
         "table": "setn"
     },
     "short_name": "setn",

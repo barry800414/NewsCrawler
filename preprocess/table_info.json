@@ -1,4 +1,13 @@
 {
     "target_table": "merge",
-    "src_table": [ "ltn", "thenewslens", "setn", "pnn", "udn", "coolloud", "stormmedia" ]
+    "src_table_config": [ 
+        { "table": "pnn_clean", "priority": 1 },
+        { "table": "coolloud_clean", "priority": 2},
+        { "table": "stormmedia_clean", "priority": 3 },
+        { "table": "thenewslens_clean", "priority": 4 },
+        { "table": "ltn_clean", "priority": 5 },
+        { "table": "udn_clean", "priority": 6 },
+        { "table": "setn_clean", "priority": 7 }
+    ]
+
 }

@@ -4,6 +4,7 @@ import sys
 import MySQLdb
 import json
 
+# insert topic information to sql database
 class TopicInserter():
     def __init__(self, topic_config, db_info):
         self.topic_config = topic_config

@@ -1,0 +1,52 @@
+[
+    {
+        "src_table": "thenewslens",
+        "target_table": "thenewslens_clean",
+        "remove_regex_config": [
+            {
+                "column": "title",
+                "regex_list": [".*懶人時報.*", ".*晚間77秒.*"]
+            }
+        ],
+        "preprocess_config":[
+            {
+                "column": "content",
+                "method": "bs4_get_text"
+            }
+        ]
+    },
+    {
+        "src_table": "pnn",
+        "target_table": "pnn_clean",
+        "remove_regex_config": [],
+        "preprocess_config":[
+            {
+                "column": "content",
+                "method": "bs4_get_text"
+            }
+        ]
+    }, 
+    {
+        "src_table": "ltn",
+        "target_table": "ltn_clean",
+        "remove_regex_config": [],
+        "preprocess_config":[
+            {
+                "column": "content",
+                "method": "bs4_get_text"
+            }
+        ]
+    }, 
+    {
+        "src_table": "stormmedia",
+        "target_table": "stormmedia_clean",
+        "remove_regex_config": [],
+        "preprocess_config":[
+            {
+                "column": "content",
+                "method": "bs4_get_text"
+            }
+        ]
+    }
+]
+      

@@ -3,6 +3,8 @@
     "deny_domains": [
         ],
     "deny": [  
+            ".*www\\.coolloud\\.org\\.tw\/comment\/.*",
+            ".*www\\.coolloud\\.org\\.tw\/action\/.*"
         ],
     "allow":[],
     "start_urls": [ "http://www.coolloud.org.tw" ],
@@ -25,13 +27,13 @@
     "db_info" : {
         "host": "localhost",
         "port": 3666,
-        "user": "news_crawler",
-        "database": "news_crawler",
-        "password": "news_crawler",
+        "user": "r02922010",
+        "database": "r02922010",
+        "password": "r02922010",
         "table": "coolloud"
     },
     "src_name": "苦勞網",
     "encoding": "utf-8",
-    "download_delay": 2
+    "download_delay": 1
     
 }

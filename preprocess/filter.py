@@ -4,6 +4,8 @@ import sys
 import MySQLdb
 import json
 
+
+# filter the news with important keywords
 class NewsFilter():
     def __init__(self, topic_config, db_info):
         self.topic_config = topic_config

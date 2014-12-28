@@ -1,0 +1,19 @@
+{
+    "topic_news_table": "topic_news_all",
+    "corpus_table": "merge",
+    "target_table": "merge_necessary",
+    "replace_regex_config": [
+        {
+            "column": "title",
+            "regex_list": [
+                [ "【.*】", "" ]
+            ]
+        },
+        {
+            "column": "content",
+            "regex_list": [
+                [ "[\u0009\u0020\u00A0\u000A]*([\u000A])+[\u0009\u0020\u00A0\u000A]*", "\n"]
+            ]
+        }
+    ]
+}

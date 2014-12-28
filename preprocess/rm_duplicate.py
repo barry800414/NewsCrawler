@@ -5,6 +5,8 @@ import MySQLdb
 import json
 import math
 
+# remove duplicated news under certain topic
+# all pairs compare
 class DuplicateRemover():
     def __init__(self, topic_config, db_info):
         self.topic_config = topic_config

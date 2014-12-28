@@ -89,7 +89,7 @@ function get_content($statement_id, $news_id, $remain_num){
         C.topic_id, D.name, C.content as statement,
         B.title as news_title, B.content as news_content, 
         B.url as news_url 
-    FROM merge as B, statement as C, topic as D
+    FROM merge_necessary as B, statement as C, topic as D
     WHERE 
         B.id = ? AND C.id = ? AND D.id = C.topic_id";
     $success=TRUE;

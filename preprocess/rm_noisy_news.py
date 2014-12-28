@@ -5,6 +5,7 @@ import MySQLdb
 import json
 import re
 
+#depricated
 class NoisyNewsRemover():
     def __init__(self, toremove_news_config, db_info):
         self.toremove_news_config = toremove_news_config

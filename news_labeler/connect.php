@@ -4,7 +4,7 @@
 
 
 //connect to db
-$mysqli = new mysqli("localhost", "news_crawler", "news_crawler", "news_crawler", 3306);
+$mysqli = new mysqli("localhost", "r02922010", "r02922010", "r02922010", 3306);
 if ($mysqli->connect_errno) {
     echo "Failed to connect to MySQL: (" . $mysqli->connect_errno . ") " . $mysqli->connect_error;
     $success=FALSE;
