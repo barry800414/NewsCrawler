@@ -8,9 +8,7 @@ import math
 # remove duplicated news under certain topic
 # all pairs compare
 class DuplicateRemover():
-    def __init__(self, topic_config, db_info):
-        self.topic_config = topic_config
-
+    def __init__(self, db_info):
         self.connect_to_db(db_info)
 
     def connect_to_db(self, db_info):
@@ -23,10 +21,11 @@ class DuplicateRemover():
         self.db = db
         self.cursor = cursor
 
-    def fetch_all_topic_news(self, topic_id, topic_news_table, merge_table):
+    def fetch_all_news_for_one_topic(self, topic_id):
         news_list = list()
         sql = '''SELECT B.id, B.title, B.content, B.url
-                 FROM %s as A, %s as B ''' % (topic_news_table, merge_table)
+                 FROM %s as A, %s as B ''' % (self.topic_news_table, 
+                         self.corpus_table)
         try:
             self.cursor.execute(sql + 'WHERE A.news_id = B.id AND A.topic_id = %s', (topic_id,))
             while True:
@@ -44,12 +43,10 @@ class DuplicateRemover():
             print e
         return news_list
 
-    def clean_one_topic_news(self, topic):
-        self.topic_id = topic['id']
-        topic_news_table = topic['target_table']
-        merge_table = topic['src_table']
+    def remove_duplicated_news_for_one_topic(self, topic_config):
+        topic_id = topic_config['id']
 
-        news_list = self.fetch_all_topic_news(self.topic_id, topic_news_table, merge_table)
+        news_list = self.fetch_all_news_for_one_topic(topic_id)
         
         # calculating term frequency
         for news in news_list:
@@ -72,7 +69,7 @@ class DuplicateRemover():
                     print >>sys.stderr, 'Progress(%d/%d)' % (cnt, total_task)
         
         # remove duplicated news
-        self.remove_data_from_table(topic_news_table, self.topic_id, to_remove)   
+        self.remove_data_from_table(self.topic_news_table, topic_id, to_remove)   
 
     def get_term_frequency(self, string):
         tf = dict()
@@ -125,10 +122,11 @@ class DuplicateRemover():
         value = value / math.sqrt(norm)
         return value
 
-    def remove_duplicated_news(self):
-        #print 'topic_id, news_id, news_title, news_url, ref_id, ref_title, ref_url, title_sim, content_sim'
-        for topic in self.topic_config:
-            self.clean_one_topic_news(topic)
+    def remove_duplicated_news(self, config):
+        self.topic_news_table = config['target_table']
+        self.corpus_table = config['src_table']
+        for topic_config in config['topic_configs']:
+            self.remove_duplicated_news_for_one_topic(topic_config)
         return
 
     def remove_data_from_table(self, table_name, topic_id, news_id_set):
@@ -167,6 +165,6 @@ if __name__ == '__main__':
     with open(db_info_json_file, 'r') as f:
         db_info = json.load(f)
 
-    dr = DuplicateRemover(topic_config, db_info) 
-    dr.remove_duplicated_news()
+    dr = DuplicateRemover(db_info) 
+    dr.remove_duplicated_news(topic_config)
 

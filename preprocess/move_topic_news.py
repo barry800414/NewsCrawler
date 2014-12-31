@@ -28,7 +28,9 @@ class TopicNewsMover():
         topic_id = config['topic_id']
         order_by = config['order_by']
         range = config['range']  # 2 integers(limit a, b)
-        
+        if range[0] == -1 or range[1] == -1:
+            return 
+
         sql = '''INSERT INTO `%s`(id, topic_id, news_id) 
                  SELECT id, topic_id, news_id FROM `%s` WHERE topic_id=%d ORDER BY %s 
                     LIMIT %d,%d''' %(target_table, src_table, topic_id, order_by, range[0], range[1])
@@ -38,7 +40,7 @@ class TopicNewsMover():
             self.db.commit()
         except Exception, e:
             print e
-            self.rollback()
+            self.db.rollback()
     
     def move_all_topic_news(self, all_config):
         for config in all_config:
