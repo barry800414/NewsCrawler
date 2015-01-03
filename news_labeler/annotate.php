@@ -148,8 +148,15 @@
             success: function(response){
                 //console.log(response);
                 if(response['success']){
-                    console.log(response['labeled_num']);
+                    //console.log(response['labeled_num']);
                     $("#labeled_num").text(response['labeled_num']);
+                    var length = response['total_labeled_length'];
+                    if(length != null){
+                        $("#total_labeled_length").text(length);
+                    }
+                    else{
+                        $("#total_labeled_length").text("0");
+                    }
                 }
             }
         });
@@ -242,7 +249,7 @@
             },
             dataType: "json",
             success: function(response){
-                console.log(response);
+                //console.log(response);
                 if(response['success'] == true){
                     if(alert_msg){
                         alert("上傳成功，感謝大大無私奉獻^_^");
@@ -270,8 +277,27 @@
         ?>
         <div id="main_interface" class="container"> 
             <h3 class="title"> 「文章」對「立場」支持/反對/中立預測 資料庫建立頁面 </h3>
-            <br><br>
-        <p class="text-right">您已經協助標記 <span id="labeled_num"></span> 篇文章了!</p>
+            <br>
+            
+            <div id="step_intro">
+                <br>         
+                <h4> 標記步驟 Steps </h4>
+                <p>你將會被給定一篇從網路上擷取的文章，以及一個敘述句(立場)。我們希望您能協助我們標記下面四個問題的答案:</p>
+                <ol>
+                    <li class="text-left"><strong>該文章是否有格式上的錯誤</strong>(包含: 存在非內文之廣告、編碼錯誤、編排錯誤、段落遺失等等)。</li>
+                    <li class="text-left"><strong>該文章是否與主題高度相關</strong>。</li>
+                    <li class="text-left"><strong>該文章是否有句子闡述支持或不支持該立場的原因。</strong></li>
+                    <li class="text-left"><strong>該文章對該立場 整體而言 是 支持/反對/中立。</strong></li>
+                </ol>
+                <br>
+            </div>
+        <br>
+        
+        <h2>------------------開始標記--------------------</h2><br>
+        <p class="text-right">您已經協助標記 <span id="labeled_num"></span> 篇文章了!  
+            所有標記文章之內容字數總計 <span id="total_labeled_length"></span> 個字! </p>
+        <p style="text-align:right"> 若欲取消或放棄標記此篇文章，請按重新整理即可</p>
+
     	<table class="main_table table table_bordered table-hover table-responsive">
     		<input type="hidden" id="statement_id">
     		<input type="hidden" id="news_id">
@@ -301,7 +327,7 @@
                     </label>
                     <br>
                     <label class="radio-inline">
-                        <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼、內文主題不一致等等）
+                        <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼等等）
                     </label>
                     <br>
                     <label class="radio-inline">
@@ -309,7 +335,7 @@
                     </label>
 
                 </div>
-                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有缺漏、非內文的文字在內(例如廣告)、或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有段落遺失、廣告文字、亂碼或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span>
                     <button class="btn btn-primary pull-right" id="valid_format_button">確定</button>
                 </td>
             </tr>
@@ -322,12 +348,12 @@
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
-                        <input type="radio" name="relevance" class="relevance" value="relevant"> 與「<span class="topic"></span>」高度相關 &nbsp;&nbsp;
+                        <input type="radio" name="relevance" class="relevance" value="relevant"> 本篇文章 與「<span class="topic"></span>」高度相關 &nbsp;&nbsp;
                     </label>
                     <br>
                     </label>
                     <label class="radio-inline">
-                        <input type="radio" name="relevance" class="relevance " value="irrelevant"> 與「<span class="topic"></span>」無相關或不太相關&nbsp;&nbsp;
+                        <input type="radio" name="relevance" class="relevance " value="irrelevant"> 本篇文章 </span>與「<span class="topic"></span>」無相關或不太相關&nbsp;&nbsp;
                     </label>
                 </div>
     				
@@ -376,7 +402,9 @@
                     </label>
                 </div>
     				
-                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>針對「<span class="statement"></span>」這個立場<span class="highlight_text">整體而言</span> 表達 (1)支持、同意 (2)持中立立場 或(3)反對、不同意 </span>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>針對「<span class="statement"></span>」這個立場 <span class="highlight_text">整體而言</span> 表達 (1)支持、同意 (2)持中立立場 或(3)反對、不同意 </span>
+                <br><br>
+                <span style="font-size:12pt"> 附註: 由於文章可能包含不同人對於該議題不同的立場。請不論表達立場的人是誰，整體而言，認定整篇文章的內容是比較支持、中立、或是比較反對。</span>
     			</td>
     		</tr>
         </table>
