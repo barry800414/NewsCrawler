@@ -301,7 +301,11 @@
     	<table class="main_table table table_bordered table-hover table-responsive">
     		<input type="hidden" id="statement_id">
     		<input type="hidden" id="news_id">
-    		
+    		<tr id="topic_row_top" class="statement_row" >
+                <td class="first_col">主題</td>
+                <td class="second_col"><span id="topic" class="second_row topic"></span></td>
+            </tr>
+
     		<tr class="news_row">
     			<td class="first_col">標題</td>
     			<td class="second_col"><span id="title"></span></td>

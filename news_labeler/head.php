@@ -11,12 +11,13 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="./intro.php">Agreement Prediction</a>
+          <a class="navbar-brand" href="./intro.php">專案介紹</a>
         </div>
     <div id="navbar" class="collapse navbar-collapse">
         <ul class="nav navbar-nav">
-        <li><a href="./annotate.php">Annotation Page</a></li>
-        <li><a href="./contact.php">Contact</a></li>
+            <li><a href="./annotate.php">標記頁面</a></li>
+            <li><a href="./contact.php">聯絡我們</a></li>
+            <li><a href="./qa.php">Q&A</a></li>
         </ul>
 
         <ul class="nav navbar-nav navbar-right">
@@ -25,12 +26,12 @@
                 session_start();
             }   
             if(!isset($_SESSION['valid_user'])){ 
-                echo '<li><a href="register.php">Register</a></li>';
-			    echo '<li><a href="login.php">Login</a></li>';
+                echo '<li><a href="register.php">註冊</a></li>';
+			    echo '<li><a href="login.php">登入</a></li>';
 		    }
             else{ 
                 echo "<li><a> Hello, ".$_SESSION['valid_user']."</a></li>";
-			    echo '<li><a href="logout.php">Logout</a></li>';
+			    echo '<li><a href="logout.php">登出</a></li>';
 		    }   
 	    ?>
         </ul>

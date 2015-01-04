@@ -55,11 +55,11 @@
 <div style="max-width:400px;margin:auto"> 
 <form role="form" action="login.php" method="post">
   <div class="form-group">
-    <label>User ID</label>
+    <label>帳號 User ID</label>
     <input type="text" class="form-control" name="user_id" placeholder="Enter ID">
   </div>
   <div class="form-group">
-    <label>Password</label>
+    <label>密碼 Password</label>
     <input type="password" class="form-control" name="user_pwd" placeholder="Password">
   </div>
   <button type="submit" class="btn btn-primary">Submit</button>
