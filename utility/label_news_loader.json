@@ -1,0 +1,16 @@
+{
+    "label_table": "statement_news",
+    "statement_table": "statement", 
+    "topic_table": "topic",
+    "corpus_table": "merge_necessary",
+    "topic_id": 2,
+    "statement_id": 1,
+    "news_id": "ltn0000001",
+    "where_config": {
+        "relevance": ["relevant"],
+        "valid_format": ["valid", "small_error"],
+        "label": []
+    },
+    "query_type": "topic",
+    "get_news": true
+}

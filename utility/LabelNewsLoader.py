@@ -3,9 +3,12 @@
 import sys
 import MySQLdb
 import json
+import codecs
+from NewsLoader import NewsLoader
+
 
 class LabelLoader():
-    defaultLabelColumn = ["valid_form", "relevance", 
+    defaultLabelColumn = ["valid_format", "relevance", 
         "mention_agree", "mention_disagree", "label", "labeler"]
     
     def __init__(self, db_info, table_info):
@@ -24,18 +27,55 @@ class LabelLoader():
         self.db = db
         self.cursor = cursor
 
+    def __convert_to_sql(self, column, prefix=None):
+        s = ''
+        if prefix != None:
+            for c in column[0:-1]:
+                s = s + '%s.%s, ' % (prefix, c)
+            s = s + '%s.%s' % (prefix, column[-1])
+        else:
+            for c in column[0:-1]:
+                s = s + '%s, ' % (c)
+            s = s + '%s' % (column[-1])
+        return s
+
+    def __gen_where(self, where_config, prefix=None):
+        valid_format = whereConfig['valid_format']
+        relevance = whereConfig['relevance']
+        label = whereConfig['label']
+
+        if prefix == None:
+            prefix = ''
+        else:
+            prefix = prefix + '.'
+        s = ''
+        for columnName, acceptValues in whereConfig.items():
+            if len(acceptValues)!= 0:
+                if len(s) != 0:
+                    s = s + ' AND '
+                s = s + '('
+                for c in acceptValues[0:-1]:
+                    s = s + "%s%s='%s' OR " % (prefix, columnName, c)
+                s = s + "%s%s='%s')" % (prefix, columnName, acceptValues[-1])
+
+        return s
+
+        
+
     # get labels by certain topic
     # labelColumns = ["valid_form", "relevance", "mention_agree", 
     # "mention_disagree", "label", "labeler"]
-    def getLabelByTopic(self, topicId, labelColumns = defaultLabelColumn):
-        sql = "SELECT C.statementId, B.content, C.newsId"
-        for c in labelColumns:
-            sql += ', C.%s ' %c
-        sql = sql + ''' FROM %s as A, %s as B, %s as C
-                        WHERE B.topic_id = A.id AND B.id = C.statement_id
-                    ''' % (self.topic_table, self.statement_table, self.label_table)
+    def getLabelByTopic(self, whereConfig, topicId, labelColumns = defaultLabelColumn):
+               
+        sql = '''SELECT C.statement_id, B.content, C.news_id, %s 
+                 FROM %s as A, %s as B, %s as C
+                 WHERE B.topic_id = A.id AND B.id = C.statement_id AND %s
+              ''' % (self.__convert_to_sql(labelColumns, 'C'), self.topic_table, 
+                      self.statement_table, self.label_table, 
+                      self.__gen_where(whereConfig, 'C'))
+        print sql
         try:
-            self.cursor.execute(sql + ' AND B.topic_id = %d', (topicId, ))
+            self.cursor.execute(sql + ' AND B.topic_id = %s', (topicId, ))
             labelList = list()
             while True:
                 tmp = self.cursor.fetchone()
@@ -55,23 +95,25 @@ class LabelLoader():
             return None
 
 
-    def getLabelById(self, statementId = None, newsId = None, 
-        labelColumns = defaultLabelColumn):
-        sql = "SELECT B.statementId, A.content, B.newsId"
-        for c in labelColumns:
-            sql += ', C.%s ' % (c)
-        sql = sql + ''' FROM %s as A, %s as B
-                        WHERE A.id = B.statement_id
-                    ''' % (self.statement, self.label_table)
+    def getLabelById(self, whereConfig, statementId = None, newsId = None,  
+            labelColumns = defaultLabelColumn):
+        sql = '''SELECT B.statement_id, A.content, B.news_id, %s
+                 FROM %s as A, %s as B
+                 WHERE A.id = B.statement_id AND %s
+              ''' % (self.__convert_to_sql(labelColumns, 'B'), 
+                      self.statement, self.label_table, 
+                      self.__gen_where(whereConfig, 'C'))
+
+        print sql
         try:
             if statementId != None:
                 if newsId != None:
-                    self.cursor.execute(sql + ' AND B.statement_id = %d AND B.news_id = %d', (statementId, newsId))
+                    self.cursor.execute(sql + ' AND B.statement_id = %s AND B.news_id = %s', (statementId, newsId))
                 else:
-                    self.cursor.execute(sql + ' AND B.statement_id = %d', (statementId, ))
+                    self.cursor.execute(sql + ' AND B.statement_id = %s', (statementId, ))
             else:
                 if newsId != None:
-                    self.cursor.execute(sql + ' AND B.news_id = %d', (newsId, ))
+                    self.cursor.execute(sql + ' AND B.news_id = %s', (newsId, ))
                 else:
                     self.cursor.execute(sql)
 
@@ -93,24 +135,25 @@ class LabelLoader():
             print e
             return None
 
-    def getLabelNewsById(self, newsLoader, statementId, newsId, corpusTable, 
-        labelColumns = defaultLabelColumn):
+    def getLabelNewsById(self, newsLoader, swhereConfig, tatementId, newsId,  
+            corpusTable, labelColumns = defaultLabelColumn):
 
-        labelList = self.getLabelById(statementId, newsId, labelColumns)
+        labelList = self.getLabelById(whereConfig, statementId, newsId, labelColumns)
         for label in labelList:
             label['news'] = newsLoader.getNews(label['news_id'], corpusTable)
         return labelList 
 
-    def getLabelNewsByTopic(self, newsLoader, topicId, corpusTable, 
+    def getLabelNewsByTopic(self, newsLoader, whereConfig, topicId, corpusTable, 
         labelColumns = defaultLabelColumn):
-        labelList = self.getLabelByTopic(topicId, labelColumns)
+        labelList = self.getLabelByTopic(whereConfig, topicId, labelColumns)
         for label in labelList:
             label['news'] = newsLoader.getNews(label['news_id'], corpusTable)
         return labelList
 
     def dumpLabels(self, filename, labelList):
-        with open(filename, 'w') as f:
-            json.dump(labelList, f)
+        # output as utf-8 file
+        with codecs.open(filename, 'w', encoding='utf-8') as f:
+            json.dump(labelList, f, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 '''
@@ -138,21 +181,22 @@ if __name__ == '__main__':
 
     with open(label_loader_json_file, 'r') as f:
         config = json.load(f)
-
     with open(db_info_json_file, 'r') as f:
         db_info = json.load(f)
 
     loader = LabelLoader(db_info, config) 
     query_type = config['query_type']
     get_news = config['get_news']
+    whereConfig = config['where_config']
     if query_type == 'topic':
         topicId = config['topic_id']
         if get_news:
-            newsLoader = NewsLoader.NewsLoader(db_info)
+            newsLoader = NewsLoader(db_info)
             corpusTable = config['corpus_table']
-            labelList = loader.getLabelNewsByTopic(newsLoader, topicId, corpusTable)
+            labelList = loader.getLabelNewsByTopic(newsLoader, whereConfig,
+                    topicId, corpusTable)
         else:
-            labelList = loader.getLabelByTopic(topicId)
+            labelList = loader.getLabelByTopic(whereConfig, topicId)
     elif query_type == 'id':
         statementId = None
         newsId = None
@@ -163,8 +207,9 @@ if __name__ == '__main__':
         if get_news:
             newsLoader = NewsLoader.NewsLoader(db_info)
             corpusTable = config['corpus_table']
-            labelList = loader.getLabelNewsById(newsLoader, statementId, newsId, corpusTable)
+            labelList = loader.getLabelNewsById(newsLoader, whereConfig, 
+                    statementId, newsId, corpusTable)
         else:
-            labelList = loader.getLabelById(statementId, newsId)
+            labelList = loader.getLabelById(whereConfig, statementId, newsId)
 
     loader.dumpLabels(output_json_file, labelList)
