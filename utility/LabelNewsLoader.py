@@ -188,15 +188,29 @@ if __name__ == '__main__':
     query_type = config['query_type']
     get_news = config['get_news']
     whereConfig = config['where_config']
+    
+    if get_news:
+        newsLoader = NewsLoader(db_info)
+
+
+    labelList = list()
     if query_type == 'topic':
-        topicId = config['topic_id']
-        if get_news:
-            newsLoader = NewsLoader(db_info)
-            corpusTable = config['corpus_table']
-            labelList = loader.getLabelNewsByTopic(newsLoader, whereConfig,
-                    topicId, corpusTable)
-        else:
-            labelList = loader.getLabelByTopic(whereConfig, topicId)
+        topicIdList = config['topic_id']
+        for topicId in topicIdList:
+            if get_news:
+                corpusTable = config['corpus_table']
+                labelList.extend(loader.getLabelNewsByTopic(newsLoader, whereConfig,
+                        topicId, corpusTable))
+            else:
+                labelList.extend(loader.getLabelByTopic(whereConfig, topicId))
+
+    elif query_type == 'statement':
+        corpusTable = config['corpus_table']
+        statementIdList = config['statement_id']
+        for statementId in statementIdList:
+            labelList.extend(loader.getLabelNewsById(newsLoader, whereConfig, 
+                    statementId, newsId, corpusTable))
+
     elif query_type == 'id':
         statementId = None
         newsId = None
