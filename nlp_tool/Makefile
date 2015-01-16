@@ -40,8 +40,12 @@ parser_compile: segmenter_compile
 parser: parser_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" FullParser
 
+server_compile: segmenter_compile
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/NLPToolServer.java
 
-	
+server: server_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" NLPToolServer
+
 
 
 part1: compile
