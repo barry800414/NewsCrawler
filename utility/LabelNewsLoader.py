@@ -181,6 +181,7 @@ if __name__ == '__main__':
 
     with open(label_loader_json_file, 'r') as f:
         config = json.load(f)
+    print(config)
     with open(db_info_json_file, 'r') as f:
         db_info = json.load(f)
 
@@ -191,7 +192,6 @@ if __name__ == '__main__':
     
     if get_news:
         newsLoader = NewsLoader(db_info)
-
 
     labelList = list()
     if query_type == 'topic':

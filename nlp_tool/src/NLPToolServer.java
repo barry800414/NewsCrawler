@@ -54,8 +54,11 @@ public class NLPToolServer {
             String output = seg.mergeStr(seg.segmentStrZht(input), " ");
             response.append(output);
 
-            System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
-            System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + input);
+            System.out.println("Response:" + output);
+            
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
@@ -81,9 +84,7 @@ public class NLPToolServer {
         for (String param : query.split("&")) {
             String pair[] = param.split("=");
             if (pair.length>1) {
-                //System.out.println(pair[0]);
-                //System.out.println(pair[1]);
-                result.put(pair[0], pair[1]);
+                result.put(pair[0], pair[1].replace("+", " "));
             }else{
                 result.put(pair[0], "");
             }

@@ -115,8 +115,10 @@ public class Segmenter{
             String r = new String();
             for(int i = 0; i < str.length - 1; i++){
                 r = r + str[i] + sep;
+                //System.out.println(str[i]);
             }
             r = r + str[str.length - 1];
+            //System.out.println(str[str.length - 1]);
             return r;
         }
         else{
