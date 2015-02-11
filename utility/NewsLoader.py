@@ -3,6 +3,7 @@
 import sys
 import MySQLdb
 import json
+import codecs
 
 class NewsLoader():
     def __init__(self, db_info, table_info=None):
@@ -56,16 +57,19 @@ class NewsLoader():
         sql = '''
             SELECT A.news_id, %s FROM %s as A, %s as B, %s as C
             WHERE A.topic_id = B.id AND A.news_id = C.id
-        ''' % (self.__convert_to_sql(news_colunms, 'C'), 
+        ''' % (self.__convert_to_sql(newsColumns, 'C'), 
                 self.topic_news_table, self.topic_table, table)
         
+        print sql
         try:
             newsList = list()
             #execute the sql 
             if limitNum == -1:
+                print topicId
+                print type(topicId)
                 self.cursor.execute(sql + ' AND A.topic_id = %d', (topicId, ))
             else:
-                self.cursor.execute(sql + ' AND A.topic_id = %d LIMIT 0, %d', (topicId, limitNum))
+                self.cursor.execute(sql + ' AND A.topic_id = %s LIMIT 0, %s', (topicId, limitNum))
             #fetch rows
             while True:
                 tmp = self.cursor.fetchone()
@@ -76,7 +80,7 @@ class NewsLoader():
                     news['id'] = tmp[0]
                     for i, c in enumerate(newsColumns):
                         news[c] = tmp[i+1]
-                    newsList.append(r)
+                    newsList.append(news)
             return newsList
         except Exception, e:
             print e
@@ -84,8 +88,9 @@ class NewsLoader():
         
 
     def dumpNews(self, filename, newsList):
-        with open(filename, 'w') as f:
-            json.dump(newsList, f)
+        # output as utf-8 file
+        with codecs.open(filename, 'w', encoding='utf-8') as f:
+            json.dump(newsList, f, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 '''
@@ -115,18 +120,17 @@ if __name__ == '__main__':
     with open(db_info_json_file, 'r') as f:
         db_info = json.load(f)
 
-    loader = NewsLoader(db_info)
-    if news_loader_json['query_type'] == 'topic':
-        topicId = news_loader_json['topic_id']
-        limitNum = news_loader_json['limit_num']
-        corpusTable = news_loader_json['corpus_table']
+    loader = NewsLoader(db_info, news_loader_config)
+    if news_loader_config['query_type'] == 'topic':
+        topicId = news_loader_config['topic_id']
+        limitNum = news_loader_config['limit_num']
+        corpusTable = news_loader_config['corpus_table']
         newsList = loader.getNewsByTopic(topicId, limitNum, corpusTable)
-
-    elif news_loader_json['query_type'] == 'news':
-        newsIdList = news_loader_json['news_id']
-        corpusTable = news_loader_json['corpus_table']
+    elif news_loader_config['query_type'] == 'news':
+        newsIdList = news_loader_config['news_id']
+        corpusTable = news_loader_config['corpus_table']
         newsList = list()
         for newsId in newsIdList:
-            newsList.append(loader.getNews(self, newsId, corpusTable))
-
+            newsList.append(loader.getNews(newsId, corpusTable))
+    
     loader.dumpNews(output_json_file, newsList)

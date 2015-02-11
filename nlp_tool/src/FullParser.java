@@ -53,7 +53,6 @@ public class FullParser extends Parser{
 		String[] sent = null;
 		sent = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
-		
 		// parse
 		Tree result = parseTokenizedSent(sent);
 

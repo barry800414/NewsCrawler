@@ -110,7 +110,22 @@ public class Segmenter{
             return (String []) words.toArray();
         }
     }
-        
+    public static String mergeStr(String[] str, String sep){
+        if(str.length > 0){
+            String r = new String();
+            for(int i = 0; i < str.length - 1; i++){
+                r = r + str[i] + sep;
+                //System.out.println(str[i]);
+            }
+            r = r + str[str.length - 1];
+            //System.out.println(str[str.length - 1]);
+            return r;
+        }
+        else{
+            return null;
+        }
+    }
+
 }
 
 
