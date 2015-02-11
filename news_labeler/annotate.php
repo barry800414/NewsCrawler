@@ -335,7 +335,7 @@
                     </label>
                     <br>
                     <label class="radio-inline">
-    				    <input type="radio" name="valid_format" class="valid_format" value="valid">內文無錯誤&nbsp;&nbsp;
+    				    <input type="radio" name="valid_format" class="valid_format" value="valid">內文無錯誤
                     </label>
 
                 </div>
