@@ -2,33 +2,33 @@ body{
     padding-top: 70px;
 }
 #main_interface{
-        max-width: 800px;
-        margin: auto;
-        text-align: center;
-        font-family: "微軟正黑體";
+    max-width: 800px;
+    margin: auto;
+    text-align: center;
+    font-family: "微軟正黑體";
 }
 
 #step_intro{
     background-color: rgb(217, 217, 217);
 }
 .disable_row{
-        background-color: #DDD;
+    background-color: #DDD;
 }
 .first_col{
-        min-width: 120px;
-        font-size: 14pt;
+    min-width: 120px;
+    font-size: 14pt;
 }
 
 .second_col{
-        font-size: 12pt;
+    font-size: 12pt;
 }
 
 #title{
-        font-size: 14pt;
+    font-size: 14pt;
 }
 
 #overall_polarity_hint_text{
-        color:red;
+    color:red;
 }
 
 .statement{
@@ -48,18 +48,18 @@ body{
 }
 
 .statement_row{
-        background-color:rgb(218, 255, 218);
+    background-color:rgb(218, 255, 218);
 }
 
 .label_row{
-        background-color:rgb(255, 255, 171);
+    background-color:rgb(255, 255, 171);
 }
 
 .label_row .second_col{
-        font-size: 14pt;
+    font-size: 14pt;
 }
 .news_row{
-        background-color: rgb(237, 237, 255);
+    background-color: rgb(237, 237, 255);
 }
 
 #statement{
@@ -67,9 +67,9 @@ body{
 }
 
 #submit{
-        width: 80px;
-        height: 45px;
-        font-size: 16pt;
+    width: 80px;
+    height: 45px;
+    font-size: 16pt;
 }
 .visible {
     visibility: visible;
