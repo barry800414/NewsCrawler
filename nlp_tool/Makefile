@@ -23,7 +23,7 @@ tagger: tagger_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullPOSTagger
 
 # full dependency parser
-dep_parser_compile: tagger_compile
+dep_parser_compile: 
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./scr" -d ./bin ./src/FullDependencyParser.java
 
 dep_parser: dep_parser_compile
@@ -36,7 +36,7 @@ parser_compile: segmenter_compile
 parser: parser_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" FullParser
 
-server_compile: segmenter_compile
+server_compile: segmenter_compile tagger_compile dep_parser_compile
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/NLPToolServer.java
 
 server: server_compile

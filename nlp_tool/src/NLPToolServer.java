@@ -4,6 +4,7 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.nio.charset.Charset;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -12,33 +13,54 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.Headers;
 
 import jopencc.ZhtZhsConvertor;
+import edu.stanford.nlp.trees.TypedDependency;
 
 public class NLPToolServer {
 
     public static ZhtZhsConvertor convertor;
     public static Segmenter seg;
-    public static void main(String[] args) throws Exception {
-        //initialize the converter
-        System.out.println("Initializing converter ... ");
+    public static FullPOSTagger tagger;
+    public static FullDependencyParser fdp;
+    public static void main(String[] args) {
+        //Initialize the converter
+        System.out.println(">>>>>> Initializing Converter ... ");
         convertor = new ZhtZhsConvertor("./jopencc");
 
-        //initialize the segmenter
-        System.out.println("Initializing segmenter ... ");
+        //Initialize the segmenter
+        System.out.println(">>>>>> Initializing Segmenter ... ");
         seg = new Segmenter("./stanford_segmenter", convertor);
-        
-        //initialize the server
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
-        server.createContext("/info", new InfoHandler());
-        server.createContext("/segmenter", new SegHandler());
-        server.setExecutor(null); // creates a default executor
-        server.start();
-        System.out.println("The server is running");
+
+        //initialize the pos-tagger 
+        System.out.println(">>>>>> Initializing POS-tagger ...");
+        tagger = new FullPOSTagger("./stanford_postagger", Lang.ZHS, 
+            seg, convertor);
+
+        //Initialize the dependency parser
+        System.out.println(">>>>> Initailizing Dependency Parser ...");
+        fdp = new FullDependencyParser(Lang.ZHS, tagger, 
+            seg, convertor);
+
+        //Initialize the server
+        try{
+            HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+            server.createContext("/info", new InfoHandler());
+            server.createContext("/segmenter", new SegHandler());
+            server.createContext("/pos", new POSHandler());
+            server.createContext("/dep_parser", new DepParserHandler());
+
+            server.setExecutor(null); // creates a default executor
+            server.start();
+            System.out.println("The server is running");
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     // http://localhost:8000/info
     static class InfoHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
-            String response = "Use /get?hello=word&foo=bar to see how to handle url parameters";
+            String response = "/segmenter?s=sentence\n/pos?s=sentence\n/dep_parser?s=sentence";
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
@@ -62,6 +84,52 @@ public class NLPToolServer {
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
+
+    // TODO
+    // http://localhost:port/segmenter?s=sentence
+    static class POSHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange) throws IOException {
+            StringBuilder response = new StringBuilder();
+            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            String input = parms.get("s");
+            
+            //segement the string
+            String output = seg.mergeStr(seg.segmentStrZht(input), " ");
+            response.append(output);
+
+            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + input);
+            System.out.println("Response:" + output);
+            
+            NLPToolServer.writeResponse(httpExchange, response.toString());
+        }
+    }
+
+
+    static class DepParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange) throws IOException {
+            //retrieve sentence
+            StringBuilder response = new StringBuilder();
+            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            String input = parms.get("s");
+
+            //dependency parsing
+            Collection<TypedDependency> tdList = fdp.parseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
+            String tokenizedSent = fdp.getTokenizedSentBuffer();
+            response.append(tokenizedSent);
+            String output = FullDependencyParser.typedDependenciesToString(tdList);
+            response.append(output);
+
+            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + input);
+            System.out.println("Response:" + output);
+            
+            NLPToolServer.writeResponse(httpExchange, response.toString());
+        }
+    }
+
 
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {

@@ -31,6 +31,10 @@ public class FullPOSTagger {
             Lang.ZHT, Lang.ZHT);
 
         System.out.println(tagged);
+        for(TaggedWord tw: tagged){
+            //value: word,   tag: POS tagger
+            System.out.println(tw.value() + ':' + tw.tag());
+        }
     }
 
     public int lang;
@@ -91,6 +95,7 @@ public class FullPOSTagger {
         // convert the language if necessary
         if(outLang == Lang.ZHT){
             //TODO
+            //setValue()
             return result;
         }
         return result;
