@@ -73,7 +73,7 @@ class LabelLoader():
               ''' % (self.__convert_to_sql(labelColumns, 'C'), self.topic_table, 
                       self.statement_table, self.label_table, 
                       self.__gen_where(whereConfig, 'C'))
-        print sql
+        print sql + ' AND B.topic_id = %s' % (topicId)
         try:
             self.cursor.execute(sql + ' AND B.topic_id = %s', (topicId, ))
             labelList = list()
@@ -226,4 +226,5 @@ if __name__ == '__main__':
         else:
             labelList = loader.getLabelById(whereConfig, statementId, newsId)
 
+    print("#news&label:", len(labelList))
     loader.dumpLabels(output_json_file, labelList)

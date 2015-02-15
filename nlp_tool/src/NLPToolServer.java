@@ -117,14 +117,14 @@ public class NLPToolServer {
             //dependency parsing
             Collection<TypedDependency> tdList = fdp.parseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
             String tokenizedSent = fdp.getTokenizedSentBuffer();
-            response.append(tokenizedSent);
+            response.append(tokenizedSent + "\n");
             String output = FullDependencyParser.typedDependenciesToString(tdList);
             response.append(output);
 
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
             System.out.println("Reqeust:" + input);
-            System.out.println("Response:" + output);
+            System.out.println("Response:" + tokenizedSent + "\n" + output);
             
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
