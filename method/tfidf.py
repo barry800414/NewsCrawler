@@ -27,19 +27,19 @@ def data_cleaning(labelNewsList, printInfo=False):
             newList.append(labelNews)
     return newList
 
-# convert the contents of news to term frequency features
-def convertToTFFeatures(labelNewsList, column='content', volc=None):
+# convert the contents of news to tf/tf-idf (a list of dict)
+def convertToTFIDF(labelNewsList, column='content', IDF=None, volc=None):
     vectorList = list() # a list of dict()
     if volc == None:
         volc = dict() # vocabulary
     for labelNews in labelNewsList:
         if column == 'content':
-            content = labelNews['news']['content_seg']
+            text = labelNews['news']['content_seg']
         elif column == 'title':
-            content = labelNews['news']['title_seg']
+            text = labelNews['news']['title_seg']
         elif column == 'statement':
-            content = labelNews['statement_seg']
-        vectorList.append(__toTF(content, volc))
+            text = labelNews['statement_seg']
+        vectorList.append(sentToTFIDF(text, IDF, volc))
     return (vectorList, volc)
 
 def __dictAdd(dict1, dict2):
@@ -87,16 +87,31 @@ def __listOfDictAdd(listOfDict1, listOfDict2):
         
     return result
 
-def __toTF(content, volc=None, sentSep=",", wordSep=" "):
-    vector = defaultdict(int)
+# convert sentence to TF-IDF features (dict)
+def sentToTFIDF(text, IDF=None, volc=None, sentSep=",", wordSep=" "):
+    f = dict()
     if volc == None:
         volc = dict()
-    for sent in content.split(sentSep):
+    # term frequency 
+    for sent in text.split(sentSep):
         for word in sent.split(wordSep):
             if word not in volc:
                 volc[word] = len(volc)
-            vector[volc[word]] += 1
-    return vector
+            if volc[word] not in f:
+                f[volc[word]] = 1
+            else:
+                f[volc[word]] += 1
+                
+    # if idf is given, then calculate tf-idf
+    if IDF != None:
+        for key, value in f.items():
+            if key not in IDF:
+                #print('Document Frequency Error', file=sys.stderr)
+                f[key] = value * IDF['default']
+            else:
+                f[key] = value * IDF[key]
+
+    return f
 
 def getLabels(labelNewsList):
     mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
@@ -120,35 +135,72 @@ def convertToCSRMatrix(listOfDict, volc):
     return csr_matrix((entries, (rows, cols)), 
             shape=(numRow, numCol), dtype=np.float64)
 
+# calculate inverse document frequency
+def calcIDF(labelNewsList, newsCols=['content'], sentSep=",", 
+        wordSep=" ", volc=None):
+    if volc == None:
+        volc = dict()
+
+    # calculating docuemnt frequency
+    docF = defaultdict(int)
+    for labelNews in labelNewsList:  
+        wordSet = set()
+        for col in newsCols:
+            if col == 'title':
+                text = labelNews['news']['title_seg']
+            elif col == 'content':
+                text = labelNews['news']['content_seg']
+            for sent in text.split(sentSep):
+                for word in sent.split(wordSep):
+                    if word not in volc: # building volcabulary
+                        volc[word] = len(volc) 
+                    wordSet.add(volc[word])
+        for word in wordSet:
+            docF[word] += 1
+
+    # calculate IDF (log(N/(nd+1)))
+    docNum = len(labelNewsList)
+    IDF = dict()
+    for key, value in docF.items():
+        IDF[key] = math.log(float(docNum) / (value + 1))
+    IDF['default'] = math.log(float(docNum))
+    return (IDF, volc)
 
 def generateXY(labelNewsList, newsCols=['content'], statementCol=False, 
-        features=['tf'], testRatio=0.5):
+        feature='tf'):
 
-    # convert to term frequency features (content / title)
-    titleTF = None # a list of dictionary, each dictionary is tf vector of one content
-    contentTF = None
-    volc = dict() # vocabulary
+    #initialization
+    volc = dict()
+    IDF = None
+
+    # calculate IDF 
+    if feature == 'tfidf' or feature == 'tf-idf':
+        (IDF, volc) = calcIDF(labelNewsList, newsCols=newsCols, volc=volc)
+
+    # calculate TF/TF-IDF (content / title)
+    titleTFIDF = None # a list of dictionary, each dictionary is tf vector of one content
+    contentTFIDF = None
 
     for col in newsCols:
         if col == 'title':
-            (titleTF, volc) = convertToTFFeatures(labelNewsList, 
-                    column='title', volc=volc)
+            (titleTFIDF, volc) = convertToTFIDF(labelNewsList, 
+                    column='title', IDF=IDF, volc=volc)
         elif col == 'content':
-            (contentTF, volc) = convertToTFFeatures(labelNewsList, 
-                    column='content', volc=volc)
-    newsTF = __listOfDictAdd(titleTF, contentTF)
-
-    # convert to term frequency features (statement)
-    statementTF = None
+            (contentTFIDF, volc) = convertToTFIDF(labelNewsList, 
+                    column='content', IDF=IDF, volc=volc)
+    newsTFIDF = __listOfDictAdd(titleTFIDF, contentTFIDF)
+    
+    # calculate TF/TF-IDF (statement)
+    statementTFIDF = None
     if statementCol:
-        (statementTF, volc) = convertToTFFeatures(labelNewsList, 
-                column='statement', volc=volc)
+        (statementTFIDF, volc) = convertToTFIDF(labelNewsList, 
+                column='statement', IDF=IDF, volc=volc)
     
     # convert to CSR sparse matrix format
-    X = convertToCSRMatrix(newsTF, volc)
+    X = convertToCSRMatrix(newsTFIDF, volc)
     if statementCol:
-        X2 = convertToCSRMatrix(statementTF, volc)
-        X = hstack(X, X2)
+        X2 = convertToCSRMatrix(statementTFIDF, volc)
+        X = hstack((X, X2))
     
     # get y
     y = np.array(getLabels(labelNewsList))
@@ -186,6 +238,7 @@ def trainingAndTesting(X_train, X_test, y_train, y_test, classifier='SVM', prefi
             }
         clf = RandomForestClassifier()
 
+    
     # if not naive Bayes:
     clfGS = grid_search.GridSearchCV(clf, parameters, refit=True, n_jobs=-1)
     clfGS.fit(X_train, y_train)
@@ -195,7 +248,7 @@ def trainingAndTesting(X_train, X_test, y_train, y_test, classifier='SVM', prefi
 
     # testing 
     print(prefix,'testing', clfGS.best_params_, clfGS.score(X_test, y_test), sep=',')
-
+    
 
 def printStatInfo(labelNewsList):
     statSet = set() 
@@ -252,22 +305,24 @@ if __name__ == '__main__':
     # main loop for running experiments
     # generating X and y
     cnt = 0
+    featureList = ['tf', 'tfidf']
     colsList = [['content'], ['title'], ['title', 'content']]
-    statList = [False]
+    statList = [False, True]
     clfList = [ 'NaiveBayes', 'SVM']
-    taskNum = len(colsList) * len(statList) * len(clfList)
-    for newsCols in colsList:
-        for statementCol in statList:
-            (X, y) = generateXY(labelNewsList, newsCols=newsCols, 
-                    statementCol=statementCol, features=['tf'])
+    taskNum = len(featureList) * len(colsList) * len(statList) * len(clfList)
+    for feature in featureList:
+        for newsCols in colsList:
+            for statementCol in statList:
+                (X, y) = generateXY(labelNewsList, newsCols=newsCols, 
+                        statementCol=statementCol, feature=feature)
 
-            (X_train, X_test, y_train, y_test) = cross_validation.train_test_split(
-                    X, y, test_size=0.5, random_state=1)
-            
-            for classifier in clfList:
-                prefix = "%s, %s, %s" % (newsCols, statementCol, classifier)
-                trainingAndTesting(X_train, X_test, y_train, y_test, classifier, prefix)
-                cnt += 1
-                print('Progress: (%d/%d)' % (cnt, taskNum), file=sys.stderr)
+                (X_train, X_test, y_train, y_test) = cross_validation.train_test_split(
+                        X, y, test_size=0.5, random_state=1)
                 
+                for classifier in clfList:
+                    prefix = "%s, %s, %s, %s" % (feature, newsCols, statementCol, classifier)
+                    trainingAndTesting(X_train, X_test, y_train, y_test, classifier, prefix)
+                    cnt += 1
+                    print('Progress: (%d/%d)' % (cnt, taskNum), file=sys.stderr)
+                    
 

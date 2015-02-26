@@ -19,7 +19,7 @@ def segmentStr(sentence):
     else:
         return None
 
-#segmentStr("測試 《我是一個句子》")
+#print(segmentStr("測試 我是一個句子"))
 
 # typedDependency format:  reln gov_index gov_word gov_tag dep_index dep_word dep_tag
 def parseStr(sentence, returnTokenizedSent=False):

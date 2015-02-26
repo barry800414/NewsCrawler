@@ -5,13 +5,13 @@ import re
 from NLPToolRequests import *
 
 # default sentence separator
-SEP = '[.,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕\(\)\[\]!?？！]'
+SEP = '[,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\[\]!?？！\u2019]'
 
 # default new sentence separator
 NEW_SEP = ','
 
 # default to-removed punctuation
-TO_REMOVE = '[、:：／\|]'
+TO_REMOVE = '[\uF0D8\u0095/=&�+、:：／\|‧]'
 
 # default brackets for fixing them (not to segment)
 BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'), 
@@ -19,11 +19,12 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
              ('﹝', '﹞'), ('「','」'), ('『', '』'), 
              ('（','）'), ('〔','〕')]
 
-# segment the news
-def segNews(news):
-    news['title_seg'] = segContent(news['title'])
-    news['content_seg'] = segContent(news['content'])
-    return news
+# segment the news(title & content) & statement
+def segLabelNews(labelNews):
+    labelNews['news']['title_seg'] = segContent(labelNews['news']['title'])
+    labelNews['news']['content_seg'] = segContent(labelNews['news']['content'])
+    labelNews['statement_seg'] = segContent(labelNews['statement'])
+    return labelNews
 
 # segment all the sentences, dealing with punctuations
 # sep: the sentence separators of original contents(for regex)
@@ -33,7 +34,7 @@ def segContent(content, sep=SEP, new_sep=NEW_SEP,
         to_remove=TO_REMOVE, brackets=BRACKETS):
     segContent = ''
 
-    # deal with brackets
+    # deal with brackets TODO
     '''
     fixedPairs = list()
     for b in brackets:
@@ -49,12 +50,25 @@ def segContent(content, sep=SEP, new_sep=NEW_SEP,
     sArray = re.split(sep, content)
     for s in sArray:
         s2 = s.strip()
-        if len(s2) > 0: #if empty string, skipped
-            result = segmentStr(s2)
-            result = re.sub(to_remove, '', result)
-            result = result.strip()
-            if len(result) != 0:
-                segContent += result + NEW_SEP
+        if len(s2) == 0: #if empty string, skip it
+            continue
+        
+        print('|%s|' % (s2))
+        # segment the string by Stanford NLP segmenter
+        result = segmentStr(s2)
+        # remove punctuation
+        result = re.sub(to_remove, '', result) 
+        # normalizing spaces (N -> 1 space char)
+        result = re.sub('[ ]+', ' ', result)
+        # remove delimeter chars in front/end of string
+        result = result.strip()
+        print('|%s|' % result)
+        if len(result) == 0:
+            continue
+        if len(segContent) != 0:
+            segContent += NEW_SEP + result
+        else:
+            segContent += result
     return segContent
 
 # brute force way
@@ -79,9 +93,9 @@ if __name__ == '__main__':
         labelNews = json.load(f)
     
     for i, n in enumerate(labelNews):
-        segNews(n['news'])
+        segLabelNews(n)
         if (i+1) % 10 == 0:
-            print('Progress: (%d/%d)' % (i+1, len(labelNews)))
+            print('Progress: (%d/%d)' % (i+1, len(labelNews)), file=sys.stderr)
 
     with open(outNewsJsonFile, 'w') as f:
         json.dump(labelNews, f, ensure_ascii=False, indent = 2)
