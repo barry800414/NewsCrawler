@@ -23,7 +23,8 @@ def segmentStr(sentence):
 
 # typedDependency format:  reln gov_index gov_word gov_tag dep_index dep_word dep_tag
 def parseStr(sentence, returnTokenizedSent=False):
-    api_url = 'http://localhost:8000/dep_parser'
+    #api_url = 'http://localhost:8000/nn_dep'
+    api_url = 'http://localhost:8000/pcfg_dep'
     payload = {
         's': sentence        
     }
@@ -39,5 +40,6 @@ def parseStr(sentence, returnTokenizedSent=False):
     else:
         return None
 
-#print(parseStr("我是一個人"))
-
+print(parseStr("我是一個人"))
+print(parseStr("這是一個測試用的句子"))
+print(parseStr("台灣應廢除死刑"))

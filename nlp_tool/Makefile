@@ -17,26 +17,26 @@ segmenter: segmenter_compile
 
 # POS tagger
 tagger_compile: segmenter_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./scr" -d ./bin ./src/FullPOSTagger.java
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullPOSTagger.java
 
 tagger: tagger_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullPOSTagger
 
-# full dependency parser
-dep_parser_compile: 
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./scr" -d ./bin ./src/FullDependencyParser.java
+# full neural network dependency parser
+nndep_parser_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullNNDepParser.java
 
-dep_parser: dep_parser_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullDependencyParser
+nndep_parser: nndep_parser_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullNNDepParser
 
-# full constituent parser 
+# full PCFG parser (for constituent & dependency parsing) 
 parser_compile: segmenter_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullParser.java
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/FullPCFGParser.java
 
 parser: parser_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" FullParser
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" FullPCFGParser
 
-server_compile: segmenter_compile tagger_compile dep_parser_compile
+server_compile: segmenter_compile tagger_compile nndep_parser_compile parser_compile
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/NLPToolServer.java
 
 server: server_compile

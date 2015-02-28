@@ -3,6 +3,7 @@
 import sys
 import json
 
+# return a dict (word -> sentiment score)
 def readSentDict(filename):
 	sentDict = dict()
 	with open(filename, 'r') as f:

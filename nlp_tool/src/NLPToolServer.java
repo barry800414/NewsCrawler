@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.nio.charset.Charset;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -20,7 +21,8 @@ public class NLPToolServer {
     public static ZhtZhsConvertor convertor;
     public static Segmenter seg;
     public static FullPOSTagger tagger;
-    public static FullDependencyParser fdp;
+    public static FullNNDepParser fdp;
+    public static FullPCFGParser fpp;
     public static void main(String[] args) {
         //Initialize the converter
         System.out.println(">>>>>> Initializing Converter ... ");
@@ -36,9 +38,13 @@ public class NLPToolServer {
             seg, convertor);
 
         //Initialize the dependency parser
-        System.out.println(">>>>> Initailizing Dependency Parser ...");
-        fdp = new FullDependencyParser(Lang.ZHS, tagger, 
+        System.out.println(">>>>> Initailizing NN Dependency Parser ...");
+        fdp = new FullNNDepParser(Lang.ZHS, tagger, 
             seg, convertor);
+
+        //Initialize the PCFG parser
+        System.out.println(">>>>> Initializing PCFG Parser ...");
+        fpp = new FullPCFGParser(Lang.ZHS, seg, convertor);
 
         //Initialize the server
         try{
@@ -46,7 +52,8 @@ public class NLPToolServer {
             server.createContext("/info", new InfoHandler());
             server.createContext("/segmenter", new SegHandler());
             server.createContext("/pos", new POSHandler());
-            server.createContext("/dep_parser", new DepParserHandler());
+            server.createContext("/nn_dep", new NNDepParserHandler());
+            server.createContext("/pcfg_dep", new PCFGDepParserHandler());
 
             server.setExecutor(null); // creates a default executor
             server.start();
@@ -60,11 +67,12 @@ public class NLPToolServer {
     // http://localhost:8000/info
     static class InfoHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
-            String response = "/segmenter?s=sentence\n/pos?s=sentence\n/dep_parser?s=sentence";
+            String response = "/segmenter?s=sentence\n/pos?s=sentence\n/nndep?s=sentence";
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
 
+    // Stanford Segmenter handler
     // http://localhost:port/segmenter?s=sentence
     static class SegHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
@@ -106,8 +114,9 @@ public class NLPToolServer {
         }
     }
 
-
-    static class DepParserHandler implements HttpHandler {
+    // Stanford NN Dependency Parser Handler (output: Collx Format)
+    //http://localhost:port/nn_dep?s=sentence
+    static class NNDepParserHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
             //retrieve sentence
             StringBuilder response = new StringBuilder();
@@ -115,10 +124,10 @@ public class NLPToolServer {
             String input = parms.get("s");
 
             //dependency parsing
-            Collection<TypedDependency> tdList = fdp.parseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
+            List<TypedDependency> tdList = fdp.parseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
             String tokenizedSent = fdp.getTokenizedSentBuffer();
             response.append(tokenizedSent + "\n");
-            String output = FullDependencyParser.typedDependenciesToString(tdList);
+            String output = DepToString.TDsToString(tdList);
             response.append(output);
 
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
@@ -130,6 +139,30 @@ public class NLPToolServer {
         }
     }
 
+    // Stanford PCFG Dependency Parser handler (output: stanford dependencies)
+    //http://localhost:port/pcfg_dep?s=sentence
+    static class PCFGDepParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange) throws IOException {
+            //retrieve sentence
+            StringBuilder response = new StringBuilder();
+            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            String input = parms.get("s");
+
+            //dependency parsing by pcfg parser
+            List<TypedDependency> tdList = fpp.depParseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
+            String tokenizedSent = fpp.getTokenizedSentBuffer();
+            response.append(tokenizedSent + "\n");
+            String output = DepToString.TDsToString(tdList);
+            response.append(output);
+
+            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + input);
+            System.out.println("Response:" + tokenizedSent + "\n" + output);
+            
+            NLPToolServer.writeResponse(httpExchange, response.toString());
+        }
+    }
 
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {

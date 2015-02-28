@@ -36,7 +36,7 @@ import jopencc.ZhtZhsConvertor;
  *
  * @author Jon Gauthier
  */
-public class FullDependencyParser {
+public class FullNNDepParser {
     public static void main(String[] args) {
         //initialize the converter
         System.err.println(" ===== Initializing Convertor =====");
@@ -52,16 +52,16 @@ public class FullDependencyParser {
             seg, convertor);
 
         //Initialize the dependency parser
-        FullDependencyParser fdp = new FullDependencyParser(Lang.ZHS, tagger, 
+        FullNNDepParser fdp = new FullNNDepParser(Lang.ZHS, tagger, 
             seg, convertor);
 
         System.out.println("Dependency Format: reln gov_index gov_word gov_tag dep_index dep_word dep_tag");
 
         //String text = "I can almost always tell when movies use fake dinosaurs.";
         String untokenizedSent = "這是一個測試用的句子";
-        Collection<TypedDependency> tdList = fdp.parseUntokenizedSent(untokenizedSent, Lang.ZHT, Lang.ZHT);
+        List<TypedDependency> tdList = fdp.parseUntokenizedSent(untokenizedSent, Lang.ZHT, Lang.ZHT);
         System.out.println(untokenizedSent);
-        System.out.println(FullDependencyParser.typedDependenciesToString(tdList));
+        System.out.println(DepToString.TDsToString(tdList));
     }
 
     public DependencyParser parser = null; 
@@ -73,7 +73,7 @@ public class FullDependencyParser {
 
     private String modelPath = DependencyParser.DEFAULT_MODEL;
 
-    public FullDependencyParser(int lang){
+    public FullNNDepParser(int lang){
         this.lang = lang;
         if(lang == Lang.ENG){
             modelPath = "edu/stanford/nlp/models/parser/nndep/PTB_CoNLL_params.txt.gz";
@@ -84,19 +84,19 @@ public class FullDependencyParser {
         parser = DependencyParser.loadFromModelFile(modelPath);
     }
 
-    public FullDependencyParser(int lang, Segmenter segmenter){
+    public FullNNDepParser(int lang, Segmenter segmenter){
         this(lang);
         this.segmenter = segmenter;
     }
 
-    public FullDependencyParser(int lang, Segmenter segmenter, 
+    public FullNNDepParser(int lang, Segmenter segmenter, 
         ZhtZhsConvertor convertor){
         this(lang);
         this.segmenter = segmenter;
         this.convertor = convertor;
     }
 
-    public FullDependencyParser(int lang, FullPOSTagger tagger, 
+    public FullNNDepParser(int lang, FullPOSTagger tagger, 
         Segmenter segmenter, ZhtZhsConvertor convertor){
         this(lang);
         this.tagger = tagger;
@@ -105,7 +105,7 @@ public class FullDependencyParser {
     }
 
     //get the dependency parsed results from "tokenized" and "ZHS" sentence
-    public Collection<TypedDependency> parseTokenizedSent(String sent){
+    public List<TypedDependency> parseTokenizedSent(String sent){
         //TODO: may be inconsistent to tagger
         tokenizedSentBuffer = sent.split(" ");
         List<TaggedWord> tagged = tagger.tagTokenizedSent(sent);
@@ -114,10 +114,10 @@ public class FullDependencyParser {
         //System.err.println(gs);
         //System.err.println(gs.allTypedDependencies());
         //System.err.println(gs.typedDependencies());
-        return gs.typedDependencies();
+        return gs.typedDependenciesCCprocessed();
     }
 
-    public Collection<TypedDependency> parseUntokenizedSent(String untokenizedSent, int inLang, int outLang){
+    public List<TypedDependency> parseUntokenizedSent(String untokenizedSent, int inLang, int outLang){
         if(inLang == Lang.ENG){
             System.err.println("Untokenized English sentences parsing is not supported now");
             return null;    
@@ -127,7 +127,7 @@ public class FullDependencyParser {
         tokenizedSentBuffer = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
         // dependency parsing
-        Collection<TypedDependency> tdList = parseTokenizedSent(mergeStr(tokenizedSentBuffer));
+        List<TypedDependency> tdList = parseTokenizedSent(mergeStr(tokenizedSentBuffer));
 
         // convert the language if necessary
         if(outLang == Lang.ZHT){
@@ -156,28 +156,4 @@ public class FullDependencyParser {
         }
     }
 
-    //format: reln gov_index gov_word gov_tag dep_index dep_word dep_tag
-    public static String typedDependencyToString(TypedDependency td){
-        if(td == null){
-            return null;
-        }
-        IndexedWord g = td.gov();
-        IndexedWord d = td.dep();
-        String str = String.format("%s %d %s %s %d %s %s", 
-                td.reln(), g.index(), g.word(), g.tag(),
-                d.index(), d.word(), d.tag());
-        return str;
-    }
-
-    public static String typedDependenciesToString(Collection<TypedDependency> tdList){
-        if(tdList == null){
-            return null;
-        }
-        String str = "";
-        for(TypedDependency td: tdList){
-            str = str + FullDependencyParser.typedDependencyToString(td) + "\n";
-        }
-        return str;
-
-    }
 }
