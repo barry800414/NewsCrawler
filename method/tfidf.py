@@ -11,6 +11,9 @@ from sklearn import svm, cross_validation, grid_search
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 
+import dataPreprocess
+
+
 '''
 This code implements the baseline (tf, tf-idf) features 
 for training and testing (supervised document-level learning)
@@ -18,14 +21,6 @@ Author: Wei-Ming Chen
 Date: 2015/02/16
 
 '''
-
-def data_cleaning(labelNewsList, printInfo=False):
-    labelSet = set(["neutral", "oppose", "agree"])
-    newList = list()
-    for labelNews in labelNewsList:
-        if labelNews['label'] in labelSet:
-            newList.append(labelNews)
-    return newList
 
 # convert the contents of news to tf/tf-idf (a list of dict)
 def convertToTFIDF(labelNewsList, column='content', IDF=None, volc=None):
@@ -250,36 +245,6 @@ def trainingAndTesting(X_train, X_test, y_train, y_test, classifier='SVM', prefi
     print(prefix,'testing', clfGS.best_params_, clfGS.score(X_test, y_test), sep=',')
     
 
-def printStatInfo(labelNewsList):
-    statSet = set() 
-    for labelNews in labelNewsList:
-        statSet.add(labelNews['statement_id'])
-
-    num = dict()
-    for statId in statSet:
-        num[statId] = { "agree": 0, "oppose": 0, "neutral": 0 }
-    
-    for labelNews in labelNewsList:
-        num[labelNews['statement_id']][labelNews['label']] += 1
-
-    agreeSum = 0
-    neutralSum = 0
-    opposeSum = 0
-    for statId in statSet:
-        agree = num[statId]['agree']
-        neutral = num[statId]['neutral']
-        oppose = num[statId]['oppose']
-        total = agree + neutral + oppose
-        print('Statement %d: agree/neutral/oppose: %d/%d/%d (%f/%f/%f)' % (statId, 
-             agree, neutral, oppose, float(agree)/total, float(neutral)/total, 
-             float(oppose)/total), file=sys.stderr)
-        agreeSum += agree
-        neutralSum += neutral
-        opposeSum += oppose
-    totalSum = agreeSum + neutralSum + opposeSum
-    print('Total: agree/neutral/oppose: %d/%d/%d (%f/%f/%f)' % (agreeSum, neutralSum,
-        opposeSum, float(agreeSum)/totalSum, float(neutralSum)/totalSum, 
-             float(opposeSum)/totalSum), file=sys.stderr)
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -294,10 +259,10 @@ if __name__ == '__main__':
         labelNewsList = json.load(f)
 
     # cleaning the data 
-    labelNewsList = data_cleaning(labelNewsList, printInfo=True)
+    labelNewsList = dataPreprocess.data_cleaning(labelNewsList, printInfo=True)
 
     # print statiscal information
-    printStatInfo(labelNewsList)
+    dataPreprocess.printStatInfo(labelNewsList)
 
     # print results
     print('columnSource, statementCol, classifier, val_or_test, parameters, accuarcy')

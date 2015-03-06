@@ -16,20 +16,6 @@ import java.util.Collection;
 import jopencc.ZhtZhsConvertor;
 
 
-/*
- * GrammaticalStructure contains List<TypedDependencies>
- * TypedDependencies t: 
- *      t.reln(): relation, 
- *      t.gov(): govern word(IndexedWord)
- *      t.dep(): dependent word(IndexedWord)
- * IndexedWord w: 
- *      w.word(): word
- *      w.tag(): POS tagger of the word
- *      w.index(): the index of the word in string
- */
-
-
-
 /**
  * Demonstrates how to first use the tagger, then use the NN dependency
  * parser. Note that the parser will not work on untagged text.

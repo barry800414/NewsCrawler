@@ -7,6 +7,7 @@ import edu.stanford.nlp.ling.Sentence;
 import edu.stanford.nlp.parser.lexparser.LexicalizedParser;
 import edu.stanford.nlp.trees.*;
 
+import com.chaoticity.dependensee.*;
 /*
 	The lexicalized parser for parsing Simplfied Chinese sentences only.
 	Besides, it does not support untokenized sentence
@@ -42,6 +43,7 @@ public class PCFGParser{
 		}
         tlp = lp.treebankLanguagePack(); // TreebankLanguagePack for Chinese
         gsf = tlp.grammaticalStructureFactory();
+        DepDrawer.setTreebankLanguagePack(tlp); // for drawing dependency trees
 	}
 	
 	public Tree parseTokenizedSent(String[] sent){

@@ -1,6 +1,8 @@
 
 import java.util.List;
 
+ 
+import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.trees.*;
 import edu.stanford.nlp.trees.international.pennchinese.ChineseTreebankLanguagePack;
 
@@ -37,18 +39,7 @@ public class FullPCFGParser extends PCFGParser{
         List<TypedDependency> tdl = fpp.toTypedDependency(parse);
         System.out.println(DepToString.TDsToString(tdl));
 
-        //drawing image
-        try {
-            DepDrawer.setTreebankLanguagePack(fpp.tlp);
-            DepDrawer.writeImage(parse, tdl, "image1.png", 1);
-            DepDrawer.writeImage(parse, tdl, "image2.png", 2);
-            DepDrawer.writeImage(parse, tdl, "image3.png", 3);
-
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
-	}
+    }
 	
 	private Segmenter segmenter;
 	private ZhtZhsConvertor convertor;
@@ -85,10 +76,10 @@ public class FullPCFGParser extends PCFGParser{
 			return result;
 		}
 		return result;
-
 	}
 
-    public List<TypedDependency> depParseUntokenizedSent(String untokenizedSent, int inLang, int outLang){
+    public List<TypedDependency> depParseUntokenizedSent(String untokenizedSent, 
+            int inLang, int outLang, String imgPath){
         if(inLang == Lang.ENG){
 			System.err.println("Untokenized English sentences parsign is not supported now");
 			return null;	
@@ -105,9 +96,16 @@ public class FullPCFGParser extends PCFGParser{
 
 		// convert the language if necessary
 		if(outLang == Lang.ZHT){
-			//TODO
-			return tdl;
-		}
+		    tdl = wordToZht(tdl); 
+            tokenizedSentBuffer = wordToZht(tokenizedSentBuffer);
+            //TODO: the conversion from zhs to zht is inperfect
+        }
+
+        //drawing the dependency tree
+        if(imgPath != null){
+            drawDepTree(parse, tdl, imgPath, 3);
+        }
+
 		return tdl;
     }
 
@@ -137,5 +135,39 @@ public class FullPCFGParser extends PCFGParser{
         }
     }
 
-    
+    public void drawDepTree(Tree parse, List<TypedDependency> tdl, String filePrefix, int scale){
+        //drawing image
+        try {
+            DepDrawer.writeImage(parse, tdl, filePrefix + ".png" , scale);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    public TypedDependency wordToZht(TypedDependency td){
+        IndexedWord g = td.gov();
+        IndexedWord d = td.dep();
+
+        g.setWord(convertor.convertToZht(g.word()));
+        d.setWord(convertor.convertToZht(d.word()));
+
+        return td;
+    }
+
+    public List<TypedDependency> wordToZht(List<TypedDependency> tdl){
+        for(int i = 0; i < tdl.size(); i++){
+            tdl.set(i, wordToZht(tdl.get(i)));
+        }
+        return tdl;
+    }
+
+    public String[] wordToZht(String[] text){
+        for(int i = 0; i < text.length; i++){
+            text[i] = convertor.convertToZht(text[i]);
+        }
+        return text;
+    }
+
+
 }

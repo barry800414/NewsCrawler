@@ -1,7 +1,21 @@
  
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.ling.IndexedWord;
+import edu.stanford.nlp.ling.Sentence;
 import java.util.List;
+
+/*
+ * GrammaticalStructure contains List<TypedDependencies>
+ * TypedDependencies t: 
+ *      t.reln(): relation, 
+ *      t.gov(): govern word(IndexedWord)
+ *      t.dep(): dependent word(IndexedWord)
+ * IndexedWord w: 
+ *      w.word(): word
+ *      w.tag(): POS tagger of the word
+ *      w.index(): the index of the word in string
+ */
+
 
 public class DepToString{
     //format: reln gov_index gov_word gov_tag dep_index dep_word dep_tag
@@ -26,7 +40,7 @@ public class DepToString{
             str = str + DepToString.TDToString(td) + "\n";
         }
         return str;
-
     }
+
 }
 

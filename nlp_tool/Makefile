@@ -37,8 +37,8 @@ parser: parser_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" FullPCFGParser
 
 server_compile: segmenter_compile tagger_compile nndep_parser_compile parser_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/NLPToolServer.java
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/NLPToolServer.java
 
 server: server_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" NLPToolServer
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" NLPToolServer
 

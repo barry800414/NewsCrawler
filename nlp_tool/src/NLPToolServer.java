@@ -15,6 +15,8 @@ import com.sun.net.httpserver.Headers;
 
 import jopencc.ZhtZhsConvertor;
 import edu.stanford.nlp.trees.TypedDependency;
+import edu.stanford.nlp.ling.TaggedWord;
+import edu.stanford.nlp.ling.Sentence;
 
 public class NLPToolServer {
 
@@ -23,7 +25,11 @@ public class NLPToolServer {
     public static FullPOSTagger tagger;
     public static FullNNDepParser fdp;
     public static FullPCFGParser fpp;
+
+    private static final String imgFolder = "/utmp/weiming/deptree_img/";
+    
     public static void main(String[] args) {
+
         //Initialize the converter
         System.out.println(">>>>>> Initializing Converter ... ");
         convertor = new ZhtZhsConvertor("./jopencc");
@@ -93,18 +99,30 @@ public class NLPToolServer {
         }
     }
 
-    // TODO
-    // http://localhost:port/segmenter?s=sentence
+    // http://localhost:port/pos?s=sentence
+    // http://localhost:port/pos?seg_s=sentence
     static class POSHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
             StringBuilder response = new StringBuilder();
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String input = parms.get("s");
             
-            //segement the string
-            String output = seg.mergeStr(seg.segmentStrZht(input), " ");
+            // default: segemented sentence (word delimiter is space)
+            String input = parms.get("seg_s");
+            if(input == null || input.length() == 0){
+                input = parms.get("s");
+                if(input == null || input.length() == 0){
+                    return ;
+                }
+                else{
+                    //segment the string 
+                    input = seg.mergeStr(seg.segmentStrZht(input), " ");
+                }
+            }
+            
+            List<TaggedWord> tagged = tagger.tagTokenizedSent(input);
+            String output = Sentence.listToString(tagged, false);
             response.append(output);
-
+            
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
             System.out.println("Reqeust:" + input);
@@ -140,26 +158,45 @@ public class NLPToolServer {
     }
 
     // Stanford PCFG Dependency Parser handler (output: stanford dependencies)
-    //http://localhost:port/pcfg_dep?s=sentence
+    //http://localhost:port/pcfg_dep?s=sentence?f_name=ooo?f_folder=xxx
     static class PCFGDepParserHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
+            String imgPath = null;
+
             //retrieve sentence
             StringBuilder response = new StringBuilder();
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String input = parms.get("s");
+            String text = parms.get("s");
+
+            //Check drawing dependency tree or not
+            String drawFlag = parms.get("draw");
+            if(drawFlag != null){
+                if(drawFlag.toLowerCase().compareTo("true") == 0){
+                    String fileFolder = parms.get("f_folder");
+                    String fileName = parms.get("f_name");
+                    if(fileFolder == null || fileName == null || 
+                       fileFolder.length() == 0 || fileName.length()==0){
+                        fileFolder = ".";
+                        fileName = text;
+                    }
+                    imgPath = NLPToolServer.imgFolder + fileFolder + "/" + fileName;
+                }
+            }
 
             //dependency parsing by pcfg parser
-            List<TypedDependency> tdList = fpp.depParseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
-            String tokenizedSent = fpp.getTokenizedSentBuffer();
+            List<TypedDependency> tdList = fpp.depParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
+            String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
             response.append(tokenizedSent + "\n");
-            String output = DepToString.TDsToString(tdList);
-            response.append(output);
+            String depStr = DepToString.TDsToString(tdList); //get typed dependencies
+            response.append(depStr);
 
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + input);
-            System.out.println("Response:" + tokenizedSent + "\n" + output);
+            System.out.println("Reqeust:" + text);
+            System.out.println("Response:" + tokenizedSent + "\n" + depStr);
+ 
             
+           
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
