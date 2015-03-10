@@ -4,8 +4,9 @@ import sys
 import MySQLdb
 import json
 import codecs
-from NewsLoader import NewsLoader
+import math
 
+from NewsLoader import NewsLoader
 
 class LabelLoader():
     defaultLabelColumn = ["valid_format", "relevance", 
@@ -156,6 +157,114 @@ class LabelLoader():
             json.dump(labelList, f, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def dataCleaning(labelList):
+    labelSet = set(["neutral", "oppose", "agree"])
+    newList = list()
+    for labelDict in labelList:
+        if labelDict['label'] in labelSet:
+            newList.append(labelDict)
+    return newList
+
+# TODO: calculate statistics
+def mergeLabel(labelList, method='vote'):
+    # convert to a dict: (statId, newsId) -> list of labels
+    statNewsLabel = dict()
+    newsDict = dict()
+    statDict = dict()
+    hasNews = False
+    if 'news' in labelList[0]:
+        hasNews = True
+
+    for labelDict in labelList:
+        statId = labelDict['statement_id']
+        newsId = labelDict['news_id']
+        label = labelDict['label']
+        if (statId, newsId) not in statNewsLabel:
+            statNewsLabel[(statId, newsId)] = list()
+        statNewsLabel[(statId, newsId)].append(label)
+
+        if hasNews and (newsId not in newsDict):
+            newsDict[newsId] = labelDict['news']
+        if statId not in statDict:
+            statDict[statId] = labelDict['statement']
+
+    # merge label
+    mergeLabel = dict()
+    for statId, newsId in statNewsLabel.keys():
+        labels = statNewsLabel[(statId, newsId)]
+        (majClass, maxPoll, numMax) = findMajorClass(labels)
+        if numMax == 1:
+            mergeLabel[(statId, newsId)] = majClass
+        else:
+            mergeLabel[(statId, newsId)] = getLabelByAvg(labels)
+    
+    # convert back to list of labels
+    newList = list()
+    for statId, newsId, in mergeLabel.keys():
+        label = mergeLabel[(statId, newsId)]
+        labelDict = { 
+            "label": label, 
+            "statement_id" : statId,
+            "statement": statDict[statId],
+            "news_id": newsId,
+        }
+        if hasNews:
+            labelDict['news'] = newsDict[newsId]
+        
+        newList.append(labelDict)
+
+    return newList
+            
+
+def findMajorClass(labels):
+    s2i = { "oppose": 0, "neutral": 1, "agree": 2 }
+    i2s = { 0: "oppose", 1: "neutral", 2: "agree" }
+
+    poll = [0 for i in range(0, len(s2i))]
+    for label in labels:
+        poll[s2i[label]] += 1
+
+    maxPoll = None
+    maxIndex = 0
+    numMax = 0
+    for i, p in enumerate(poll):
+        if maxPoll == None:
+            maxPoll = p
+            maxIndex = i
+            numMax = 1
+        elif p > maxPoll:
+            maxPoll = p
+            maxIndex = i
+            numMax = 1
+        elif p == maxPoll:
+            numMax += 1
+    
+    # (one of majority class, number of polls, number of majority class)
+    return (i2s[maxIndex], maxPoll, numMax) 
+
+def getLabelByAvg(labels):
+    avg = calcAvg(labels)
+    v2s = { -1: "oppose", 0: "neutral", 1:"agree" }
+    return v2s[floatCmp(avg, 0.0)]
+
+def calcAvg(labels):
+    s2v = { "oppose":-1, "neutral": 0, "agree": 1 }
+    avg = 0
+    for l in labels:
+        avg += s2v[l]
+    avg = float(avg) / len(labels)
+    return avg
+
+
+def floatCmp(a, b):
+    FLOAT_ERR = 1e-9
+    if math.fabs(a - b) < FLOAT_ERR:
+        return 0
+    elif a > b:
+        return 1
+    else:
+        return -1
+
 '''
 label_loader_json = {
     "label_table": "statement_news",
@@ -172,12 +281,12 @@ label_loader_json = {
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print >>sys.stderr, 'Usage:', sys.argv[0], 'label_loader_json db_info_json output_json_file'
+        print >>sys.stderr, 'Usage:', sys.argv[0], 'label_loader_json db_info_json outputJsonFile'
         exit(-1)
 
     label_loader_json_file = sys.argv[1]
     db_info_json_file = sys.argv[2]
-    output_json_file = sys.argv[3]
+    outputJsonFile = sys.argv[3]
 
     with open(label_loader_json_file, 'r') as f:
         config = json.load(f)
@@ -226,5 +335,12 @@ if __name__ == '__main__':
         else:
             labelList = loader.getLabelById(whereConfig, statementId, newsId)
 
-    print("#news&label:", len(labelList))
-    loader.dumpLabels(output_json_file, labelList)
+    labelList = dataCleaning(labelList)
+    print "before merging, #labels :%d" % len(labelList)
+    
+    # to merge the labels for same statement-news 
+    if config['merge']:
+        labelList = mergeLabel(labelList)
+    print "after merging, #labels: %d" % len(labelList)
+
+    loader.dumpLabels(outputJsonFile, labelList)

@@ -4,13 +4,14 @@ import sys
 import MySQLdb
 import json
 import codecs
+import traceback
 
 class NewsLoader():
     def __init__(self, db_info, table_info=None):
         self.connectToDB(db_info)
         if table_info != None:
-            self.topic_news_table = table_info['topic_news_table']
-            self.topic_table = table_info['topic_table']
+            self.topicNewsTable = table_info['topic_news_table']
+            self.topicTable = table_info['topic_table']
         
     def connectToDB(self, db_info):
         # initialize the connection to database
@@ -44,46 +45,54 @@ class NewsLoader():
                 return None
             else:
                 news = dict()
-                news['id'] = newsId
                 for i, c in enumerate(newsColumns):
                     news[c] = tmp[i]
                 return news
-        except Exception, e:
-            print e
+        except Exception as e:
+            print traceback.format_exc()
             return None
 
     # get news from given topic and given table
-    def getNewsByTopic(self, topicId, limitNum, table, newsColumns = ['title', 'content']):
+    def getNewsByTopic(self, topicIdList, limitNum, corpusTable, 
+            newsColumns = ['title', 'content']):
         sql = '''
-            SELECT A.news_id, %s FROM %s as A, %s as B, %s as C
+            SELECT DISTINCT A.news_id, %s FROM %s as A, %s as B, %s as C
             WHERE A.topic_id = B.id AND A.news_id = C.id
         ''' % (self.__convert_to_sql(newsColumns, 'C'), 
-                self.topic_news_table, self.topic_table, table)
+                self.topicNewsTable, self.topicTable, corpusTable)
         
-        print sql
         try:
-            newsList = list()
+            # select news of all possible topics
+            for i, topicId in enumerate(topicIdList):
+                if i == 0:
+                    sql = sql + ' AND (A.topic_id = %d' % topicId
+                else:
+                    sql = sql + ' OR A.topic_id = %d' % topicId
+                if i == len(topicIdList) - 1:
+                    sql = sql + ')'
+            if limitNum != -1:
+                sql = sql + ' LIMIT 0, %s' % (limitNum)
+            print(sql)
+
             #execute the sql 
-            if limitNum == -1:
-                print topicId
-                print type(topicId)
-                self.cursor.execute(sql + ' AND A.topic_id = %d', (topicId, ))
-            else:
-                self.cursor.execute(sql + ' AND A.topic_id = %s LIMIT 0, %s', (topicId, limitNum))
+            self.cursor.execute(sql)
+            
             #fetch rows
+            
+            newsDict = dict()
             while True:
                 tmp = self.cursor.fetchone()
                 if tmp == None:
                     break
                 else:
                     news = dict()
-                    news['id'] = tmp[0]
+                    newsId = tmp[0]
                     for i, c in enumerate(newsColumns):
                         news[c] = tmp[i+1]
-                    newsList.append(news)
-            return newsList
-        except Exception, e:
-            print e
+                    newsDict[newsId] = news
+            return newsDict
+        except Exception as e:
+            print traceback.format_exc()
             return None
         
 
@@ -95,8 +104,8 @@ class NewsLoader():
 
 '''
 news_loader_json = {
-    "topic_news_table": "topic_news",
-    "topic_table": "topic",
+    "topicNewsTable": "topic_news",
+    "topicTable": "topic",
     "corpus_table": "merge",
     "topic_id": 1,
     "news_id": ["setn0000001"], 
@@ -107,30 +116,33 @@ news_loader_json = {
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
-        print >>sys.stderr, 'Usage:', sys.argv[0], 'news_loader_json db_info_json output_json_file'
+        print >>sys.stderr, 'Usage:', sys.argv[0], 'news_loader_json db_info_json outputJsonFile'
         exit(-1)
 
-    news_loader_json_file = sys.argv[1]
-    db_info_json_file = sys.argv[2]
-    output_json_file = sys.argv[3]
+    newsLoaderJsonFile = sys.argv[1]
+    dbInfoJsonFile = sys.argv[2]
+    outputJsonFile = sys.argv[3]
 
-    with open(news_loader_json_file, 'r') as f:
-        news_loader_config = json.load(f)
+    with open(newsLoaderJsonFile, 'r') as f:
+        newsLoaderConfig = json.load(f)
 
-    with open(db_info_json_file, 'r') as f:
+    with open(dbInfoJsonFile, 'r') as f:
         db_info = json.load(f)
 
-    loader = NewsLoader(db_info, news_loader_config)
-    if news_loader_config['query_type'] == 'topic':
-        topicId = news_loader_config['topic_id']
-        limitNum = news_loader_config['limit_num']
-        corpusTable = news_loader_config['corpus_table']
-        newsList = loader.getNewsByTopic(topicId, limitNum, corpusTable)
-    elif news_loader_config['query_type'] == 'news':
-        newsIdList = news_loader_config['news_id']
-        corpusTable = news_loader_config['corpus_table']
-        newsList = list()
+    loader = NewsLoader(db_info, newsLoaderConfig)
+    if newsLoaderConfig['query_type'] == 'topic':
+        topicIdList = newsLoaderConfig['topic_id']
+        limitNum = newsLoaderConfig['limit_num']
+        corpusTable = newsLoaderConfig['corpus_table']
+        # return a dict of news (news_id -> news content)
+        newsDict = loader.getNewsByTopic(topicIdList, limitNum, corpusTable)
+    elif newsLoaderConfig['query_type'] == 'news':
+        newsIdList = newsLoaderConfig['news_id']
+        corpusTable = newsLoaderConfig['corpus_table']
+        newsDict = dict()
         for newsId in newsIdList:
-            newsList.append(loader.getNews(newsId, corpusTable))
+            newsDict[newsId] = loader.getNews(newsId, corpusTable)
     
-    loader.dumpNews(output_json_file, newsList)
+    print "#news:%d" % (len(newsDict))
+    loader.dumpNews(outputJsonFile, newsDict)
+

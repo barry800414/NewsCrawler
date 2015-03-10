@@ -12,5 +12,6 @@
         "label": []
     },
     "query_type": "topic",
-    "get_news": true
+    "get_news": false,
+    "merge": true
 }
