@@ -20,11 +20,10 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
              ('（','）'), ('〔','〕')]
 
 # segment the news(title & content) & statement
-def segLabelNews(labelNews):
-    labelNews['news']['title_seg'] = segContent(labelNews['news']['title'])
-    labelNews['news']['content_seg'] = segContent(labelNews['news']['content'])
-    labelNews['statement_seg'] = segContent(labelNews['statement'])
-    return labelNews
+def segLabelNews(newsDict):
+    newsDict['title_seg'] = segContent(newsDict['title'])
+    newsDict['content_seg'] = segContent(newsDict['content'])
+    return newsDict
 
 # segment all the sentences, dealing with punctuations
 # sep: the sentence separators of original contents(for regex)
@@ -90,14 +89,16 @@ if __name__ == '__main__':
     inNewsJsonFile = sys.argv[1]
     outNewsJsonFile = sys.argv[2]
     with open(inNewsJsonFile, 'r') as f:
-        labelNews = json.load(f)
+        newsDict = json.load(f)
     
-    for i, n in enumerate(labelNews):
-        segLabelNews(n)
-        if (i+1) % 10 == 0:
-            print('Progress: (%d/%d)' % (i+1, len(labelNews)), file=sys.stderr)
+    cnt = 0
+    for newsId, news in newsDict.items():
+        segLabelNews(news)
+        cnt =+ 1
+        if cnt % 10 == 0:
+            print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
 
     with open(outNewsJsonFile, 'w') as f:
-        json.dump(labelNews, f, ensure_ascii=False, indent = 2)
+        json.dump(newsDict, f, ensure_ascii=False, indent = 2)
 
 

@@ -66,14 +66,17 @@ if __name__ == '__main__':
     inNewsJsonFile = sys.argv[1]
     outNewsJsonFile = sys.argv[2]
     with open(inNewsJsonFile, 'r') as f:
-        labelNews = json.load(f)
+        newsDict = json.load(f)
     
-    for i, n in enumerate(labelNews):
-        tagNews(n['news'])
-        if (i+1) % 10 == 0:
-            print('Progress: (%d/%d)' % (i+1, len(labelNews)), file=sys.stderr)
+    cnt = 0
+    for newsId, news in newsDict.items():
+        tagNews(news)
+        cnt += 1
+        if cnt % 2 == 0:
+            print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
+            break
 
     with open(outNewsJsonFile, 'w') as f:
-        json.dump(labelNews, f, ensure_ascii=False, indent = 2)
+        json.dump(newsDict, f, ensure_ascii=False, indent = 2)
 
 

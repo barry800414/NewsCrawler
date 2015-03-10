@@ -99,22 +99,29 @@ if __name__ == '__main__':
         taggedLabelNewsList = json.load(f)
 
     topicCorpus = divideTopic(taggedLabelNewsList)
+    # WFDict[T][P] is a word to frequency mapping of topic T in POS-tags P
+    WFDict = { topicId: None for topicId in topicCorpus.keys() }
+    for key in WFDict.keys():
+        WFDict[key] = { "NN": dict(), "NR": dict(), "VV": dict(), 
+                "AD": dict(), "VA": dict(), "JJ": dict() }
     
-    wordList = { "NN": dict(), "NR": dict(), "VV": dict(), 
-            "AD": dict(), "VA": dict() }
-    for statId, topicNews in topicCorpus.items():
+
+    for topicId, topicNews in topicCorpus.items():
         tf = calcWordTagTFInCorpus(topicNews)
-        (wList, wtList, wInOnePOSList) = getWFLists(tf, statId)
+        (wList, wtList, wInOnePOSList) = getWFLists(tf, topicId)
         '''
         writeWFList(wList, 'Stat%s_WordFrequency.txt')
         writeWFList(wtList, 'Stat%s_WordTagFrequency.txt')
         for pos, tmpList in wInOnePOSList.items(): 
             writeWFList(tmpList, 'Stat%s_%s_WordFrequency.txt')
         '''
-        for pos in wordList.keys():
-            wordList[pos][statId] = { w:f for w, f in wInOnePOSList[pos] }
-    
-    for pos in wordList.keys():
-        with open('%s_List.json' %(pos),'w') as f:
-            json.dump(wordList[pos], f, ensure_ascii=False)
+        for pos in WFDict[topicId].keys():
+            WFDict[topicId][pos] = { w:f for w, f in wInOnePOSList[pos] }
+
+    print(WFDict.keys())
+    for key in WFDict.keys():
+        print(type(key))
+
+    with open('wordFrequencyMapping.json' ,'w') as f:
+        json.dump(WFDict, f, ensure_ascii=False)
 

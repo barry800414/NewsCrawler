@@ -11,8 +11,12 @@ WF_Folder = './'
 # load word-frequency mapping for each statement
 def loadWFDict(filename):
     with open(filename, 'r') as f:
-        wf = json.load(f)
-    return wf
+        WFDict = json.load(f)
+        # convert string to integer
+        newDict = dict()
+        for key, value in WFDict.items():
+            newDict[int(key)] = value
+    return newDict
 
 def addToWFDict(wfTo, wfFrom):
     for key, value in wfFrom.items():
@@ -31,18 +35,19 @@ def mergeWFDict(allowedType):
     return WFDict
 
 # filter the words in word-frequency dict, return a set of allowed words
-def filteredByThreshold(WFDict, threshold):
+def filteredByThreshold(wf, threshold):
     words = set()
-    fSum = sum(WFDict.values())
-    for w, f in WFDict.items():
+    fSum = sum(wf.values())
+    for w, f in wf.items():
         if float(f)/fSum >= threshold:
             words.add(w)
     return words
 
 # get allowed words for each type of POS tagger,
 # return a dict (pos-tagger -> set of allowed words)
-def getAllowedWords(allowedPOSType, threshold, WFDictDict):
+# WFDictInTopic[P]: the word-frequency mapping of POS-tag P
+def getAllowedWords(WFDictInTopic, allowedPOSType, threshold):
     allowedWords = dict()
-    for type in allowedPOSType:
-        allowedWords[type] = filterByThreshold(WFDictDict[type], threshold)
+    for pos in allowedPOSType:
+        allowedWords[pos] = filteredByThreshold(WFDictInTopic[pos], threshold)
     return allowedWords

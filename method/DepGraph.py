@@ -15,9 +15,9 @@ class DepGraph():
     # depList: the list of typed dependencies
     def __init__(self, depList):
         self.g = nx.DiGraph()
-        for dep in depList:
+        for dep in depList['tdList']:
             # relation, govPos, govWord, govTag, depPos, depWord, depTag
-            (rel, gP, gW, gT, dP, dW, dT) = dep['tdList'].split(" ")
+            (rel, gP, gW, gT, dP, dW, dT) = dep.split(" ")
             self.g.add_edge(gP, dP, rel=rel, gone=False)
             self.g.add_node(gP, word=gW, tag=gT)
             self.g.add_node(dP, word=dW, tag=dT)
@@ -79,7 +79,7 @@ class DepGraph():
             self.allowedGov = set()
         elif setType == 'allowedDep':
             self.allowedDep = set()
-        self.__addNodeSet(self, wtSet, type, setType)
+        self.__addNodeSet(wtSet, type, setType)
 
     def addNowWord(self, wtSet, type='[t][w]'):
         self.__addNodeSet(wtSet, type, setType='nowNodes')
@@ -100,7 +100,10 @@ class DepGraph():
         self.__setNodeSet(wtSet, type, setType='allowedDep')
 
     def setAllowedRel(self, relSet):
-        self.allowedRel = set(relSet)
+        if relSet != None:
+            self.allowedRel = set(relSet)
+        else:
+            self.allowedRel = None
 
     def addAllowedRel(self, relSet):
         self.allowedRel.update(relSet)
@@ -111,7 +114,7 @@ class DepGraph():
         # out edges
         for e in self.g.out_edges(self.nowNodes, data=True):
             if self.__evalEdge(e, 'dep'):
-                self.edge[e[0]][e[1]]['gone'] = True
+                self.g.edge[e[0]][e[1]]['gone'] = True
                 rel = e[2]['rel']
                 sP = e[0] 
                 sW = self.g.node[e[0]]['word']
@@ -119,12 +122,13 @@ class DepGraph():
                 eP = e[1]
                 eW = self.g.node[e[1]]['word']
                 eT = self.g.node[e[1]]['tag']
-            edgeList.append((rel, sP, sW, sT, eP, eW, eT))
+                edgeList.append((rel, sP, sW, sT, eP, eW, eT))
                 
         # in edges
+        edgeList = list()
         for e in self.g.in_edges(self.nowNodes, data=True):
-            if self.__evalEdge(e, 'dep'):
-                self.edge[e[0]][e[1]]['gone'] = True
+            if self.__evalEdge(e, 'gov'):
+                self.g.edge[e[0]][e[1]]['gone'] = True
                 rel = e[2]['rel']
                 sP = e[1] 
                 sW = self.g.node[e[1]]['word']
@@ -132,14 +136,14 @@ class DepGraph():
                 eP = e[0]
                 eW = self.g.node[e[0]]['word']
                 eT = self.g.node[e[0]]['tag']
-            edgeList.append((rel, sP, sW, sT, eP, eW, eT))
+                edgeList.append((rel, sP, sW, sT, eP, eW, eT))
         # s: starting (maybe dep or gov node)
         # e: ending(maybe dep or gov node)
         return edgeList
 
     # evaluate whether the edge can be used, only the edges
     # which obey the allowing rules can be used.
-    def __evalEdge(edge, target):
+    def __evalEdge(self, edge, target):
         if edge[2]['gone']:
             return False
         n1 = edge[0]
