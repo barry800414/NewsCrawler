@@ -14,7 +14,7 @@ SEP = '[,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\
 NEW_SEP = ','
 
 # default to-removed punctuation
-TO_REMOVE = '[\uF0D8\u0095/=&�+:：／\|‧]'
+TO_REMOVE = '[\uF06E\uF0D8\u0095/=&�+:：／\|‧]'
 #TO_REMOVE = '[\uF0D8\u0095/=&�+、:：／\|‧]'
 
 # default brackets for fixing them (not to segment)
@@ -50,11 +50,12 @@ def parseText(text, draw=False, fileFolder=None, fileName='',
             tmp = dict()
             tmp['sent'] = cleanSent
             # for debugging
+            '''
             print(cleanSent, end=' ')
             for c in cleanSent:
                 print(hex(ord(c)), end=' ')
             print('')
-            
+            '''
             # parse the sentence, return an array of typed dependencies
             (tmp['seg_sent'], tmp['tdList']) = parseStr(cleanSent, 
                     draw=draw, fileFolder=fileFolder, 

@@ -33,7 +33,7 @@ def convertToTFIDF(labelNewsList, column='content', IDF=None, volc=None):
         elif column == 'title':
             text = labelNews['news']['title_seg']
         elif column == 'statement':
-            text = labelNews['statement_seg']
+            text = labelNews['statement']['seg']
         vectorList.append(sentToTFIDF(text, IDF, volc))
     return (vectorList, volc)
 

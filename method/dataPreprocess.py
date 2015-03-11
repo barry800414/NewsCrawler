@@ -45,24 +45,32 @@ def printStatInfo(labelNewsList):
         100*float(opposeSum)/totalSum, totalSum), file=sys.stderr)
 
 # merge news file, label file, and statement file to one object
-# please note that the content will be copied.
-def mergeToLabelNews(newsDict, labelList, statDict):
+def mergeToLabelNews(newsDict, labelList, statDict, newsCol=["content","title"], statCol):
     newList = list()
     for labelDict in labelList:
         newDict = dict(labelDict)
         statId = labelDict['statement_id']
         newsId = labelDict['news_id']
         if statId in statDict:
-            newsDict['statement'] = str(statDict[statId])
+            sDict = dict()
+            for c in statCol:
+                sDict[c] = statDict[statId][c]
+            newDict['statement'] = sDict
         else:
             print('%d not found in statement list' % statId, file=sys.stderr)
         if newsId in newsDict:
-            newsDict['news'] = dict(newsDict[labelDict['news_id']])
+            nDict = dict()
+            for c in newsCol:
+                nDict[c] = newsDict[newsId][c]
+            newsDict['news'] = nDict
         else:
             print('%s not found in news corpus' % newsId, file=sys.stderr)
         newList.append(newDict)
 
     return newList
+
+
+
 
 
 if __name__ == "__main__":

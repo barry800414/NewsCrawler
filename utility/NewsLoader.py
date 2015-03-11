@@ -78,7 +78,6 @@ class NewsLoader():
             self.cursor.execute(sql)
             
             #fetch rows
-            
             newsDict = dict()
             while True:
                 tmp = self.cursor.fetchone()
@@ -95,6 +94,31 @@ class NewsLoader():
             print traceback.format_exc()
             return None
         
+    def getTopic(self, newsId, limitTopics):
+        sql = "SELECT topic_id FROm %s WHERE news_id='%s'" % (
+                self.topicNewsTable, newsId)
+        for i, topicId in enumerate(limitTopics):
+            if i == 0:
+                sql = sql + ' AND (topic_id = %d' % (topicId)
+            else:
+                sql = sql + ' OR topic_id = %d' % (topicId)
+            if i == len(limitTopics) - 1:
+                sql = sql + ')'
+        #print(sql)
+        try:
+            self.cursor.execute(sql)
+            topics = list()
+            while True:
+                tmp = self.cursor.fetchone()
+                if tmp == None:
+                    break
+                else:
+                    topics.append(int(tmp[0]))
+            return topics
+        except:
+            print traceback.format_exc()
+            return None
+
 
     def dumpNews(self, filename, newsList):
         # output as utf-8 file
@@ -143,6 +167,10 @@ if __name__ == '__main__':
         for newsId in newsIdList:
             newsDict[newsId] = loader.getNews(newsId, corpusTable)
     
+    if newsLoaderConfig['get_topic']:
+        for newsId, news in newsDict.items():
+            news['topic'] = loader.getTopic(newsId, topicIdList)
+
     print "#news:%d" % (len(newsDict))
     loader.dumpNews(outputJsonFile, newsDict)
 

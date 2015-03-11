@@ -13,7 +13,7 @@ SEP = '[,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\
 NEW_SEP = ','
 
 # default to-removed punctuation
-TO_REMOVE = '[\uF0D8\u0095/=&�+:：／\|‧]'
+TO_REMOVE = '[\uF06E\uF0D8\u0095/=&�+:：／\|‧]'
 #TO_REMOVE = '[\uF0D8\u0095/=&�+、:：／\|‧]'
 
 # default brackets for fixing them (not to segment)
@@ -46,11 +46,12 @@ def tagText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
             tmp = dict()
             tmp['sent'] = cleanSent
             # for debugging
+            '''
             print(cleanSent, end=' ')
             for c in cleanSent:
                 print(hex(ord(c)), end=' ')
             print('')
-            
+            '''
             # tag the sentence, return a string with tags
             if len(result) == 0:
                 result = tagStr(cleanSent)
@@ -72,9 +73,9 @@ if __name__ == '__main__':
     for newsId, news in newsDict.items():
         tagNews(news)
         cnt += 1
-        if cnt % 2 == 0:
+        if cnt % 10 == 0:
             print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
-            break
+            
 
     with open(outNewsJsonFile, 'w') as f:
         json.dump(newsDict, f, ensure_ascii=False, indent = 2)

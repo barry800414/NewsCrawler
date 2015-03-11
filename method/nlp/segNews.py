@@ -21,17 +21,17 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
 
 # segment the news(title & content) & statement
 def segLabelNews(newsDict):
-    newsDict['title_seg'] = segContent(newsDict['title'])
-    newsDict['content_seg'] = segContent(newsDict['content'])
+    newsDict['title_seg'] = segText(newsDict['title'])
+    newsDict['content_seg'] = segText(newsDict['content'])
     return newsDict
 
 # segment all the sentences, dealing with punctuations
 # sep: the sentence separators of original contents(for regex)
 # new_sep: the new sentence separator
 # brackets: the brackets. the content in brackets will not be segemented
-def segContent(content, sep=SEP, new_sep=NEW_SEP, 
+def segText(content, sep=SEP, new_sep=NEW_SEP, 
         to_remove=TO_REMOVE, brackets=BRACKETS):
-    segContent = ''
+    segText = ''
 
     # deal with brackets TODO
     '''
@@ -64,11 +64,11 @@ def segContent(content, sep=SEP, new_sep=NEW_SEP,
         print('|%s|' % result)
         if len(result) == 0:
             continue
-        if len(segContent) != 0:
-            segContent += NEW_SEP + result
+        if len(segText) != 0:
+            segText += NEW_SEP + result
         else:
-            segContent += result
-    return segContent
+            segText += result
+    return segText
 
 # brute force way
 def isOverlapping(intervals):
