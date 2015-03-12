@@ -12,6 +12,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 
 import dataPreprocess
+import MLProcedure
 
 
 '''
@@ -127,8 +128,9 @@ def convertToCSRMatrix(listOfDict, volc):
             entries.append(value)
     numRow = len(listOfDict)
     numCol = len(volc)
-    return csr_matrix((entries, (rows, cols)), 
+    m = csr_matrix((entries, (rows, cols)), 
             shape=(numRow, numCol), dtype=np.float64)
+    return m
 
 # calculate inverse document frequency
 def calcIDF(labelNewsList, newsCols=['content'], sentSep=",", 
@@ -258,14 +260,11 @@ if __name__ == '__main__':
     with open(segLabelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
 
-    # cleaning the data 
-    labelNewsList = dataPreprocess.data_cleaning(labelNewsList, printInfo=True)
-
     # print statiscal information
     dataPreprocess.printStatInfo(labelNewsList)
 
     # print results
-    print('columnSource, statementCol, classifier, val_or_test, parameters, accuarcy')
+    print('feature, columnSource, statementCol, classifier, val_or_test, parameters, scorer, accuracy, macroF1, microF1, macroR')
 
     # main loop for running experiments
     # generating X and y
@@ -279,8 +278,13 @@ if __name__ == '__main__':
         for newsCols in colsList:
             for statementCol in statList:
                 (X, y) = generateXY(labelNewsList, newsCols=newsCols, 
-                        statementCol=statementCol, feature=feature)
+                       statementCol=statementCol, feature=feature)
+                
+                prefix = "%s, %s, %s" % (feature, newsCols, statementCol)
+                MLProcedure.runExperiments(X, y, prefix=prefix)
 
+
+                '''
                 (X_train, X_test, y_train, y_test) = cross_validation.train_test_split(
                         X, y, test_size=0.5, random_state=1)
                 
@@ -289,5 +293,6 @@ if __name__ == '__main__':
                     trainingAndTesting(X_train, X_test, y_train, y_test, classifier, prefix)
                     cnt += 1
                     print('Progress: (%d/%d)' % (cnt, taskNum), file=sys.stderr)
+                '''
+                
                     
-

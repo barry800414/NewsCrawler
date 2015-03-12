@@ -6,11 +6,18 @@ from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.metrics import accuracy_score
 from eval import *
 
-def trainAndTest(X_train, X_test, y_train, y_test, classifier='SVM', scorer=None,prefix=None):
+def trainAndTest(X_train, X_test, y_train, y_test, classifier='SVM', 
+        scorer=None, prefix=None):
     if classifier == 'NaiveBayes':
         clf = MultinomialNB()
         clf.fit(X_train, y_train)
-        print(prefix,'testing', 'MultinomialNB', clf.score(X_test, y_test), sep=',')
+        
+        yPredict = clf.predict(X_test)
+        (accu, cm, macroF1, microF1, macroR) = evaluate(y_test, yPredict)
+        
+        print(prefix, 'testing', "MutinomialNB", "accuracy", accu, 
+            macroF1, microF1, macroR, sep=',')
+
         #clf2 = GaussianNB()
         #clf2.fit(X_train, y_train)
         #print('testing', 'GaussianNB', clf2.score(X_test, y_test), sep=',')
@@ -18,8 +25,9 @@ def trainAndTest(X_train, X_test, y_train, y_test, classifier='SVM', scorer=None
 
     elif classifier == 'SVM':
         # grid search to find best parameters on training set
-        C = [math.pow(2, i) for i in range(-5,15,2)]
-        gamma = [math.pow(2, i) for i in range(-15,3,2)]
+        C = [math.pow(2, i) for i in range(-1,11,2)]
+        gamma = [math.pow(2, i) for i in range(-11,-1,2)]
+        
         parameters = {
                 'kernel': ('rbf', 'linear'), 
                 'C': C, 
@@ -40,26 +48,29 @@ def trainAndTest(X_train, X_test, y_train, y_test, classifier='SVM', scorer=None
     # if not naive Bayes:
     clfGS = grid_search.GridSearchCV(clf, parameters, 
             scoring=scorer, refit=True, n_jobs=-1)
+
     clfGS.fit(X_train, y_train)
         
     #for gs in clfGS.grid_scores_:
         #print(prefix,'validation', gs[0], np.mean(gs[2]), sep=',')    
 
     # testing 
-    yPredit = clfGS.predict(X_test)
-    (accu, cm, macroF1, microF1, macroR) = evaluate(y, yPredict)
+    yPredict = clfGS.predict(X_test)
+    (accu, cm, macroF1, microF1, macroR) = evaluate(y_test, yPredict)
 
     print(prefix, 'testing', clfGS.best_params_, scorer, accu, 
             macroF1, microF1, macroR, sep=',')
     
-def runExperiments(X, y, clfList=['SVM'], prefix=''):
+def runExperiments(X, y, clfList=['NaiveBayes','SVM'], prefix=''):
     (X_train, X_test, y_train, y_test) = cross_validation.train_test_split(
             X, y, test_size=0.5, random_state=1)
     
-    for classifier in clfList:
-        for scorer in [accuracy_score, macroF1_scorer, 
-                microF1_scorer, macroRecall_scorer]:
-            prefix = prefix + ",%s" % (classifier)
-            trainAndTest(X_train, X_test, y_train, y_test, classifier, 
-                    scorer, prefix)
-                    
+    for clf in clfList:
+        if clf == 'SVM':
+            for scorer in [ "accuracy", macroF1Scorer, microF1Scorer, macroRScorer]:
+                newPrefix = prefix + ",%s" % (clf)
+                trainAndTest(X_train, X_test, y_train, y_test, clf, scorer, prefix=newPrefix)
+        elif clf == 'NaiveBayes':
+            newPrefix = prefix + ",%s" % (clf)
+            trainAndTest(X_train, X_test, y_train, y_test, clf, prefix=newPrefix)
+
