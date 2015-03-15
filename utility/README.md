@@ -9,7 +9,6 @@ Edit label_news_loader.json to configure it:
 * merge: merge the label by voting
 
 
-
 Load news 
 ===================
     ./NewsLoader.py news_loader.json db_info.json news.json
@@ -17,3 +16,6 @@ Load news
 Edit news_loader.json to configure it.
 
 
+Load statement
+===================
+    ./StatLoader.py stat_loader.json db_info.json statement.json
