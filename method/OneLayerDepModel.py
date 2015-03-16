@@ -46,17 +46,17 @@ class OneLayerDepModel():
     # generate X, y 
     def genXY(self):
         corpusEdgeList = list()
-        for labelNews in parsedLabelNews:
+        for labelNews in self.pln:
             topicId = labelNews['statement_id'] # FIXME
             contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
             newsEdgeList = list()
             for depList in contentDep:
                 # generate dependency graph for each dependency list
                 dg = DepGraph(depList)
-                dg.setAllowedDepWord(allowedFirstLayerWord[topicId], type='[t][w]')
-                dg.setAllowedGovWord(allowedFirstLayerWord[topicId], type='[t][w]')
-                dg.setAllowedRel(allowedRel[topicId])
-                dg.setNowWord(allowedSeedWord[topicId])
+                dg.setAllowedDepWord(self.aflw[topicId], type='[t][w]')
+                dg.setAllowedGovWord(self.aflw[topicId], type='[t][w]')
+                dg.setAllowedRel(self.ar[topicId])
+                dg.setNowWord(self.asw[topicId])
                 
                 # go one step for searching dependencies (edges) which matches the rule
                 edgeList = dg.searchOneStep()
@@ -134,16 +134,23 @@ if __name__ == '__main__':
 
     WFDict = WFMapping.loadWFDict(wordFrequencyMappingJsonFile)
 
+    # get the set of all possible topic
+    topicSet = set()
+    for labelNews in parsedLabelNews:
+        topicSet.add(labelNews['statement_id'])
+
     # model setting
     seedWordPOSType = ['NN', 'NR'] 
     firstLayerPOSType = ['VA', 'VV', 'JJ', 'AD']
+    thresList = [0.01, 0.005, 0.001, 0.0005, 0.00001]
 
-    # for each threshold, filter out some words
-    for threshold in [0.01, 0.005, 0.001, 0.0005, 0.00001]:
+    '''
+    # all news are mixed to train and test
+    for threshold in thresList:
         allowedSeedWord = dict() 
         allowedFirstLayerWord = dict()
         allowedRel = dict()
-        for topicId in [2, 3, 4, 5, 6, 10, 13, 16]:
+        for topicId in topicSet:
             allowedSeedWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], seedWordPOSType, threshold)
             allowedFirstLayerWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], firstLayerPOSType, threshold)
             allowedRel[topicId] = None
@@ -160,13 +167,31 @@ if __name__ == '__main__':
         (X, y) = oldm.genXY()
     
         MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'SVM'], 
-        prefix='Threshold=%f' % (threshold))
-        # training and validation
+            prefix='Threshold=%f' % (threshold))
+    '''
+    # news are divided into different topic to train and test
+    labelNewsInTopic = dataPreprocess.divideLabel(parsedLabelNews)
+    for topicId, labelNewsList in labelNewsInTopic.items():
+        for threshold in thresList:
+            allowedSeedWord = dict() 
+            allowedFirstLayerWord = dict()
+            allowedRel = dict()
+            allowedSeedWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], seedWordPOSType, threshold)
+            allowedFirstLayerWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], firstLayerPOSType, threshold)
+            allowedRel[topicId] = None
+                
+            for pos in seedWordPOSType:
+                print('#%s:%d' % (pos, len(allowedSeedWord[topicId][pos])), end='\t')
+            for pos in firstLayerPOSType:    
+                print('#%s:%d' % (pos, len(allowedFirstLayerWord[topicId][pos])), end='\t')
+            print('')
 
-        # testing 
+            # building the model
+            oldm = OneLayerDepModel(labelNewsList, allowedSeedWord, 
+                allowedFirstLayerWord, allowedRel)
+            (X, y) = oldm.genXY()
+        
+            MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'MaxEnt',  'SVM'], 
+                prefix='topicId=%d, Threshold=%f' % (topicId,threshold))
 
-        # evaluation 
-
-        # print out results
-
-
+    

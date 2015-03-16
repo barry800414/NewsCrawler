@@ -35,16 +35,23 @@ def printStatInfo(labelNewsList):
         neutral = num[statId]['neutral']
         oppose = num[statId]['oppose']
         total = agree + neutral + oppose
-        print('%d, %s, %d(%.1f%%), %d(%.1f%%), %d(%.1f%%), %d' % (statId, stat[statId], 
-            agree, 100*float(agree)/total, neutral, 100*float(neutral)/total, 
-            oppose, 100*float(oppose)/total, total), file=sys.stderr)
+        #print('%d, %s, %d(%.1f%%), %d(%.1f%%), %d(%.1f%%), %d' % (statId, stat[statId], 
+        #    agree, 100*float(agree)/total, neutral, 100*float(neutral)/total, 
+        #    oppose, 100*float(oppose)/total, total), file=sys.stderr)
+        print('%d, %s, %.1f%%, %.1f%%, %.1f%%, %d' % (statId, stat[statId], 
+            100*float(agree)/total, 100*float(neutral)/total, 
+            100*float(oppose)/total, total), file=sys.stderr)
         agreeSum += agree
         neutralSum += neutral
         opposeSum += oppose
     totalSum = agreeSum + neutralSum + opposeSum
-    print('Total, , %d(%.1f%%), %d(%.1f%%), %d(%.1f%%), %d' % (agreeSum, 
-        100*float(agreeSum)/totalSum, neutralSum, 
-        100*float(neutralSum)/totalSum, opposeSum, 
+    #print('Total, , %d(%.1f%%), %d(%.1f%%), %d(%.1f%%), %d' % (agreeSum, 
+    #    100*float(agreeSum)/totalSum, neutralSum, 
+    #    100*float(neutralSum)/totalSum, opposeSum, 
+    #    100*float(opposeSum)/totalSum, totalSum), file=sys.stderr)
+    print('Total, , %.1f%%, %.1f%%, %.1f%%, %d' % (
+        100*float(agreeSum)/totalSum, 
+        100*float(neutralSum)/totalSum, 
         100*float(opposeSum)/totalSum, totalSum), file=sys.stderr)
 
 # merge news file, label file, and statement file to one object
@@ -73,6 +80,16 @@ def mergeToLabelNews(labelList, newsDict, statDict,
 
     return newList
 
+
+def divideLabel(labelNewsList):
+    #FIXME stat and topic
+    labelNewsInTopic = dict()
+    for labelNews in labelNewsList:
+        statId = labelNews['statement_id']
+        if statId not in labelNewsInTopic:
+            labelNewsInTopic[statId] = list()
+        labelNewsInTopic[statId].append(labelNews)
+    return labelNewsInTopic
 
 if __name__ == "__main__":
     if len(sys.argv) != 6:
