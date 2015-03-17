@@ -9,8 +9,8 @@ import edu.stanford.nlp.trees.*;
 
 import com.chaoticity.dependensee.*;
 /*
-	The lexicalized parser for parsing Simplfied Chinese sentences only.
-	Besides, it does not support untokenized sentence
+	The lexicalized parser for parsing Simplfied Chinese and English 
+    sentences only. Besides, it does not support untokenized sentence.
 */
 public class PCFGParser{
 	// Demo 
@@ -25,7 +25,7 @@ public class PCFGParser{
     	//Example 2: Parse tokenized sentences 
     	//(original sentence which is separated by sep)
     	String sepSent = "今天 天气 很 好";
-    	result = p.parseSepSent(sepSent, " ");
+    	result = p.parseTokenizedSent(sepSent, " ");
     }
 
 	public LexicalizedParser lp = null;
@@ -52,11 +52,63 @@ public class PCFGParser{
 	    return parse;
 	}
 	
-	public Tree parseSepSent(String sent, String sep){
+	public Tree parseTokenizedSent(String sent, String sep){
 		String[] tokenizedSent = sent.split(sep);
 		return parseTokenizedSent(tokenizedSent);
 	}
 	
+    public List<TypedDependency> depParseTokenizedSent(String[] tokenizedSent, String imgPath){
+		// constituent parsing
+		Tree parse = parseTokenizedSent(tokenizedSent);
+    
+        // convert to typed dependencies
+        List<TypedDependency> tdl = toTypedDependency(parse);
+
+        //drawing the dependency tree
+        if(imgPath != null){
+            drawDepTree(parse, tdl, imgPath, 3);
+        }
+		return tdl;
+    }
+
+
+    public List<TypedDependency> depParseTokenizedSent(String sent, String sep, String imgPath){
+		String[] tokenizedSent = sent.split(sep);
+        return depParseTokenizedSent(tokenizedSent, imgPath); 
+    }
+
+    // convert to dependency parsing 
+    public List<TypedDependency> toTypedDependency(Tree parse){
+        GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);
+        List<TypedDependency> tdl = gs.typedDependenciesCCprocessed();
+        return tdl;
+    }
+    
+    public String mergeStr(String[] str){
+        String del = " ";
+        if(str.length > 0){
+            String result = "";
+            for(int i = 0; i < str.length -1 ; i++){
+                result = result + str[i] + del;
+            }
+            result = result + str[str.length - 1];
+            return result;
+        }
+        else{
+            return null;
+        }
+    }
+
+    public void drawDepTree(Tree parse, List<TypedDependency> tdl, String filePrefix, int scale){
+        //drawing image
+        try {
+            DepDrawer.writeImage(parse, tdl, filePrefix + ".png" , scale);
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
 	public static Label[] getPOSTags(Tree parse){
 		ArrayList<Label> posTags = new ArrayList<Label>();
 		treeTraversalGetPOSTags(parse, posTags);

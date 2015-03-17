@@ -44,9 +44,11 @@ public class NLPToolServer {
             seg, convertor);
 
         //Initialize the dependency parser
+        /*
         System.out.println(">>>>> Initailizing NN Dependency Parser ...");
         fdp = new FullNNDepParser(Lang.ZHS, tagger, 
             seg, convertor);
+        */
 
         //Initialize the PCFG parser
         System.out.println(">>>>> Initializing PCFG Parser ...");
@@ -58,7 +60,7 @@ public class NLPToolServer {
             server.createContext("/info", new InfoHandler());
             server.createContext("/segmenter", new SegHandler());
             server.createContext("/pos", new POSHandler());
-            server.createContext("/nn_dep", new NNDepParserHandler());
+            //server.createContext("/nn_dep", new NNDepParserHandler());
             server.createContext("/pcfg_dep", new PCFGDepParserHandler());
 
             server.setExecutor(null); // creates a default executor
@@ -84,15 +86,15 @@ public class NLPToolServer {
         public void handle(HttpExchange httpExchange) throws IOException {
             StringBuilder response = new StringBuilder();
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String input = parms.get("s");
+            String text = parms.get("s");
             
             //segement the string
-            String output = seg.mergeStr(seg.segmentStrZht(input), " ");
+            String output = seg.mergeStr(seg.segmentStrZht(text), " ");
             response.append(output);
 
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + input);
+            System.out.println("Reqeust:" + text);
             System.out.println("Response:" + output);
             
             NLPToolServer.writeResponse(httpExchange, response.toString());
@@ -107,55 +109,64 @@ public class NLPToolServer {
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
             
             // default: segemented sentence (word delimiter is space)
-            String input = parms.get("seg_s");
-            if(input == null || input.length() == 0){
-                input = parms.get("s");
-                if(input == null || input.length() == 0){
+            boolean seg = false;
+            String text = parms.get("seg_s");
+            if(text == null || text.length() == 0){
+                text = parms.get("s");
+                if(text == null || text.length() == 0){
                     return ;
                 }
-                else{
-                    //segment the string 
-                    input = seg.mergeStr(seg.segmentStrZht(input), " ");
-                }
+            }
+            else{
+                seg = true;
             }
             
-            List<TaggedWord> tagged = tagger.tagTokenizedSent(input);
+            List<TaggedWord> tagged;
+            if(seg){
+                tagged = tagger.tagTokenizedSent(text, Lang.ZHT, Lang.ZHT);
+            }
+            else{
+                tagged = tagger.tagUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
+            }
+
             String output = Sentence.listToString(tagged, false);
             response.append(output);
             
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + input);
+            System.out.println("Reqeust:" + text);
             System.out.println("Response:" + output);
             
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
-
+    
+    
     // Stanford NN Dependency Parser Handler (output: Collx Format)
     //http://localhost:port/nn_dep?s=sentence
+    /*
     static class NNDepParserHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
             //retrieve sentence
             StringBuilder response = new StringBuilder();
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String input = parms.get("s");
+            String text = parms.get("s");
 
             //dependency parsing
-            List<TypedDependency> tdList = fdp.parseUntokenizedSent(input, Lang.ZHT, Lang.ZHT);
+            List<TypedDependency> tdList = fdp.parseUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
             String tokenizedSent = fdp.getTokenizedSentBuffer();
             response.append(tokenizedSent + "\n");
             String output = DepToString.TDsToString(tdList);
             response.append(output);
 
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + input);
+            System.out.println("Reqeust:" + text);
             System.out.println("Response:" + tokenizedSent + "\n" + output);
             
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
-    }
+    }*/
 
     // Stanford PCFG Dependency Parser handler (output: stanford dependencies)
     //http://localhost:port/pcfg_dep?s=sentence?f_name=ooo?f_folder=xxx
@@ -166,7 +177,19 @@ public class NLPToolServer {
             //retrieve sentence
             StringBuilder response = new StringBuilder();
             Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String text = parms.get("s");
+            
+            boolean seg = false;
+            String text = parms.get("seg_s");
+            if(text == null || text.length() == 0){
+                text = parms.get("s");
+                if(text == null || text.length() == 0){
+                    return ;
+                }
+            }
+            else{
+                seg = true;
+            }
+
 
             //Check drawing dependency tree or not
             String drawFlag = parms.get("draw");
@@ -184,13 +207,19 @@ public class NLPToolServer {
             }
 
             //dependency parsing by pcfg parser
-            List<TypedDependency> tdList = fpp.depParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
+            List<TypedDependency> tdList;
+            if(seg){
+                tdList = fpp.depParseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT, imgPath);
+            }
+            else{
+                tdList = fpp.depParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
+            }
             String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
             response.append(tokenizedSent + "\n");
             String depStr = DepToString.TDsToString(tdList); //get typed dependencies
             response.append(depStr);
 
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
             System.out.println("Reqeust:" + text);
             System.out.println("Response:" + tokenizedSent + "\n" + depStr);

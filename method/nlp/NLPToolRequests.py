@@ -22,12 +22,15 @@ def segmentStr(sentence):
 #print(segmentStr("測試 我是一個句子"))
 
 # typedDependency format:  reln gov_index gov_word gov_tag dep_index dep_word dep_tag
-def parseStr(sentence, draw=False, fileFolder=None, fileName=None, returnTokenizedSent=False):
-    #api_url = 'http://localhost:8000/nn_dep'
+def parseStr(sentence, seg=False, draw=False, fileFolder=None, 
+        fileName=None, returnTokenizedSent=False):
     api_url = 'http://localhost:8000/pcfg_dep'
-    payload = {
-        's': sentence        
-    }
+    
+    if seg == False:
+        payload = { 's': sentence }
+    else:
+        payload = { 'seg_s': sentence }
+
     if draw == True and fileFolder != None and fileName != None:
         payload['f_folder'] = fileFolder
         payload['f_name'] = fileName
@@ -49,12 +52,13 @@ def parseStr(sentence, draw=False, fileFolder=None, fileName=None, returnTokeniz
 #print(parseStr("這是一個測試用的句子"))
 #print(parseStr("台灣應廢除死刑"))
 
-
-def tagStr(sentence):
+def tagStr(sentence, seg=True):
     api_url = 'http://localhost:8000/pos'
-    payload = {
-        's': sentence        
-    }
+    if seg == False:
+        payload = { 's': sentence }
+    else:
+        payload = { 'seg_s': sentence }
+
     r = requests.get(api_url, params = payload)
     if r.status_code == 200:
         return r.text

@@ -80,11 +80,6 @@ public class FullPCFGParser extends PCFGParser{
 
     public List<TypedDependency> depParseUntokenizedSent(String untokenizedSent, 
             int inLang, int outLang, String imgPath){
-        if(inLang == Lang.ENG){
-			System.err.println("Untokenized English sentences parsign is not supported now");
-			return null;	
-		}
-
         // tokenize the sentence & converting the language
         tokenizedSentBuffer = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
@@ -108,41 +103,65 @@ public class FullPCFGParser extends PCFGParser{
 
 		return tdl;
     }
+    
+	public Tree parseTokenizedSent(String tokenizedSent, String sep, int inLang, int outLang){
+		// tokenize the sentence & converting the language
+		String[] sent = null;
+        if(inLang == Lang.ZHT){
+            String zhsSent = convertor.convertToZhs(tokenizedSent);
+            sent = zhsSent.split(sep);
+        }    
+        else{
+            sent = tokenizedSent.split(sep);
+        }
+		// parse
+		Tree result = parseTokenizedSent(sent);
 
-    // convert to dependency parsing 
-    public List<TypedDependency> toTypedDependency(Tree parse){
-        GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);
-        List<TypedDependency> tdl = gs.typedDependenciesCCprocessed();
-        return tdl;
+		// convert the language if necessary
+		if(outLang == Lang.ZHT){
+			//TODO
+			return result;
+		}
+		return result;
+	}
+
+    public List<TypedDependency> depParseTokenizedSent(String tokenizedSent, String sep, 
+            int inLang, int outLang, String imgPath){
+        // tokenize the sentence & converting the language
+        String[] sent = null;
+        if(inLang == Lang.ZHT){
+            String zhsSent = convertor.convertToZhs(tokenizedSent);
+            sent = zhsSent.split(sep);
+        }    
+        else{
+            sent = tokenizedSent.split(sep);
+        }
+
+
+		// constituent parsing
+		Tree parse = parseTokenizedSent(sent);
+    
+        // convert to typed dependencies
+        List<TypedDependency> tdl = toTypedDependency(parse);
+
+		// convert the language if necessary
+		if(inLang != Lang.ENG && outLang == Lang.ZHT){
+		    tdl = wordToZht(tdl); 
+            //TODO: the conversion from zhs to zht is inperfect
+        }
+
+        //drawing the dependency tree
+        if(imgPath != null){
+            drawDepTree(parse, tdl, imgPath, 3);
+        }
+
+		return tdl;
     }
+
+
 
     public String getTokenizedSentBuffer(){
         return mergeStr(tokenizedSentBuffer);
-    }
-
-    private String mergeStr(String[] str){
-        String del = " ";
-        if(str.length > 0){
-            String result = "";
-            for(int i = 0; i < str.length -1 ; i++){
-                result = result + str[i] + del;
-            }
-            result = result + str[str.length - 1];
-            return result;
-        }
-        else{
-            return null;
-        }
-    }
-
-    public void drawDepTree(Tree parse, List<TypedDependency> tdl, String filePrefix, int scale){
-        //drawing image
-        try {
-            DepDrawer.writeImage(parse, tdl, filePrefix + ".png" , scale);
-        }
-        catch(Exception e){
-            e.printStackTrace();
-        }
     }
 
     public TypedDependency wordToZht(TypedDependency td){

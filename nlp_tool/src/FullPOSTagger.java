@@ -68,7 +68,14 @@ public class FullPOSTagger {
 
 
     //get the dependency parsed results from "tokenized" and "ZHS" sentence
-    public List<TaggedWord> tagTokenizedSent(String sent){
+    public List<TaggedWord> tagTokenizedSent(String tokenizedSent, int inLang, int outLang){ //TODO
+        String sent;
+        if(inLang == Lang.ZHT){
+            sent = convertor.convertToZhs(tokenizedSent);
+        }
+        else{
+            sent = tokenizedSent;
+        }
         DocumentPreprocessor tokenizer = new DocumentPreprocessor(new StringReader(sent));
         List<TaggedWord> tagged = null;
         for (List<HasWord> sentence : tokenizer){
@@ -76,21 +83,20 @@ public class FullPOSTagger {
             break;
             //TODO, assume only one sentence
         }
+
+        if(inLang != Lang.ENG && outLang == Lang.ZHT){
+            wordToZht(tagged);   
+        }
         return tagged;
     }
 
     public List<TaggedWord> tagUntokenizedSent(String untokenizedSent, int inLang, int outLang){
-        if(inLang == Lang.ENG){
-            System.err.println("Untokenized English sentences parsing is not supported now");
-            return null;    
-        }
-
         // tokenize the sentence & converting the language
         String[] sent = null;
         sent = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
         // dependency parsing
-        List<TaggedWord> result = tagTokenizedSent(mergeStr(sent));
+        List<TaggedWord> result = tagTokenizedSent(mergeStr(sent), inLang, outLang);
 
         // convert the language if necessary
         if(outLang == Lang.ZHT){
@@ -114,6 +120,13 @@ public class FullPOSTagger {
         else{
             return null;
         }
+    }
+
+    private List<TaggedWord> wordToZht(List<TaggedWord> zhsTaggedWord){
+        for(TaggedWord tw: zhsTaggedWord){
+            tw.setWord(convertor.convertToZht(tw.word()));
+        }
+        return zhsTaggedWord;
     }
 
 }
