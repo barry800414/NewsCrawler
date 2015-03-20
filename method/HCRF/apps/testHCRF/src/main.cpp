@@ -54,6 +54,8 @@ void usage (char **argv)
   cerr << " -R\tRange for initail weigths (def.=[-1 1])" << endl;
   cerr << " -P\tnumber of parallel thread to use" << endl;
   cerr << " -I\tinitialization strategy (def.= random)" << endl;
+  cerr << " -C\tCorpus file" << endl;
+  cerr << " -S\tSentiment dictionary file" << endl;
   cerr << endl;
   exit(1);
 }
@@ -96,6 +98,9 @@ int main(int argc, char **argv)
 	string filenameFeatures = home + "features.txt";
 	string filenameOutput = home + "results.txt";
 	string filenameStats = home + "stats.txt";
+    
+    string filenameCorpus = home + "corpus.txt";
+    string filenameSentiDict = home + "SentiDict.txt";
 
 	/* Read command-line arguments */
 	for (int k=1; k<argc; k++)
@@ -239,6 +244,12 @@ int main(int argc, char **argv)
 			cerr<<"No OpenMP support";
 #endif
 		}
+        else if(argv[k][1] == 'C'){
+            filenameCorpus = argv[++k];
+        }
+        else if(argv[k][1] == 'S'){
+            filenameSentiDict == argv[++k];
+        }
 		else usage(argv);
     }
 
@@ -271,15 +282,18 @@ int main(int argc, char **argv)
 		DataSet dataTrain;
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
 			//data file, stateLabel file, seqLabel file
-            dataTrain.load((char*)filenameDataTrain.c_str(),NULL, (char*)filenameSeqLabelsTrain.c_str());
+            dataTrain.load((char*)filenameDataTrain.c_str(), NULL, (char*)filenameSeqLabelsTrain.c_str(),
+                   NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
         }
-		else
+		else{
 			dataTrain.load((char*)filenameDataTrain.c_str(),(char*)filenameLabelsTrain.c_str());
-
+        }
 		cout << "Reading validation set..." << endl;
 		DataSet dataValidate;
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ) //here
-			dataValidate.load((char*)filenameDataValidate.c_str(),NULL, (char*)filenameSeqLabelsValidate.c_str());
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+			dataValidate.load((char*)filenameDataValidate.c_str(),NULL, (char*)filenameSeqLabelsValidate.c_str(), 
+                    NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+        }
 		else
 			dataValidate.load((char*)filenameDataValidate.c_str(),(char*)filenameLabelsValidate.c_str());
 
@@ -298,7 +312,8 @@ int main(int argc, char **argv)
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
 			//data file, state sequence file, seq label file, adj maxtrix file
             //states per nodes fil, sparse data file
-            data.load(fileData,NULL, (char*)filenameSeqLabelsTrain.c_str(),NULL,NULL,fileDataSparse);
+            data.load(fileData,NULL, (char*)filenameSeqLabelsTrain.c_str(),NULL,NULL,fileDataSparse,
+                    (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
         }
 		else
 			data.load(fileData,(char*)filenameLabelsTrain.c_str(),NULL,NULL,NULL,fileDataSparse);
@@ -332,8 +347,10 @@ int main(int argc, char **argv)
 	{
 		cout << "Reading testing set..." << endl;
 		DataSet data;
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF )
-			data.load((char*)filenameDataTest.c_str(),NULL,(char*)filenameSeqLabelsTest.c_str());
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+			data.load((char*)filenameDataTest.c_str(),NULL,(char*)filenameSeqLabelsTest.c_str(), 
+                    NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+        }
 		else
 			data.load((char*)filenameDataTest.c_str(),(char*)filenameLabelsTest.c_str());
 

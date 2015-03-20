@@ -133,7 +133,8 @@ class DataSet
     ~DataSet();
     DataSet(const char *fileData, const char *fileStateLabels = NULL,
             const char *fileSeqLabels = NULL, const char * fileAdjMat = NULL,
-            const char * fileStatesPerNodes = NULL, const char * fileDataSparse = NULL);
+            const char * fileStatesPerNodes = NULL, const char * fileDataSparse = NULL,
+            const char *fileCorpus = NULL, const char *fileSentiDict = NULL);
 
     int load(const char *fileData, const char *fileStateLabels = NULL,
              const char *fileSeqLabels = NULL, const char *fileAdjMat = NULL,
