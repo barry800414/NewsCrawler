@@ -32,7 +32,10 @@ class Document{
 //whole corpus, which consists of documents
 class Corpus{
     public:
-        Corpus(char *filename, char *sentSep, char *wordSep);
+        Corpus();
+        //Corpus(char *filename, char *sentSep, char *wordSep);
+        //Corpus(ifstream *fin, char *sentSep, char *wordSep);
+        int read(ifstream *fin, char *sentSep, char *wordSep);
         string toString() const;
         friend ostream& operator<<(ostream &strm, const Corpus& c);
 
@@ -43,7 +46,9 @@ class Corpus{
 //sentiment dictionary
 class SentiDict{
     public:
-        SentiDict(char *filename, char *sep);
+        SentiDict();
+        //SentiDict(char *filename, char *sep);
+        int read(ifstream *fin, char *sep);
         string toString() const;
         friend ostream& operator<<(ostream &strm, const SentiDict& s);
 

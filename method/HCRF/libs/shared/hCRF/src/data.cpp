@@ -81,19 +81,33 @@ unsigned int Document::wordCount(int word){
 
 
 //Class Corpus
+/*
 Corpus::Corpus(char *filename, char *sentSep, char *wordSep){
-    ifstream fin(filename);
+    ifstream *fin = new ifstream(filename);
+    if(fin == NULL){
+        cerr << "Open file failure:" << filename << endl;
+    }
+    else{
+        Corpus(fin, sentSep, wordSep);
+        delete fin;
+    }
+}*/
+Corpus::Corpus(){
+}
+
+int Corpus::read(ifstream *fin, char *sentSep, char *wordSep){
     string line; 
-    if(fin.is_open()){
-        while(getline(fin, line)){
+    if(fin->is_open()){
+        while(getline(*fin, line)){
             char *lineBuf = new char[line.length() + 1];
             strcpy(lineBuf, line.c_str());
             docs.push_back(Document(lineBuf, sentSep, wordSep));
         }
-        fin.close();
+        return 0; //success
     }
     else{
-        cerr << "Cannot open " << filename << endl;
+        cerr << "input filestream invalid" << endl;
+        return 1; //fail
     }
 }
 
@@ -111,11 +125,26 @@ ostream& operator<<(ostream &strm, const Corpus &c){
 
 
 //Class SentiDict
+/*
 SentiDict::SentiDict(char *filename, char* sep){
-    ifstream fin(filename);
+    ifstream *fin = new ifstream(filename);
+    if(fin == NULL){
+        cerr << "Open file failure:" << filename << endl;
+    }
+    else{
+        SentiDict(fin, sep);
+        delete fin;
+    }
+}*/
+
+//Class SentiDict
+SentiDict::SentiDict(){
+}
+
+int SentiDict::read(ifstream *fin, char* sep){
     string line;
-    if(fin.is_open()){
-        while(getline(fin, line)){
+    if(fin->is_open()){
+        while(getline(*fin, line)){
             char *lineBuf = new char[line.length() + 1];
             strcpy(lineBuf, line.c_str());
             char *buf = strtok(lineBuf, sep);
@@ -135,12 +164,14 @@ SentiDict::SentiDict(char *filename, char* sep){
                 strtok(NULL, buf);
             }
         }
-        fin.close();
+        return 0; //success
     }
     else{
-        cerr << "Cannot open " << filename << endl;
+        cerr << "Input stream error" << endl;
+        return 1; //fail
     }
 }
+
 
 string SentiDict::toString() const{
     string str = "Seniment Dictionary: \n";
@@ -172,15 +203,5 @@ int SentiDict::getSenti(int word){
 
 
 int main(int argc, char* argv[]) {
-    
-    vector<int> a;
-    a.push_back(10);
-    
-    vector<int> *b;
-    
-    b = new vector<int>(a);
-
-    cout << b << endl; 
-    
     return 0;
 }
