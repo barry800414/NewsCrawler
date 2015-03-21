@@ -12,7 +12,7 @@
 using namespace std;
 
 //Class Sentence
-Sentence::Sentence(char *sent, char *wordSep){
+Sentence::Sentence(char *sent, const char *wordSep){
     char *wBuf = strtok(sent, wordSep);
     while(wBuf != NULL){
         words.push_back(atoi(wBuf));  //unsafe
@@ -34,7 +34,7 @@ ostream& operator<<(ostream &strm, const Sentence& s){
 
 
 //Class Document
-Document::Document(char *article, char *sentSep, char *wordSep){
+Document::Document(char *article, const char *sentSep, const char *wordSep){
     char *s = strtok(article, sentSep);
     while(s != NULL){
         Sentence sent = Sentence(s, wordSep);
@@ -95,10 +95,27 @@ Corpus::Corpus(char *filename, char *sentSep, char *wordSep){
 Corpus::Corpus(){
 }
 
-int Corpus::read(ifstream *fin, char *sentSep, char *wordSep){
+int Corpus::read(ifstream *fin,const char *sentSep,const char *wordSep){
     string line; 
+    int docNum;
     if(fin->is_open()){
-        while(getline(*fin, line)){
+        //ignore first line, if NULL, return error
+        if(!getline(*fin, line)){
+            cerr << "Corpus file error: no content in file" << endl;
+        }
+        //second line: #doc volcabulary_size
+        if(getline(*fin, line)){
+            sscanf(line.c_str(), "%d%d", &docNum, &volcSize);
+        }
+        else{
+            cerr << "Corpus file error: second line error" << endl;
+        }
+        int i; 
+        for(i = 0; i < docNum; i++){
+            if(!getline(*fin, line)){
+                cerr << "Data number inconsistent" << endl;
+                return 1;
+            }
             char *lineBuf = new char[line.length() + 1];
             strcpy(lineBuf, line.c_str());
             docs.push_back(Document(lineBuf, sentSep, wordSep));
@@ -141,9 +158,9 @@ SentiDict::SentiDict(char *filename, char* sep){
 SentiDict::SentiDict(){
 }
 
-int SentiDict::read(ifstream *fin, char* sep){
+int SentiDict::read(ifstream *fin,const char* sep){
     string line;
-    if(fin->is_open()){
+    if(fin->is_open()){        
         while(getline(*fin, line)){
             char *lineBuf = new char[line.length() + 1];
             strcpy(lineBuf, line.c_str());
@@ -201,7 +218,7 @@ int SentiDict::getSenti(int word){
 
 
 
-
+/*
 int main(int argc, char* argv[]) {
     return 0;
-}
+}*/

@@ -7,7 +7,7 @@ using namespace std;
 // a sentence
 class Sentence{
     public:
-        Sentence(char *sent, char *wordSep);
+        Sentence(char *sent, const char *wordSep);
         friend ostream& operator<<(ostream &strm, const Sentence& s);
         string toString() const;
         vector<int> words;
@@ -17,7 +17,7 @@ class Sentence{
 //a document 
 class Document{
     public:
-        Document(char *article, char *sentSep, char *wordSep);
+        Document(char *article,const char *sentSep,const char *wordSep);
         string toString() const;
         friend ostream& operator<<(ostream &strm, const Document& d);
 
@@ -35,11 +35,12 @@ class Corpus{
         Corpus();
         //Corpus(char *filename, char *sentSep, char *wordSep);
         //Corpus(ifstream *fin, char *sentSep, char *wordSep);
-        int read(ifstream *fin, char *sentSep, char *wordSep);
+        int read(ifstream *fin, const char *sentSep,const char *wordSep);
         string toString() const;
         friend ostream& operator<<(ostream &strm, const Corpus& c);
 
         vector<Document> docs;
+        int volcSize;
         
 };
 
@@ -48,7 +49,7 @@ class SentiDict{
     public:
         SentiDict();
         //SentiDict(char *filename, char *sep);
-        int read(ifstream *fin, char *sep);
+        int read(ifstream *fin,const char *sep);
         string toString() const;
         friend ostream& operator<<(ostream &strm, const SentiDict& s);
 

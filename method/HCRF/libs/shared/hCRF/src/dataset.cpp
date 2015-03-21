@@ -167,8 +167,7 @@ DataSequence::~DataSequence()
 //*
 
 int DataSequence::load(istream* isData, istream* isLabels, istream* isAdjMat, 
-        istream* isStatesPerNodes, istream* isDataSparse, istream* isCorpus,
-        istream* isSentiDict)
+        istream* isStatesPerNodes, istream* isDataSparse)
 { 
 	if(isData == NULL && isLabels == NULL && isAdjMat == NULL && isStatesPerNodes == NULL)
 		return 1;
@@ -229,30 +228,6 @@ int DataSequence::load(istream* isData, istream* isLabels, istream* isAdjMat,
 		}
 	}
     
-    //additional data: corpus
-    if(isCorpus){
-        corpus = new Corpus();
-        if(corpus->read(isCorpus, ",", " ")==0){
-            //read in corpus successfully
-        }
-        else{
-            delete corpus;
-            return 1;
-        }
-    }
-
-    //additional data: sentiment dictionary
-    if(isSentiDict){
-        sentiDict = new Corpus();
-        if(sentiDict->read(isSentiDict, " ")==0){
-            //read in sentiment dictionary successfully
-        }
-        else{
-            delete sentiDict;
-            return 1
-        }
-    }
-
 	return 0;
 }
 
@@ -423,13 +398,9 @@ double DataSequence::getWeightSequence() const
 void DataSequence::setSents(const std::vector<Sentence>& x){
     sents = new vector<Sentence>(x);
 }
+
 Sentence DataSequence::getSent(int nodeIndex){
-    if(nodeIndex >= sents->size()){
-        return null;
-    }
-    else{
-        return sents->at(nodeIndex);
-    }
+    return sents->at(nodeIndex);
 }
 
 
@@ -449,11 +420,12 @@ DataSet::DataSet()
 
 DataSet::DataSet(const char *fileData, const char *fileStateLabels,
 				 const char *fileSeqLabels, const char * fileAdjMat ,
-				 const char * fileStatesPerNodes,const char * fileDataSparse)
+				 const char * fileStatesPerNodes,const char * fileDataSparse, 
+                 const char *fileCorpus, const char *fileSentiDict)
    : container(std::vector<DataSequence*>())
 {
 	load(fileData, fileStateLabels, fileSeqLabels, fileAdjMat ,
-		 fileStatesPerNodes,fileDataSparse);
+		 fileStatesPerNodes,fileDataSparse, fileCorpus, fileSentiDict);
 }
 
 DataSet::~DataSet()
@@ -477,8 +449,9 @@ void DataSet::clearSequence()
 }
 
 int DataSet::load(const char *fileData, const char *fileStateLabels,
-				  const char *fileSeqLabels, const char * fileAdjMat,
-				  const char * fileStatesPerNodes,const char * fileDataSparse)
+				  const char *fileSeqLabels, const char *fileAdjMat,
+				  const char *fileStatesPerNodes,const char *fileDataSparse,
+                  const char *fileCorpus, const char *fileSentiDict)
 {
 	istream* isData = NULL;
 	istream* isDataSparse = NULL;
@@ -486,6 +459,9 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 	istream* isSeqLabels = NULL;
 	istream* isAdjMat = NULL;
 	istream* isStatesPerNodes = NULL;
+
+    ifstream* isCorpus = NULL;
+    ifstream* isSentiDict = NULL;
 
 	if(fileData != NULL)
 	{
@@ -557,9 +533,9 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 	if(fileCorpus != NULL)
 	{
 		isCorpus = new ifstream(fileCorpus);
-		if(!((ifstream*)isCorpus)->is_open())
+		if(!isCorpus->is_open())
 		{
-			cerr << "Can't find corpus file: " << fileCorpus << endl;
+	                                                                                 		cerr << "Can't find corpus file: " << fileCorpus << endl;
 			delete isCorpus;
 			isCorpus = NULL;
 			throw BadFileName("Can't find corpus files");
@@ -570,7 +546,7 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
     if(fileSentiDict != NULL)
 	{
 		isSentiDict = new ifstream(fileSentiDict);
-		if(!((ifstream*)isSentiDict)->is_open())
+		if(!isSentiDict->is_open())
 		{
 			cerr << "Can't find sentiment dictionary file: " << fileSentiDict << endl;
 			delete isSentiDict;
@@ -579,12 +555,11 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 		}
 	}
 
-
 	DataSequence* seq = new DataSequence;
 	int seqLabel;
 
 	while(seq->load(isData,isStateLabels,isAdjMat,isStatesPerNodes, 
-                isDataSparse, isCorpus, isSentiDict) == 0)
+                isDataSparse) == 0)
 	{
 		if(isSeqLabels)
 		{
@@ -594,6 +569,34 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 		container.insert(container.end(),seq);
 		seq = new DataSequence;				
 	}
+
+    //additional data: corpus
+    if(isCorpus){
+        corpus = new Corpus();
+        string sentSep = ",";
+        string wordSep = " ";
+        if(corpus->read(isCorpus, sentSep.c_str(), wordSep.c_str())==0){
+            //read in corpus successfully
+        }
+        else{
+            delete corpus;
+            return 1;
+        }
+    }
+
+    //additional data: sentiment dictionary
+    if(isSentiDict){
+        sentiDict = new SentiDict();
+        char *sep = " ";
+        if(sentiDict->read(isSentiDict, sep)==0){
+            //read in sentiment dictionary successfully
+        }
+        else{
+            delete sentiDict;
+            return 1;
+        }
+    }
+
 	delete seq;
 	if(isData)
         delete isData;
@@ -608,9 +611,9 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 	if(isDataSparse)
 		delete isDataSparse;
     if(isCorpus)
-        delete isCorpus
+        delete isCorpus;
     if(isSentiDict)
-        delete isSentiDict
+        delete isSentiDict;
 
 	return 0;
 }

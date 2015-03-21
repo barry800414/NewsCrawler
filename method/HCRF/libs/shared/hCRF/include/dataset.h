@@ -136,10 +136,15 @@ class DataSet
             const char * fileStatesPerNodes = NULL, const char * fileDataSparse = NULL,
             const char *fileCorpus = NULL, const char *fileSentiDict = NULL);
 
-    int load(const char *fileData, const char *fileStateLabels = NULL,
-             const char *fileSeqLabels = NULL, const char *fileAdjMat = NULL,
-             const char *fileStatesPerNodes = NULL, const char *fileDataSparse = NULL,
-             const char *fileCorpus = NULL, const char *fileSentiDict = NULL);
+    int load(const char *fileData, const char *fileStateLabels,
+				  const char *fileSeqLabels, const char *fileAdjMat,
+				  const char *fileStatesPerNodes,const char *fileDataSparse,
+                  const char *fileCorpus, const char *fileSentiDict);
+
+    /*int load(std::istream* isData, std::istream* isLabels,
+             std::istream* isAdjMat, std::istream* isStatesPerNodes, 
+			 std::istream* isDataSparse, std::istream* isCorpus, 
+             std::istream* isSentiDict);*/
 
     void clearSequence();
 	
@@ -171,10 +176,12 @@ class DataSet
     const_iterator end() const{
         return container.end();
     }
-  private:
-    std::vector<DataSequence*> container;
+    
     Corpus *corpus;
     SentiDict *sentiDict;
+
+  private:
+    std::vector<DataSequence*> container;
 };
 
 std::ostream& operator <<(std::ostream& out, const DataSequence& seq);

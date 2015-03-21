@@ -29,4 +29,29 @@ public:
 	void getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures);
 };
 
+
+//feature function 1: w in TOKENS(si) and y^s_i = a
+//Dimension: volcSize * |y|
+class WordOccurFeatures : public FeatureType
+{
+public:
+	WordOccurFeatures();
+
+	// Called once to initialize this type of features
+	virtual void init(const DataSet& dataset, const Model& m);
+	// Called for every sample of a data sequence. Returns the features (square of the raw feature) for every states for that sample.
+	virtual void getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel = -1);
+	virtual bool isEdgeFeatureType();
+
+	// Utility function: returns all possible features that this class can produce
+	void getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures);
+
+    const DataSet* pDataSet;
+};
+
+
 #endif 
+
+
+
+

@@ -282,21 +282,31 @@ int main(int argc, char **argv)
 		DataSet dataTrain;
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
 			//data file, stateLabel file, seqLabel file
-            dataTrain.load((char*)filenameDataTrain.c_str(), NULL, (char*)filenameSeqLabelsTrain.c_str(),
-                   NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+            dataTrain.load((char*)filenameDataTrain.c_str(), NULL, 
+                    (char*)filenameSeqLabelsTrain.c_str(), NULL, 
+                    NULL, NULL, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
         }
 		else{
-			dataTrain.load((char*)filenameDataTrain.c_str(),(char*)filenameLabelsTrain.c_str());
+			dataTrain.load((char*)filenameDataTrain.c_str(),
+                    (char*)filenameLabelsTrain.c_str(), NULL,
+                    NULL, NULL, NULL, (char *)filenameCorpus.c_str(),
+                    (char *)filenameSentiDict.c_str());
         }
 		cout << "Reading validation set..." << endl;
 		DataSet dataValidate;
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
-			dataValidate.load((char*)filenameDataValidate.c_str(),NULL, (char*)filenameSeqLabelsValidate.c_str(), 
-                    NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+			dataValidate.load((char*)filenameDataValidate.c_str(),NULL, 
+                    (char*)filenameSeqLabelsValidate.c_str(), NULL, NULL, 
+                    NULL, (char*)filenameCorpus.c_str(), (char*)filenameSentiDict.c_str());
         }
-		else
-			dataValidate.load((char*)filenameDataValidate.c_str(),(char*)filenameLabelsValidate.c_str());
-
+		else{
+			dataValidate.load((char*)filenameDataValidate.c_str(),
+                    (char*)filenameLabelsValidate.c_str(), NULL, NULL,
+                    NULL, NULL, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
+        
+        }
 		if(maxIt >= 0)
 			toolbox->setMaxNbIteration(maxIt);
 
@@ -312,12 +322,15 @@ int main(int argc, char **argv)
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
 			//data file, state sequence file, seq label file, adj maxtrix file
             //states per nodes fil, sparse data file
-            data.load(fileData,NULL, (char*)filenameSeqLabelsTrain.c_str(),NULL,NULL,fileDataSparse,
-                    (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+            data.load(fileData,NULL, (char*)filenameSeqLabelsTrain.c_str(),
+                    NULL,NULL,fileDataSparse,(char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
         }
-		else
-			data.load(fileData,(char*)filenameLabelsTrain.c_str(),NULL,NULL,NULL,fileDataSparse);
-
+		else{
+			data.load(fileData,(char*)filenameLabelsTrain.c_str(),NULL,
+                    NULL,NULL,fileDataSparse, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
+        }
 		if(maxIt >= 0)
 			toolbox->setMaxNbIteration(maxIt);
 		if(regFactorL2 >= 0)
@@ -349,11 +362,13 @@ int main(int argc, char **argv)
 		DataSet data;
 		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
 			data.load((char*)filenameDataTest.c_str(),NULL,(char*)filenameSeqLabelsTest.c_str(), 
-                    NULL, NULL, NULL, (char*)fileCorpus.c_str(), (char*)fileSentiDict.c_str());
+                    NULL, NULL, NULL, (char*)filenameCorpus.c_str(), (char*)filenameSentiDict.c_str());
         }
-		else
-			data.load((char*)filenameDataTest.c_str(),(char*)filenameLabelsTest.c_str());
-
+		else{
+			data.load((char*)filenameDataTest.c_str(),(char*)filenameLabelsTest.c_str(),
+                    NULL, NULL, NULL, NULL, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
+        }
 		ofstream fileStats1 ((char*)filenameStats.c_str());
 		if (fileStats1.is_open())
 		{
@@ -378,7 +393,11 @@ int main(int argc, char **argv)
 				fileOutput.close();
 			}
 */			cout << "Reading training set..." << endl;
-			DataSet dataTrain((char*)filenameDataTrain.c_str(),(char*)filenameLabelsTrain.c_str(), (char*)filenameSeqLabelsTrain.c_str());
+			DataSet dataTrain((char*)filenameDataTrain.c_str(), 
+                    (char*)filenameLabelsTrain.c_str(), 
+                    (char*)filenameSeqLabelsTrain.c_str(),
+                    NULL, NULL, NULL, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
 
 			cout << "Starting testing ..." << endl;
 			toolbox->test(dataTrain,NULL,(char*)filenameStats.c_str());
@@ -398,7 +417,11 @@ int main(int argc, char **argv)
 				fileOutput.close();
 			}
 */			cout << "Reading validation set..." << endl;
-			DataSet dataValidate((char*)filenameDataValidate.c_str(),(char*)filenameLabelsValidate.c_str(), (char*)filenameSeqLabelsValidate.c_str());
+			DataSet dataValidate((char*)filenameDataValidate.c_str(),
+                    (char*)filenameLabelsValidate.c_str(), 
+                    (char*)filenameSeqLabelsValidate.c_str(),
+                    NULL, NULL, NULL, (char*)filenameCorpus.c_str(), 
+                    (char*)filenameSentiDict.c_str());
 
 			cout << "Starting testing ..." << endl;
 			toolbox->test(dataValidate,NULL,(char*)filenameStats.c_str());

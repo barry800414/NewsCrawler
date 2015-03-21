@@ -645,6 +645,7 @@ featureVector* Toolbox::getAllFeatures(DataSet &X)
 {
 	if(pFeatureGenerator->getNumberOfFeatures() == 0)
 		initModel(X);
+    cerr << "Test!" << endl;
 	return pFeatureGenerator->getAllFeatures(pModel,X.getNumberofRawFeatures());
 }
 
