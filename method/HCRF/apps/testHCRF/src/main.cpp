@@ -1,4 +1,5 @@
 #include "hCRF.h"
+#include <string.h>
 #include <iostream>
 #include <string>
 #ifdef WIN32
@@ -24,6 +25,7 @@ using namespace std;
 #define TOOLBOX_GHCRF  8
 #define TOOLBOX_LVPERCEPTRON 32
 #define TOOLBOX_SDCRF 16
+#define MYTOOLBOX_HCRF 64
 
 void usage (char **argv)
 {  
@@ -32,7 +34,7 @@ void usage (char **argv)
   cerr << "options:" << endl;
   cerr << " -t\tTrain the model" << endl;
   cerr << " -tc\tContinue to train the model" << endl;
-  cerr << " -a\tSelect the model type (crf, hcrf, ldcrf, fhcrd, ghcrf, sdcrf) (def. = crf)" << endl;
+  cerr << " -a\tSelect the model type (crf, hcrf, ldcrf, fhcrd, ghcrf, sdcrf, myhcrf) (def. = crf)" << endl;
   cerr << " -h\tNumber of hidden state(def.=3)" << endl;
   cerr << " -d\tName of file containing the training data (def.= dataTrain.csv)" << endl;
   cerr << " -ds\tName of file containing the sparse training data" << endl;
@@ -58,6 +60,41 @@ void usage (char **argv)
   cerr << " -S\tSentiment dictionary file" << endl;
   cerr << endl;
   exit(1);
+}
+
+vector<FeatureType *> * genFeatures(char *argv){
+    vector<FeatureType *> * features = new vector<FeatureType *>();
+    char *buf = strtok(argv, " ");
+    while(buf != NULL){
+        if(strcmp(buf, "WordOccur") == 0){
+            features->push_back(new WordCntFeatures(WordCntFeatures::ZERO_ONE));
+        }
+        else if(strcmp(buf, "WordCnt") == 0){
+            features->push_back(new WordCntFeatures(WordCntFeatures::COUNT));
+        }
+        else if(strcmp(buf, "PosWordOccur") == 0){
+            features->push_back(new PosNegWordOccurFeatures(PosNegWordOccurFeatures::POSITIVE));
+        }
+        else if(strcmp(buf, "NegWordOccur") == 0){
+            features->push_back(new PosNegWordOccurFeatures(PosNegWordOccurFeatures::NEGATIVE));
+        }
+        else if(strcmp(buf, "PosLNeg") == 0){
+            features->push_back(new PosNegSumFeatures(PosNegSumFeatures::LARGER, 1, 1));
+        }
+        else if(strcmp(buf, "PosL2Neg") == 0){
+            features->push_back(new PosNegSumFeatures(PosNegSumFeatures::LARGER, 1, 2));
+        }
+        else if(strcmp(buf, "NegLPos") == 0){
+            features->push_back(new PosNegSumFeatures(PosNegSumFeatures::SMALLER, 1, 1));
+        }
+        else if(strcmp(buf, "NegL2Pos") == 0){
+            features->push_back(new PosNegSumFeatures(PosNegSumFeatures::SMALLER, 2, 1));
+        }
+        else if(strcmp(buf, "PosEqualNeg") == 0){
+            features->push_back(new PosNegSumFeatures(PosNegSumFeatures::EQUAL, 1, 1));
+        }
+    }
+    return features;
 }
 
 int main(int argc, char **argv)
@@ -204,6 +241,8 @@ int main(int argc, char **argv)
 				toolboxType = TOOLBOX_GHCRF;
 			else if(!strcmp(argv[k+1],"sdcrf"))
 				toolboxType = TOOLBOX_SDCRF;
+            else if(!strcmp(argv[k+1], "myhcrf"))
+                toolboxType = MYTOOLBOX_HCRF;
 			k++;
 		}
 		else if(argv[k][1] == 'p')
@@ -271,6 +310,12 @@ int main(int argc, char **argv)
 		else if (toolboxType == TOOLBOX_SDCRF)
 			toolbox = new ToolboxSharedLDCRF(nbHiddenStates, opt, windowSize);
 		#endif
+        else if (toolboxType == MYTOOLBOX_HCRF){
+            //generate the feature vector
+            vector<FeatureType *> features;
+            //TODO
+            toolbox = new MyToolboxHCRF(features, nbHiddenStates, opt, windowSize);
+        }
 		else
 			toolbox = new ToolboxCRF(opt, windowSize);
 		toolbox->setDebugLevel(debugLevel);
