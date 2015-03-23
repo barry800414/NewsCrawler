@@ -64,7 +64,7 @@ void RawFeaturesSquare::getAllFeatures(featureVector& listFeatures, Model* m, in
 
 
 
-void RawFeaturesSquare::init(const DataSet& dataset, const Model& m)
+void RawFeaturesSquare::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	if(dataset.size() > 0)

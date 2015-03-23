@@ -67,7 +67,7 @@ public:
 	FeatureType();
 	virtual ~FeatureType();
 
-	virtual void init(const DataSet&, const Model&);
+	virtual void init(DataSet&, const Model&); //modified
 	virtual void getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, 
 					int nodeIndex, int prevNodeIndex, int seqLabel = -1) = 0;
 	virtual void getAllFeatures(featureVector& listFeatures, Model* m, int nbRawFeatures) = 0;
@@ -113,7 +113,7 @@ public:
 	~FeatureGenerator();
 
 	void addFeature(FeatureType* featureGen);
-	void initFeatures(const DataSet& dataset, Model& m);
+	void initFeatures(DataSet& dataset, Model& m);
 	void clearFeatureList();
 
 #if defined(_VEC_FEATURES) || defined(_OPENMP)

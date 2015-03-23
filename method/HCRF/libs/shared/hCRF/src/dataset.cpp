@@ -687,3 +687,27 @@ std::ostream& operator <<(std::ostream& out, const DataSet& data)
 	return out;
 }
 
+Document * DataSet::getDoc(unsigned int docIndex){
+    if(corpus != NULL){
+        return corpus->getDoc(docIndex);
+    }
+    else{
+        return NULL;
+    }
+}
+
+Sentence * DataSet::getSent(unsigned int docIndex, unsigned int sentIndex){
+    if(corpus != NULL){
+        Document *doc = corpus->getDoc(docIndex);
+        if(doc != NULL){
+            return doc->getSent(sentIndex);
+        }
+        else{
+            return NULL;
+        }
+    }
+    else{
+        return NULL;
+    }
+}
+

@@ -53,7 +53,7 @@ SET(LIB_SRC src/dataset.cpp src/Dummys.cpp src/EdgeFeatures.cpp
 	src/RawFeaturesSquare.cpp src/toolbox.cpp
 	src/ToolboxCRF.cpp src/ToolboxGHCRF.cpp src/ToolboxHCRF.cpp
 	src/ToolboxLDCRF.cpp src/WindowRawFeatures.cpp src/matrix.cpp src/matrixSSE2.cpp
-    src/data.cpp)
+    src/data.cpp src/MyToolboxHCRF.cpp)
 
 add_library(hCRF ${LIB_SRC})
 

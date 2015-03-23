@@ -66,7 +66,7 @@ void FeaturesOne::getAllFeatures(featureVector& listFeatures, Model* m, int NbRa
 
 
 
-void FeaturesOne::init(const DataSet& dataset, const Model& m)
+void FeaturesOne::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	if(dataset.size() > 0)

@@ -15,7 +15,7 @@ class RawFeaturesSquare : public FeatureType
 public:
 	RawFeaturesSquare();
 
-	virtual void init(const DataSet& dataset, const Model& m);
+	virtual void init(DataSet& dataset, const Model& m);
 	virtual void getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel = -1);
 	virtual bool isEdgeFeatureType();
 

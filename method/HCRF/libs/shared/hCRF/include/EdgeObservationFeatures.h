@@ -13,7 +13,7 @@ class EdgeObservationFeatures : public FeatureType
 {
   public:
    EdgeObservationFeatures();
-   void init(const DataSet& dataset, const Model& m);
+   void init(DataSet& dataset, const Model& m);
    void getFeatures(featureVector& listFeatures, DataSequence* X, Model* m,
                     int nodeIndex, int prevNodeIndex, int seqLabel = -1);
    void computeFeatureMask(iMatrix& matFeautureMask, const Model& m);

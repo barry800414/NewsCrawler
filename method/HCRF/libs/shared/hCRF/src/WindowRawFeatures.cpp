@@ -120,7 +120,7 @@ void WindowRawFeatures::getAllFeatures(featureVector& listFeatures, Model* m,
 	}
 }
 
-void WindowRawFeatures::init(const DataSet& dataset, const Model& m)
+void WindowRawFeatures::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	if(dataset.size() > 0)

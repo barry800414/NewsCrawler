@@ -110,7 +110,7 @@ void FeatureType::setIdOffset(int offset, int seqLabel)
 		idOffsetPerLabel[seqLabel] = offset;
 }
 
-void FeatureType::init(const DataSet&, const Model& m)
+void FeatureType::init(DataSet&, const Model& m)
 /* Some of the derived class need access to the DataSet for initilisation */
 {
 	if (m.getNumberOfSequenceLabels()>0) {
@@ -234,7 +234,7 @@ void FeatureGenerator::addFeature(FeatureType* featureGen)
 		listFeatureTypes.insert(listFeatureTypes.begin(),featureGen);
 }
 
-void FeatureGenerator::initFeatures(const DataSet& dataset, Model& m)
+void FeatureGenerator::initFeatures(DataSet& dataset, Model& m)
 {
 	int nbLabels = m.getNumberOfSequenceLabels();
 	int offset = 0;

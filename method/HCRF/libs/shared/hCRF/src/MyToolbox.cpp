@@ -21,7 +21,7 @@ void MyToolbox::init(int opt)
 	pFeatureGenerator = new FeatureGenerator;
 	//Replace the following line by our new class: MyFeature
 //	pFeatureGenerator->addFeature(new WindowRawFeatures(windowSize));
-	pFeatureGenerator->addFeature(new MyFeatures());
+	//pFeatureGenerator->addFeature(new MyFeatures());
 	pFeatureGenerator->addFeature(new EdgeFeatures());
 
 	pInferenceEngine = new InferenceEngineBP();

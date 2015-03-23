@@ -177,6 +177,9 @@ class DataSet
         return container.end();
     }
     
+    Document * getDoc(unsigned int docIndex);
+    Sentence * getSent(unsigned int docIndex, unsigned int sentIndex);
+
     Corpus *corpus;
     SentiDict *sentiDict;
 

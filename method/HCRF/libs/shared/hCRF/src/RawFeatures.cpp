@@ -64,7 +64,7 @@ void RawFeatures::getAllFeatures(featureVector& listFeatures, Model* m, int NbRa
 
 
 
-void RawFeatures::init(const DataSet& dataset, const Model& m)
+void RawFeatures::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	if(dataset.size() > 0)

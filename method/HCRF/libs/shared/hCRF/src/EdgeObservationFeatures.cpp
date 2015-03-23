@@ -139,7 +139,7 @@ void EdgeObservationFeatures::getAllFeatures(featureVector& listFeatures, Model*
 }
 
 
-void EdgeObservationFeatures::init(const DataSet& dataset, const Model& m)
+void EdgeObservationFeatures::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	int nbStateLabels = m.getNumberOfStates();

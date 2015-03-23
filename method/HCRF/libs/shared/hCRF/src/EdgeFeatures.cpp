@@ -77,7 +77,7 @@ void EdgeFeatures::getAllFeatures(featureVector& listFeatures, Model* m,
 }
 
 
-void EdgeFeatures::init(const DataSet& dataset, const Model& m)
+void EdgeFeatures::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	int nbStateLabels = m.getNumberOfStates();

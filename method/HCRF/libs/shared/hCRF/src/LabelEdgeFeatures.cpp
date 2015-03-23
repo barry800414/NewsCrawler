@@ -58,7 +58,7 @@ void LabelEdgeFeatures::getAllFeatures(featureVector& listFeatures, Model* m, in
 }
 
 
-void LabelEdgeFeatures::init(const DataSet& dataset, const Model& m)
+void LabelEdgeFeatures::init(DataSet& dataset, const Model& m)
 {
 	FeatureType::init(dataset,m);
 	int nbStateLabels = m.getNumberOfStates();

@@ -23,6 +23,8 @@
 #endif
 #include "EdgeFeatures.h"
 #include "LabelEdgeFeatures.h"
+#include "MyFeatures.h"
+
 #include "dataset.h"
 #include "model.h"
 #include "optimizer.h"
@@ -269,6 +271,17 @@ class ToolboxLVPERCEPTRON: Toolbox
 	virtual void init(int nbHiddenStatesPerLabel, int opt, int windowSize = 0);
     virtual void initModel(DataSet &X);
     int numberOfHiddenStatesPerLabel;
+};
+
+//new
+class MyToolboxHCRF: public ToolboxHCRF
+{
+  public:
+   MyToolboxHCRF(vector<FeatureType *> features, int nbHiddenStates, int opt, int windowSize = 0);
+  protected:
+   virtual void init(vector<FeatureType *> features, int nbHiddenStatesPerLabel, int opt, int windowSize = 0);
+   int numberOfHiddenStates;
+
 };
 
 #endif
