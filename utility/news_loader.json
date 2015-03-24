@@ -2,8 +2,9 @@
     "topic_news_table": "topic_news",
     "topic_table": "topic",
     "corpus_table": "merge_necessary",
-    "topic_id": 2,
+    "topic_id": [2, 3, 4, 5, 6, 10, 13, 16],
     "news_id": ["01_pnn_00000009"], 
     "query_type" : "topic",
-    "limit_num": 10
+    "limit_num": -1, 
+    "get_topic": true
 }

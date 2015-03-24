@@ -9,36 +9,43 @@ convertor: convertor_compile
 	$(JAVA_PATH)/java -cp "./jopencc" jopencc.ZhtZhsConvertor ./jopencc
 
 #segmenter
-segmenter_compile: convertor_compile
+segmenter_compile: 
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/Segmenter.java
 
 segmenter: segmenter_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" Segmenter 
 
 # POS tagger
-tagger_compile: segmenter_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./scr" -d ./bin ./src/FullPOSTagger.java
+tagger_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullPOSTagger.java
 
 tagger: tagger_compile
 	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullPOSTagger
 
-# full dependency parser
-dep_parser_compile: tagger_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./scr" -d ./bin ./src/FullDependencyParser.java
+# full neural network dependency parser
+nndep_parser_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullNNDepParser.java
 
-dep_parser: dep_parser_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullDependencyParser
+nndep_parser: nndep_parser_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./src" FullNNDepParser
 
-# full constituent parser 
-parser_compile: segmenter_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/FullParser.java
+# full PCFG parser (for constituent & dependency parsing) 
+parser_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/FullPCFGParser.java
 
 parser: parser_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" FullParser
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" FullPCFGParser
 
-server_compile: segmenter_compile
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src" -d ./bin ./src/NLPToolServer.java
+#server_compile: segmenter_compile tagger_compile nndep_parser_compile parser_compile
+server_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/NLPToolServer.java
 
 server: server_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin" NLPToolServer
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" NLPToolServer
+
+eng_server_compile: 
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/EngNLPToolServer.java
+
+eng_server: eng_server_compile
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" EngNLPToolServer
 

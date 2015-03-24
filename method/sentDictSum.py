@@ -2,20 +2,30 @@
 
 import sys
 import json
+import dataPreprocess
 
+# return a dict (word -> sentiment score)
 def readSentDict(filename):
-	sentDict = dict()
-	with open(filename, 'r') as f:
-		for line in f:
-			entry = line.strip().split(',')
-			if len(entry) != 2:
-				print('This line format error:', entry, file=sys.stderr)
-				continue
-			
-			w = entry[0]
-			s = int(entry[1])
-			sentDict[w] = s
-	return sentDict
+    sentDict = dict()
+    dupSet = set()
+    with open(filename, 'r') as f:
+        for i, line in enumerate(f):
+            entry = line.strip().split(',')
+            if len(entry) != 2:
+                print('Line %d format error:' %(i+1), entry, file=sys.stderr)
+                continue
+            w = entry[0]
+            s = int(entry[1])
+            if w in sentDict:
+                #print(w, 'is already in dictionary', file=sys.stderr)
+                dupSet.add(w)
+            else:
+                sentDict[w] = s
+
+    for w in dupSet:
+        del sentDict[w]
+    print(len(dupSet), 'words are +1&-1', file=sys.stderr)
+    return sentDict
 		
 def sentDictSumPredict(content, sentDict):
 	sentValue = 0
@@ -52,7 +62,10 @@ if __name__ == '__main__':
 
 	with open(newsJsonFile, 'r') as f:
 		news = json.load(f)
+	news = dataPreprocess.data_cleaning(news)
 
+	dataPreprocess.printStatInfo(news)
+	
 	sentDict = readSentDict(sentDictFile)
 
 	accu = 0
