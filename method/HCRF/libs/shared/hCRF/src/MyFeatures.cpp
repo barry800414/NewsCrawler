@@ -23,7 +23,7 @@ void WordCntFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, 
 	// If raw/precomputed features are available and the getFeatures() call is for state features
 	if(X->getPrecomputedFeatures() != NULL && prevNodeIndex == -1)
 	{
-        std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
+        //std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
         //This precomputed feature matrix is 1 x #HiddenState, the value is the document ID.
         //TODO: check matrix size
         dMatrix* preFeatures = X->getPrecomputedFeatures(); 
@@ -64,7 +64,7 @@ void WordCntFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, 
             }
 		}
 	}
-    std::cerr << "in getFeatures, outside" << std::endl;
+    //std::cerr << "in getFeatures, outside" << std::endl;
 }
 
 void WordCntFeatures::getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures)
@@ -86,11 +86,14 @@ void WordCntFeatures::init(DataSet& dataset, const Model& m)
 		int nbStates = m.getNumberOfStates();
 		int nbSeqLabels = m.getNumberOfSequenceLabels();
         nbFeaturesPerState = pDataSet->corpus->volcSize; //depends on volcabulary size
+
 		nbFeatures = nbStates * nbFeaturesPerState;
+
 		for(int i = 0; i < nbSeqLabels; i++){
 			nbFeaturesPerLabel[i] = nbFeatures;
         }
 	}
+
 }
 
 bool WordCntFeatures::isEdgeFeatureType()
@@ -119,7 +122,7 @@ void PosNegWordOccurFeatures::getFeatures(featureVector& listFeatures, DataSeque
 	// If raw/precomputed features are available and the getFeatures() call is for state features
 	if(X->getPrecomputedFeatures() != NULL && prevNodeIndex == -1)
 	{
-        std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
+        //std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
         //This precomputed feature matrix is 1 x #HiddenState, the value is the document ID.
         //TODO: check matrix size
         dMatrix * preFeatures = X->getPrecomputedFeatures(); 
@@ -129,7 +132,7 @@ void PosNegWordOccurFeatures::getFeatures(featureVector& listFeatures, DataSeque
 		// For every possible outcome of this hidden variable(y_i)
 		for(int s = 0; s < nbState; s++)
 		{
-			//for each word in positive lexicon
+			//for each word in volc
             for(unsigned int f = 0; f < nbFeaturesPerState; f++)
 			{
 				pFeature = listFeatures.addElement();
@@ -148,7 +151,7 @@ void PosNegWordOccurFeatures::getFeatures(featureVector& listFeatures, DataSeque
                 SentiDict *sentiDict = pDataSet->sentiDict;
 
                 //f is the word id in postive dictionary, here we convert it into corpus word id
-                int wordId = sentiDict->getWordIdInCorpus(f, SentiDict::POS_WORD);
+                int wordId = f;
                 if(sent != NULL && sentiDict != NULL){
                     if(sent->hasWord(wordId)){
                         if(this->type == PosNegWordOccurFeatures::POSITIVE && sentiDict->getSenti(wordId) > 0){
@@ -162,7 +165,7 @@ void PosNegWordOccurFeatures::getFeatures(featureVector& listFeatures, DataSeque
 			}
 		}
 	}
-    std::cerr << "in getFeatures, outside" << std::endl;
+    //std::cerr << "in getFeatures, outside" << std::endl;
 }
 
 void PosNegWordOccurFeatures::getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures)
@@ -179,13 +182,14 @@ void PosNegWordOccurFeatures::init(DataSet& dataset, const Model& m)
     //pointer to dataset
     pDataSet = &dataset;
     
+
 	if(dataset.size() > 0)
 	{
 		int nbStates = m.getNumberOfStates(); //cardinality(#outcome) of hidden variable)
 		int nbSeqLabels = m.getNumberOfSequenceLabels(); //cardinality of document-level label
 
-        nbFeaturesPerState = pDataSet->sentiDict->posVolcSize; //depends on positive volcabulary size
-		nbFeatures = nbStates * nbFeaturesPerState;
+        nbFeaturesPerState = pDataSet->corpus->volcSize; //depends on positive volcabulary size
+        nbFeatures = nbStates * nbFeaturesPerState;
 		for(int i = 0; i < nbSeqLabels; i++){
 			nbFeaturesPerLabel[i] = nbFeatures;
         }
@@ -205,7 +209,7 @@ bool PosNegWordOccurFeatures::isEdgeFeatureType()
 PosNegSumFeatures::PosNegSumFeatures(int type, int posWeight, int negWeight):FeatureType()
 {
 	strFeatureTypeName = "#POS_TOKEN(si) >/=/< #NEG_TOKEN(si) feature";
-	featureTypeId = POS_NEG_CNT_FEATURE; //TODO
+	featureTypeId = POS_NEG_SUM_FEATURE;
     this->type = type;
     this->posWeight = posWeight;
     this->negWeight = negWeight;
@@ -216,7 +220,7 @@ void PosNegSumFeatures::getFeatures(featureVector& listFeatures, DataSequence* X
 	// If raw/precomputed features are available and the getFeatures() call is for state features
 	if(X->getPrecomputedFeatures() != NULL && prevNodeIndex == -1)
 	{
-        std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
+        //std::cerr << "In get Features, in getprecomputedfeatures != NULL" << std::endl;
         //This precomputed feature matrix is 1 x #HiddenState, the value is the document ID.
         //TODO: check matrix size
         dMatrix * preFeatures = X->getPrecomputedFeatures(); 
@@ -263,7 +267,7 @@ void PosNegSumFeatures::getFeatures(featureVector& listFeatures, DataSequence* X
             }		
 		}
 	}
-    std::cerr << "in getFeatures, outside" << std::endl;
+   // std::cerr << "in getFeatures, outside" << std::endl;
 }
 
 void PosNegSumFeatures::getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures)
@@ -307,7 +311,7 @@ bool PosNegSumFeatures::isEdgeFeatureType()
 DocLabelFeatures::DocLabelFeatures():FeatureType()
 {
 	strFeatureTypeName = "#POS_TOKEN(si) >/=/< #NEG_TOKEN(si) feature";
-	featureTypeId = POS_NEG_CNT_FEATURE; //TODO
+	featureTypeId = DOC_LABEL_FEATURE;
 }
 
 void DocLabelFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel)
@@ -364,7 +368,7 @@ bool DocLabelFeatures::isEdgeFeatureType()
 SentLabelFeatures::SentLabelFeatures():FeatureType()
 {
 	strFeatureTypeName = "Hidden variable outcome feature";
-	featureTypeId = POS_NEG_CNT_FEATURE; //TODO
+	featureTypeId = SENT_LABEL_FEATURE;
 }
 
 void SentLabelFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel)
@@ -429,7 +433,7 @@ bool SentLabelFeatures::isEdgeFeatureType()
 DocSentLabelFeatures::DocSentLabelFeatures():FeatureType()
 {
 	strFeatureTypeName = "Document-label and Sentence-label features";
-	featureTypeId = POS_NEG_CNT_FEATURE; //TODO
+	featureTypeId = DOC_SENT_LABEL_FEATURE;
 }
 
 void DocSentLabelFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel)
@@ -474,7 +478,7 @@ void DocSentLabelFeatures::init(DataSet& dataset, const Model& m)
 		int nbStates = m.getNumberOfStates(); //cardinality(#outcome) of hidden variable)
 		int nbSeqLabels = m.getNumberOfSequenceLabels(); //cardinality of document-level label
 
-        nbFeaturesPerState = 1; //depends on positive volcabulary size
+        nbFeaturesPerState = 1; 
 		nbFeatures = nbStates * nbFeaturesPerState;
 		for(int i = 0; i < nbSeqLabels; i++){
 			nbFeaturesPerLabel[i] = nbFeatures;
@@ -498,29 +502,39 @@ bool DocSentLabelFeatures::isEdgeFeatureType()
 DocSentSentLabelFeatures::DocSentSentLabelFeatures():FeatureType()
 {
 	strFeatureTypeName = "Document-label and Sentence-label, Sentence-label features";
-	featureTypeId = POS_NEG_CNT_FEATURE; //TODO
+	featureTypeId = DOC_SENT_SENT_LABEL_FEATURE;
 }
 
 void DocSentSentLabelFeatures::getFeatures(featureVector& listFeatures, DataSequence* X, Model* m, int nodeIndex, int prevNodeIndex, int seqLabel)
 {
-    feature* pFeature;
-	int nbState = m->getNumberOfStates();
+	int nbNodes = -1;
+	
+	if(X->getPrecomputedFeatures())
+		nbNodes = X->getPrecomputedFeatures()->getWidth();
+	else
+		nbNodes = (int)X->getPrecomputedFeaturesSparse()->getWidth();
+	
+	if( ((prevNodeIndex == nodeIndex-1) || prevNodeIndex == nodeIndex-1 + nbNodes) && (prevNodeIndex != -1)){
+        feature* pFeature;
+        int nbState = m->getNumberOfStates();
 
-	// For every possible outcome of this hidden variable(y_i)
-	for(int s1 = 0; s1 < nbState; s1++)
-	{
-		for(int s2 = 0; s2 < nbState; s2++){
-            pFeature = listFeatures.addElement();
-			pFeature->id = getIdOffset(seqLabel) + s2 + s1*nbFeaturesPerState;
-			pFeature->globalId = getIdOffset() + s2 + s1*nbFeaturesPerState;
-			pFeature->nodeIndex = nodeIndex;
-			pFeature->nodeState = s2;
-			pFeature->prevNodeIndex = prevNodeIndex;
-			pFeature->prevNodeState = s1;
-			pFeature->sequenceLabel = seqLabel;
-            pFeature->value = 1.0;
-		}
-	}
+        // For every possible outcome of this hidden variable(y_i)
+        for(int s1 = 0; s1 < nbState; s1++)
+        {
+            for(int s2 = 0; s2 < nbState; s2++){
+                pFeature = listFeatures.addElement();
+                pFeature->id = getIdOffset(seqLabel) + s2 + s1*nbFeaturesPerState;
+                //pfeature->globalid = getidoffset() + s2 + s1*nbfeaturesperstate + seqLabel*nbState*nbState ;
+                pFeature->globalId = getIdOffset() + s2 + s1*nbFeaturesPerState;
+                pFeature->nodeIndex = nodeIndex;
+                pFeature->nodeState = s2;
+                pFeature->prevNodeIndex = prevNodeIndex;
+                pFeature->prevNodeState = s1;
+                pFeature->sequenceLabel = seqLabel;
+                pFeature->value = 1.0;
+            }
+        }
+    }
 }
 
 void DocSentSentLabelFeatures::getAllFeatures(featureVector& listFeatures, Model* m, int NbRawFeatures)
@@ -538,10 +552,15 @@ void DocSentSentLabelFeatures::init(DataSet& dataset, const Model& m)
 		int nbStates = m.getNumberOfStates(); //cardinality(#outcome) of hidden variable
 		int nbSeqLabels = m.getNumberOfSequenceLabels(); //cardinality of document-level label
 
-        nbFeaturesPerState = nbStates; //depends on cardinality of hidden variable
-		nbFeatures = nbStates * nbFeaturesPerState;
-		for(int i = 0; i < nbSeqLabels; i++){
-			nbFeaturesPerLabel[i] = nbFeatures;
+        if(nbSeqLabels == 0){
+            nbFeatures = nbStates * nbStates;
+        }
+        else{
+            nbFeaturesPerState = nbStates; //depends on cardinality of hidden variable
+		    nbFeatures = nbStates * nbStates;
+		    for(int i = 0; i < nbSeqLabels; i++){
+			    nbFeaturesPerLabel[i] = nbFeatures;
+            }
         }
 	}
 }

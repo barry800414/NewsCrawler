@@ -14,7 +14,11 @@
 // We dont want our feature ID to conflict with futur version.
 #define WORD_CNT_FEATURE LAST_FEATURE_ID+1
 #define POS_NEG_WORD_FEATURE LAST_FEATURE_ID+2
-#define POS_NEG_CNT_FEATURE LAST_FEATURE_ID+3
+#define POS_NEG_SUM_FEATURE LAST_FEATURE_ID+3
+#define DOC_LABEL_FEATURE LAST_FEATURE_ID+4
+#define SENT_LABEL_FEATURE LAST_FEATURE_ID+5
+#define DOC_SENT_LABEL_FEATURE LAST_FEATURE_ID+6
+#define DOC_SENT_SENT_LABEL_FEATURE LAST_FEATURE_ID+7
 
 //feature function 1: w in TOKENS(si) and y^s_i = a
 //Dimension: volcSize * #hiddenStateOutcome (*#hiddenState)

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3 
 import sys
 import json
-from sentDictSum import readSentDict
+from sentiDictSum import readSentiDict
 from colorText import *
 
 '''
@@ -36,17 +36,17 @@ def coloringWfList(wfList, wordColorForSent):
 
 if __name__ == '__main__':
     if len(sys.argv)!= 4:
-        print('Usage:', sys.argv[0], 'wordFrequencyList sentDict coloredWordList', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'wordFrequencyList sentiDict coloredWordList', file=sys.stderr)
         exit(-1)
     
     wfListFile = sys.argv[1]
-    sentDictFile = sys.argv[2]
+    sentiDictFile = sys.argv[2]
     outWfListFile = sys.argv[3]
 
     # load sentiment lexicon & 
     # generate word -> color mapping (for sentiment lexicon)
-    sentDict = readSentDict(sentDictFile)
-    wordColorForSent = dictToWordColorMapping(sentDict)
+    sentiDict = readSentiDict(sentiDictFile)
+    wordColorForSent = dictToWordColorMapping(sentiDict)
 
     # load word-frequency list
     wfList = loadWfList(wfListFile)

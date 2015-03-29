@@ -1,7 +1,7 @@
 
 import sys
 import json
-from sentDictSum import readSentDict
+from sentiDictSum import readSentiDict
 from colorText import *
 
 if __name__ == '__main__':
@@ -19,8 +19,8 @@ if __name__ == '__main__':
     
     # load sentiment lexicon & 
     # generate word -> color mapping (for sentiment lexicon)
-    sentDict = readSentDict(wordLexiconFile)
-    wordColorForSent = dictToWordColorMapping(sentDict)
+    sentiDict = readSentiDict(wordLexiconFile)
+    wordColorForSent = dictToWordColorMapping(sentiDict)
 
     # load opinion targets list for each topic
     with open(targetLexiconFile, 'r') as f:

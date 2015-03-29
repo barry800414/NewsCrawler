@@ -19,36 +19,46 @@ void Toolbox::init(int opt, int windowSize)
 	pFeatureGenerator->addFeature(new EdgeFeatures());
 	pInferenceEngine = new InferenceEngineFB();
 #ifndef _PUBLIC
-	if( opt == OPTIMIZER_HMMPERCEPTRON)
-		pOptimizer = new OptimizerPerceptron();
-	else if( opt == OPTIMIZER_BFGS)
+	if( opt == OPTIMIZER_HMMPERCEPTRON){
+        pOptimizer = new OptimizerPerceptron();
+    }
+	else if( opt == OPTIMIZER_BFGS){
+
 #else
-	if( opt == OPTIMIZER_BFGS)
+	if( opt == OPTIMIZER_BFGS){
+
 #endif
 		pOptimizer = new OptimizerUncOptim();
+    }
 #ifndef _PUBLIC
-	else if( opt == OPTIMIZER_ASA)
+	else if( opt == OPTIMIZER_ASA){
+
 		pOptimizer = new OptimizerASA();
 	// We want to be sure that if the library was not compiled with support for
 	// the following optimizer, we get an error of the user try to use those
 	// optimizer
+    }
 #endif
 #ifdef USEOWL
 	else if(opt == OPTIMIZER_OWLQN){
+
 	   pOptimizer = new OptimizerOWL();
 	}
 #else
 	else if(opt == OPTIMIZER_OWLQN){
+
 	   throw InvalidOptimizer("Not support for OWLQN compiled in the library");
 	}
 #endif
 
 #ifdef USELBFGS
 	else if(opt == OPTIMIZER_LBFGS){
+
 		pOptimizer = new OptimizerLBFGS();
 	}
 #else
 	else if(opt == OPTIMIZER_LBFGS){
+
 	   throw InvalidOptimizer("Not support for LBFGS compiled in the library");
 	}
 #endif
@@ -56,6 +66,7 @@ void Toolbox::init(int opt, int windowSize)
 		pOptimizer = new OptimizerCG();
 	}
 	else {
+
 		throw InvalidOptimizer("Invalid optimizer specified");
 	}
 
@@ -99,7 +110,7 @@ void Toolbox::train(DataSet &X, bool bInitWeights)
 {
 	if(bInitWeights)
 	{
-		initModel(X);
+        initModel(X);
 		initWeights(X);
 	}
 	//Start training
@@ -645,7 +656,6 @@ featureVector* Toolbox::getAllFeatures(DataSet &X)
 {
 	if(pFeatureGenerator->getNumberOfFeatures() == 0)
 		initModel(X);
-    cerr << "Test!" << endl;
 	return pFeatureGenerator->getAllFeatures(pModel,X.getNumberofRawFeatures());
 }
 

@@ -25,8 +25,8 @@ def ct2(text, color):
     return color + text + WC.NC
 
 # sentiment lexicon to word -> color mapping
-def dictToWordColorMapping(sentDict):
+def dictToWordColorMapping(sentiDict):
     colorMap = { 1: WC.GREEN, -1: WC.RED }
-    wordColorForSent = { word: colorMap[score] for word,score in sentDict.items() }
+    wordColorForSent = { word: colorMap[score] for word,score in sentiDict.items() }
     return wordColorForSent
 

@@ -148,10 +148,6 @@ int Corpus::read(ifstream *fin,const char *sentSep,const char *wordSep){
     string line; 
     unsigned int docNum;
     if(fin->is_open()){
-        //ignore first line, if NULL, return error
-        if(!getline(*fin, line)){
-            cerr << "Corpus file error: no content in file" << endl;
-        }
         //second line: #doc volcabulary_size
         if(getline(*fin, line)){
             sscanf(line.c_str(), "%u%u", &docNum, &volcSize);
@@ -229,6 +225,7 @@ SentiDict::SentiDict(){
 int SentiDict::read(ifstream *fin,const char* sep){
     string line;
     if(fin->is_open()){ 
+        /*
         //ignore first line, if NULL, return error
         if(!getline(*fin, line)){
             cerr << "Sentiment dictionary file error: no content in file" << endl;
@@ -239,8 +236,7 @@ int SentiDict::read(ifstream *fin,const char* sep){
         }
         else{
             cerr << "Corpus file error: second line error" << endl;
-        }
-
+        }*/
         while(getline(*fin, line)){
             char *lineBuf = new char[line.length() + 1];
             strcpy(lineBuf, line.c_str());
@@ -250,26 +246,29 @@ int SentiDict::read(ifstream *fin,const char* sep){
                 if(cnt == 0){
                     wId = atoi(buf); //word id in corpus
                 }
+                /*
                 else if(cnt == 1){
                     newWId = atoi(buf); //word id in pos/neg dict
-                }
-                else if(cnt == 2){
+                }*/
+                else if(cnt == 1){
                     senti = atoi(buf);
                     d.insert(pair<int, int>(wId, senti));
+                    /*
                     if(senti > 0 && posWordIdMapping.find(newWId) == posWordIdMapping.end()){
                         posWordIdMapping.insert(pair<int, int>(newWId, wId));
                     }
                     else if(senti < 0 && negWordIdMapping.find(newWId) == negWordIdMapping.end()){
                         negWordIdMapping.insert(pair<int, int>(newWId, wId));
-                    } 
+                    }*/ 
                 }
                 else{
                     cerr << "Sentiment dictionary file error" << endl;
                 }
                 cnt = cnt + 1;
-                strtok(NULL, buf);
+                buf = strtok(NULL, sep);
             }
         }
+        /*
         if(posWordIdMapping.size() != posVolcSize){
             cerr << "Positive word number inconsistent" << endl;
             return 1;
@@ -277,7 +276,7 @@ int SentiDict::read(ifstream *fin,const char* sep){
         if(negWordIdMapping.size() != negVolcSize){
             cerr << "Negative word number inconsistent" << endl;
             return 1;
-        }
+        }*/
         return 0; //success
     }
     else{
@@ -309,7 +308,7 @@ int SentiDict::getSenti(int word){
         return pos->second;
     }
 }
-
+/*
 int SentiDict::getWordIdInCorpus(int oriWordId, int posOrNeg){
     if(posOrNeg == SentiDict::POS_WORD){
         return posWordIdMapping.find(oriWordId)->second;
@@ -320,7 +319,7 @@ int SentiDict::getWordIdInCorpus(int oriWordId, int posOrNeg){
     else{
         return -1;
     }
-}
+}*/
 
 /*
 int main(int argc, char* argv[]) {

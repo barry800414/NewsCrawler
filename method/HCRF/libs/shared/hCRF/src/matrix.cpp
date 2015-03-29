@@ -127,7 +127,7 @@ void Matrix<elType>::set(elType value)
 
 	elType* tmpData = pData;
 	int sizeMatrix = width * height;
-
+    //std::cerr << "width and height:" << width << height << std::endl;
 	for(int i = 0; i < sizeMatrix; i++) 
 		*(tmpData++) = value;
 

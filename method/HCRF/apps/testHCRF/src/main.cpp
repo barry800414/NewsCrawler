@@ -27,8 +27,7 @@ using namespace std;
 #define TOOLBOX_SDCRF 16
 #define MYTOOLBOX_HCRF 64
 
-void usage (char **argv)
-{  
+void usage (char **argv){  
   cerr << "HCRF library"<< endl << endl;
   cerr << "usage> " << argv[0] << " [-t] [-T] [-d filename] [-l filename] [-D filename] [-L filename] [-m filename] [-f filename] [-r filename] [-o cg|bfgs]" << endl << endl;
   cerr << "options:" << endl;
@@ -58,6 +57,7 @@ void usage (char **argv)
   cerr << " -I\tinitialization strategy (def.= random)" << endl;
   cerr << " -C\tCorpus file" << endl;
   cerr << " -S\tSentiment dictionary file" << endl;
+  cerr << " -F\tFeatures" << endl;
   cerr << endl;
   exit(1);
 }
@@ -93,17 +93,18 @@ vector<FeatureType *> * genFeatures(char *argv){
         else if(strcmp(buf, "PosEqualNeg") == 0){
             features->push_back(new PosNegSumFeatures(PosNegSumFeatures::EQUAL, 1, 1));
         }
+        buf = strtok(NULL, " ");
     }
     return features;
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
 	int mode = MODE_TRAIN; // int mode = 0;
 	bool bContinueTraining = false;
 	int bTestOnTrainingSet = 0;
-	int opt = OPTIMIZER_BFGS;
-	int maxIt = 300; // int max = -1;
+	//int opt = OPTIMIZER_BFGS;
+	int opt = OPTIMIZER_CG;
+    int maxIt = 300; // int max = -1;
 	double regFactorL2 = 0.0;
 	double regFactorL1 = 0.0;
 	int toolboxType = TOOLBOX_LDCRF;
@@ -138,10 +139,12 @@ int main(int argc, char **argv)
     
     string filenameCorpus = home + "corpus.txt";
     string filenameSentiDict = home + "SentiDict.txt";
+    vector<FeatureType *> * features = NULL;
+
+    cerr << "test1" << endl;
 
 	/* Read command-line arguments */
-	for (int k=1; k<argc; k++)
-	{
+	for (int k=1; k<argc; k++){
 		if(argv[k][0] != '-') break;
 		else if(argv[k][1] == 't') 
 		{
@@ -173,7 +176,8 @@ int main(int argc, char **argv)
 		}
 		else if(argv[k][1] == 'l') 
 		{
-			filenameLabelsTrain = argv[++k];
+			filenameLabelsTrain = argv[k+1];
+            filenameSeqLabelsTrain = argv[++k];
 		}
 		else if(argv[k][1] == 'D') 
 		{
@@ -186,8 +190,9 @@ int main(int argc, char **argv)
 				filenameDataTest = argv[++k];
 		}
 		else if(argv[k][1] == 'L') 
-		{
-			filenameLabelsTest = argv[++k];
+        {
+			filenameLabelsTest = argv[k+1];
+            filenameSeqLabelsTest = argv[++k];
 		}
 		else if(argv[k][1] == 'm') 
 		{
@@ -245,26 +250,20 @@ int main(int argc, char **argv)
                 toolboxType = MYTOOLBOX_HCRF;
 			k++;
 		}
-		else if(argv[k][1] == 'p')
-		{
+		else if(argv[k][1] == 'p'){
 			debugLevel = atoi(argv[++k]);
 		}
-		else if(argv[k][1] == 'i')
-		{
+		else if(argv[k][1] == 'i'){
 			maxIt = atoi(argv[++k]);
 		}
-		else if(argv[k][1] == 'h')
-		{
+		else if(argv[k][1] == 'h'){
 			nbHiddenStates = atoi(argv[++k]);
 		}
-		else if(argv[k][1] == 'w')
-		{
+		else if(argv[k][1] == 'w'){
 			windowSize = atoi(argv[++k]);
 		}
-		else if(argv[k][1] == 's')
-		{
-			if(argv[k][2] == '1')
-			{
+		else if(argv[k][1] == 's'){
+			if(argv[k][2] == '1'){
 				regFactorL1 = atof(argv[++k]);
 			}
 			else
@@ -287,19 +286,38 @@ int main(int argc, char **argv)
             filenameCorpus = argv[++k];
         }
         else if(argv[k][1] == 'S'){
-            filenameSentiDict == argv[++k];
+            filenameSentiDict = argv[++k];
+        }
+        else if(argv[k][1] == 'F'){
+            //generate the feature vector
+            cerr << argv[k+1] << endl;
+            features = genFeatures(argv[++k]);
         }
 		else usage(argv);
     }
 
+    //for debuging
+	cerr << filenameDataTrain << endl;
+	cerr << filenameLabelsTrain << endl;
+	cerr << filenameSeqLabelsTrain << endl;
+	cerr << filenameDataTest << endl;
+	cerr << filenameLabelsTest << endl;
+	cerr << filenameSeqLabelsTest << endl;
+	cerr <<  filenameModel  << endl;
+	cerr << filenameFeatures << endl;
+	cerr << filenameOutput << endl;
+	cerr <<  filenameStats << endl;
+    
+    cerr <<  filenameCorpus << endl;
+    cerr <<  filenameSentiDict << endl;
+
+
 	if(mode == 0)
 		usage(argv);
 
-	if(mode & MODE_TRAIN || mode & MODE_TEST || mode & MODE_VALIDATE)
-	{
+	if(mode & MODE_TRAIN || mode & MODE_TEST || mode & MODE_VALIDATE){
 		if(toolboxType == TOOLBOX_HCRF){
 			//nbHiddenStates: number of hidden state
-            //opt: ??
             toolbox = new ToolboxHCRF(nbHiddenStates, opt, windowSize);
         }
 		else if(toolboxType == TOOLBOX_LDCRF)
@@ -311,9 +329,11 @@ int main(int argc, char **argv)
 			toolbox = new ToolboxSharedLDCRF(nbHiddenStates, opt, windowSize);
 		#endif
         else if (toolboxType == MYTOOLBOX_HCRF){
-            //generate the feature vector
-            vector<FeatureType *> features;
-            //TODO
+            if(features == NULL){
+                cerr << "You didn't specify the features" << endl;
+                return 0;
+            }
+            cerr << "preparing toolbox ... nbHiddenStates:" << nbHiddenStates << endl;
             toolbox = new MyToolboxHCRF(features, nbHiddenStates, opt, windowSize);
         }
 		else
@@ -323,9 +343,10 @@ int main(int argc, char **argv)
 	// TODO: Implement the validate function in Toolbox
 	if(mode & MODE_VALIDATE) //no use??
 	{
-		cout << "Reading training set..." << endl;
+		cerr << "validation mode:" << endl;
+        cout << "Reading training set..." << endl;
 		DataSet dataTrain;
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF || toolboxType == MYTOOLBOX_HCRF){
 			//data file, stateLabel file, seqLabel file
             dataTrain.load((char*)filenameDataTrain.c_str(), NULL, 
                     (char*)filenameSeqLabelsTrain.c_str(), NULL, 
@@ -340,7 +361,7 @@ int main(int argc, char **argv)
         }
 		cout << "Reading validation set..." << endl;
 		DataSet dataValidate;
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF || toolboxType == MYTOOLBOX_HCRF){
 			dataValidate.load((char*)filenameDataValidate.c_str(),NULL, 
                     (char*)filenameSeqLabelsValidate.c_str(), NULL, NULL, 
                     NULL, (char*)filenameCorpus.c_str(), (char*)filenameSentiDict.c_str());
@@ -360,11 +381,12 @@ int main(int argc, char **argv)
 	}
 	if(mode & MODE_TRAIN) //here
 	{
+        cerr << "Training mode:" << endl;
 		cout << "Reading training set..." << endl;
 		DataSet data;
 		const char* fileData = filenameDataTrain.empty()?0:filenameDataTrain.c_str();
 		const char* fileDataSparse = filenameDataTrainSparse.empty()?0:filenameDataTrainSparse.c_str();
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF || toolboxType == MYTOOLBOX_HCRF){
 			//data file, state sequence file, seq label file, adj maxtrix file
             //states per nodes fil, sparse data file
             data.load(fileData,NULL, (char*)filenameSeqLabelsTrain.c_str(),
@@ -388,8 +410,7 @@ int main(int argc, char **argv)
 		// gradient and function. Uncomment if you want same starting point.
 		// toolbox->setWeightInitType(INIT_ZERO);
 		cout << "Starting training ..." << endl;
-		if(bContinueTraining)
-		{
+		if(bContinueTraining){
             //training from previous trained model
 			toolbox->load((char*)filenameModel.c_str(),(char*)filenameFeatures.c_str());
 			toolbox->train(data,false);
@@ -403,9 +424,10 @@ int main(int argc, char **argv)
 	}
 	if(mode & MODE_TEST) //here
 	{
+        cerr << "Testing model:" << endl;
 		cout << "Reading testing set..." << endl;
 		DataSet data;
-		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF ){
+		if(toolboxType == TOOLBOX_HCRF || toolboxType == TOOLBOX_GHCRF || toolboxType == MYTOOLBOX_HCRF){
 			data.load((char*)filenameDataTest.c_str(),NULL,(char*)filenameSeqLabelsTest.c_str(), 
                     NULL, NULL, NULL, (char*)filenameCorpus.c_str(), (char*)filenameSentiDict.c_str());
         }
@@ -415,25 +437,21 @@ int main(int argc, char **argv)
                     (char*)filenameSentiDict.c_str());
         }
 		ofstream fileStats1 ((char*)filenameStats.c_str());
-		if (fileStats1.is_open())
-		{
+		if (fileStats1.is_open()){
 			fileStats1 << endl << endl << "TESTING DATA SET" << endl << endl;
 			fileStats1.close();
 		}
 		cout << "Starting testing ..." << endl;
 		toolbox->load((char*)filenameModel.c_str(),(char*)filenameFeatures.c_str());
 		toolbox->test(data,(char*)filenameOutput.c_str(),(char*)filenameStats.c_str());
-		if(bTestOnTrainingSet)
-		{
+		if(bTestOnTrainingSet){
 			ofstream fileStats ((char*)filenameStats.c_str(), ios_base::out | ios_base::app);
-			if (fileStats.is_open())
-			{
+			if (fileStats.is_open()){
 				fileStats << endl << endl << "TRAINING DATA SET" << endl << endl;
 				fileStats.close();
 			}
 /*			ofstream fileOutput ((char*)filenameOutput.c_str(), ios_base::out | ios_base::app);
-			if (fileOutput.is_open())
-			{
+			if (fileOutput.is_open()){
 				fileOutput << endl << endl << "TRAINING DATA SET" << endl << endl;
 				fileOutput.close();
 			}
@@ -447,17 +465,14 @@ int main(int argc, char **argv)
 			cout << "Starting testing ..." << endl;
 			toolbox->test(dataTrain,NULL,(char*)filenameStats.c_str());
 		}
-		if(bTestOnTrainingSet == 2)
-		{
+		if(bTestOnTrainingSet == 2){
 			ofstream fileStats ((char*)filenameStats.c_str(), ios_base::out | ios_base::app);
-			if (fileStats.is_open())
-			{
+			if (fileStats.is_open()){
 				fileStats << endl << endl << "VALIDATION DATA SET" << endl << endl;
 				fileStats.close();
 			}
 /*			ofstream fileOutput ((char*)filenameOutput.c_str(), ios_base::out | ios_base::app);
-			if (fileOutput.is_open())
-			{
+			if (fileOutput.is_open()){
 				fileOutput << endl << endl << "TRAINING DATA SET" << endl << endl;
 				fileOutput.close();
 			}

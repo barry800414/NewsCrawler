@@ -277,9 +277,10 @@ class ToolboxLVPERCEPTRON: Toolbox
 class MyToolboxHCRF: public ToolboxHCRF
 {
   public:
-   MyToolboxHCRF(vector<FeatureType *> features, int nbHiddenStates, int opt, int windowSize = 0);
+   MyToolboxHCRF(vector<FeatureType *> *features, int nbHiddenStates, int opt, int windowSize = 0);
   protected:
-   virtual void init(vector<FeatureType *> features, int nbHiddenStatesPerLabel, int opt, int windowSize = 0);
+   virtual void initModel(DataSet &X);
+   virtual void init(vector<FeatureType *> *features, int nbHiddenStatesPerLabel, int opt, int windowSize = 0);
    int numberOfHiddenStates;
 
 };

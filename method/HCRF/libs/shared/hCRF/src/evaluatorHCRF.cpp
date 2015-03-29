@@ -51,9 +51,10 @@ double EvaluatorHCRF::computeError(DataSequence* X, Model* m)
 
 	//For each class label, compute the partition of the datasequence 
 	//and add up all these partitions
+    
 	for(labelCounter = 0;labelCounter < m->getNumberOfSequenceLabels();labelCounter++)
 	{
-		partition = pInfEngine->computePartition(pFeatureGen, X, m,labelCounter);
+        partition = pInfEngine->computePartition(pFeatureGen, X, m,labelCounter);
 		if(labelCounter == dataSequenceGroundTruthLabel){
 			dataSequenceGroundTruthPartition = partition;
 		}

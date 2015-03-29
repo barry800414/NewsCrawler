@@ -7,9 +7,6 @@ from collections import defaultdict
 
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
-from sklearn import svm, cross_validation, grid_search
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import MultinomialNB, GaussianNB
 
 import dataPreprocess
 import MLProcedure

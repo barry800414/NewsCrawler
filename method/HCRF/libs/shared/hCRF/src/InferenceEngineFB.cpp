@@ -164,59 +164,63 @@ void InferenceEngineFB::computeBeliefsLog(Beliefs& bel, FeatureGenerator* fGen,
 		throw HcrfBadModel("InferenceEngineFB need a model based on a Chain");
 	}
 	int NNODES=X->length();
+
 	int NSTATES = model->getNumberOfStates();
-	bel.belStates.resize(NNODES);
+
+    bel.belStates.resize(NNODES);
 
 	for(int i=0;i<NNODES;i++)
 	{
-		bel.belStates[i].create(NSTATES);
+        bel.belStates[i].create(NSTATES);
 	}
 	//int NEDGES = (NNODES-1)*2; // LP: Should it really be *2 ?
 	int NEDGES = NNODES-1;
-	bel.belEdges.resize(NEDGES);
+
+    bel.belEdges.resize(NEDGES);
 	for(int i=0;i<NEDGES;i++)
 	{
 		bel.belEdges[i].create(NSTATES,NSTATES, 0);
 	}
-	dMatrix Mi_YY (NSTATES,NSTATES);
-	dVector Ri_Y (NSTATES);
-	dVector alpha_Y(NSTATES);
-	dVector newAlpha_Y(NSTATES);
-	dVector tmp_Y(NSTATES);
 
+	dMatrix Mi_YY (NSTATES,NSTATES);
+    dVector Ri_Y (NSTATES);
+    dVector alpha_Y(NSTATES);
+    dVector newAlpha_Y(NSTATES);
+    dVector tmp_Y(NSTATES);
 	alpha_Y.set(0);
 	// compute beta values in a backward scan.
 	// also scale beta-values to 1 to avoid numerical problems.
-	bel.belStates[NNODES-1].set(0);
+
+    bel.belStates[NNODES-1].set(0);
 	for (int i = NNODES-1; i > 0; i--)
 	{
-		// compute the Mi matrix
+        // compute the Mi matrix
 		computeLogMi(fGen, model, X, i, seqLabel, Mi_YY, Ri_Y, false,
 					 bUseStatePerNodes);
-		tmp_Y.set(bel.belStates[i]);
-		tmp_Y.add(Ri_Y);
-		LogMultiply(Mi_YY,tmp_Y,bel.belStates[i-1]);
+        tmp_Y.set(bel.belStates[i]);
+        tmp_Y.add(Ri_Y);
+        LogMultiply(Mi_YY,tmp_Y,bel.belStates[i-1]);
 	}
 
 	// Compute Alpha values
 	for (int i = 0; i < NNODES; i++) {
-		// compute the Mi matrix
+        // compute the Mi matrix
 		computeLogMi(fGen,model, X, i, seqLabel, Mi_YY, Ri_Y,false,
 					 bUseStatePerNodes);
 		if (i > 0)
 		{
-			tmp_Y.set(alpha_Y);
+            tmp_Y.set(alpha_Y);
 			Mi_YY.transpose();
 			LogMultiply(Mi_YY, tmp_Y, newAlpha_Y);
 			newAlpha_Y.add(Ri_Y);
 		}
 		else
 		{
-			newAlpha_Y.set(Ri_Y);
+            newAlpha_Y.set(Ri_Y);
 		}
 		if (i > 0)
 		{
-			tmp_Y.set(Ri_Y);
+            tmp_Y.set(Ri_Y);
 			tmp_Y.add(bel.belStates[i]);
 			Mi_YY.transpose();
 			bel.belEdges[i-1].set(Mi_YY);
@@ -224,12 +228,11 @@ void InferenceEngineFB::computeBeliefsLog(Beliefs& bel, FeatureGenerator* fGen,
 				for(int yp = 0; yp < NSTATES; yp++)
 					bel.belEdges[i-1](yprev,yp) += tmp_Y[yp] + alpha_Y[yprev];
 		}
-	  
 		bel.belStates[i].add(newAlpha_Y);
 		alpha_Y.set(newAlpha_Y);
 	}
-	double lZx = alpha_Y.logSumExp();
-	for (int i = 0; i < NNODES; i++)
+    double lZx = alpha_Y.logSumExp();
+    for (int i = 0; i < NNODES; i++)
 	{
 		bel.belStates[i].add(-lZx);
 		bel.belStates[i].eltExp();

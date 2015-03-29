@@ -67,13 +67,13 @@ class SentiDict{
         friend ostream& operator<<(ostream &strm, const SentiDict& s);
 
         int getSenti(int word);
-        int getWordIdInCorpus(int oriWordId, int posOrNeg);
+        //int getWordIdInCorpus(int oriWordId, int posOrNeg);
         map<int, int> d;
-        map<int, int> posWordIdMapping; //word id in positive lexicon -> word id in corpus
-        map<int, int> negWordIdMapping; //word id in negative lexicon -> word id in corpus
-        unsigned int posVolcSize;
-        unsigned int negVolcSize;
-        static const int POS_WORD = 1;
-        static const int NEG_WORD = -1;
+        //map<int, int> posWordIdMapping; //word id in positive lexicon -> word id in corpus
+        //map<int, int> negWordIdMapping; //word id in negative lexicon -> word id in corpus
+        //unsigned int posVolcSize;
+        //unsigned int negVolcSize;
+        //static const int POS_WORD = 1;
+        //static const int NEG_WORD = -1;
 };
 

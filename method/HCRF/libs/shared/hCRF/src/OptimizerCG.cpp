@@ -29,24 +29,33 @@ void OptimizerCG::optimize(Model* m, DataSet* X,Evaluator* eval, Gradient* grad)
 	int status = -1;
 	cg_stats Stats;
 	double* work;
-
+    
+    //std::cerr << "t1" << std::endl;
 	work = (double *) malloc(4*currentModel->getWeights()->getLength()*sizeof(double));
-	weights = (double *) malloc (currentModel->getWeights()->getLength()*sizeof(double)) ;
+	//std::cerr << "t2" << std::endl;
+    weights = (double *) malloc (currentModel->getWeights()->getLength()*sizeof(double)) ;
 	double step = 0.001;
-	memcpy(weights,currentModel->getWeights()->get(),currentModel->getWeights()->getLength()*sizeof(double));
+	//std::cerr << "t3" << std::endl;
+    memcpy(weights,currentModel->getWeights()->get(),currentModel->getWeights()->getLength()*sizeof(double));
 
 	// Call
-	status = cg_descent(1.e-8, weights, currentModel->getWeights()->getLength(), callbackComputeError, 
+	//std::cerr << "t4" << std::endl;
+    status = cg_descent(1.e-8, weights, currentModel->getWeights()->getLength(), callbackComputeError, 
 						callbackComputeGradient,work, step, &Stats, maxit);
-
+    //std::cerr << "t5" << std::endl;
 	dVector vecGradient(currentModel->getWeights()->getLength());
-	memcpy(vecGradient.get(),weights,currentModel->getWeights()->getLength()*sizeof(double));
-	currentModel->setWeights(vecGradient);
+	//std::cerr << "t6" << std::endl;
+    memcpy(vecGradient.get(),weights,currentModel->getWeights()->getLength()*sizeof(double));
+	//std::cerr << "t7" << std::endl;
+    currentModel->setWeights(vecGradient);
 
+    //std::cerr << "t8" << std::endl;
 	dVector tmpWeights = *(currentModel->getWeights());
-	tmpWeights.transpose();
-	tmpWeights.multiply(*currentModel->getWeights());
-	lastNormGradient = tmpWeights[0];
+	//std::cerr << "t9" << std::endl;
+    tmpWeights.transpose();
+	//std::cerr << "t10" << std::endl;
+    tmpWeights.multiply(*currentModel->getWeights());
+    lastNormGradient = tmpWeights[0];
 
 	lastNbIterations = Stats.iter;
 	lastFunctionError = Stats.f;
@@ -67,20 +76,29 @@ void OptimizerCG::optimize(Model* m, DataSet* X,Evaluator* eval, Gradient* grad)
 
 double OptimizerCG::callbackComputeError(double* weights)
 {
-	dVector vecGradient(currentModel->getWeights()->getLength());
+    //std::cerr << "start callback compute error " << std::endl;
+    dVector vecGradient(currentModel->getWeights()->getLength());
+    //std::cerr << "ttt1"  << std::endl;
 	memcpy(vecGradient.get(),weights,currentModel->getWeights()->getLength()*sizeof(double));
+    //std::cerr << "ttt2"  << std::endl;
+
 	currentModel->setWeights(vecGradient);
+    //std::cerr << "ttt3"  << std::endl;
+
 //	currentModel->getWeights()->set(weights);
 	if(currentModel->getDebugLevel() >= 2){
 		std::cout << "Compute error... "  << std::endl;
 	}
 	double errorVal = currentEvaluator->computeError(currentDataset, currentModel);
+
+    //std::cerr << "leave callback computer error" << std::endl;
 	return errorVal;
 	
 }
 
 void OptimizerCG::callbackComputeGradient(double* gradient, double* weights)
 {
+    //std::cerr << "start callback compute gradient" << std::endl;
 	dVector dgrad(currentModel->getWeights()->getLength());
 	memcpy(dgrad.get(),weights,currentModel->getWeights()->getLength()*sizeof(double));
 	currentModel->setWeights(dgrad);
@@ -90,6 +108,7 @@ void OptimizerCG::callbackComputeGradient(double* gradient, double* weights)
 	}
 	currentGradient->computeGradient(dgrad, currentModel,currentDataset);
 	memcpy(gradient,dgrad.get(),dgrad.getLength()*sizeof(double));
+    //std::cerr << "leave callback compute gradient" << std::endl;
 }
 
 

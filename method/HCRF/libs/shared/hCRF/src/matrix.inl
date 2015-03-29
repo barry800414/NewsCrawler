@@ -825,13 +825,22 @@ avoid overflow
 */
 	double m1, m2, sub;
 	// Z = log(exp(x_0)) = x_0
+    //std::cerr << "l1" << std::endl;
 	double Z=getValue(0);
+//std::cerr << "l12" << std::endl;
+
 	for(int col=1;col<getLength();col++){
+//std::cerr << "l2" << std::endl;
+
 		if(Z >= getValue(col)){
+//std::cerr << "l3" << std::endl;
+
 			m1=Z;
 			m2=getValue(col);
 		}
 		else {
+//std::cerr << "l4" << std::endl;
+
 			m1=getValue(col);
 			m2=Z;
 		}
@@ -843,11 +852,19 @@ avoid overflow
 		//							m1 + log(1+exp(sub))
 		// This avoid explicitly computing exp(m1)+exp(m2)
 		// which could overflood the double type
-		sub=m2-m1;
+//std::cerr << "l5" << std::endl;
+
+        sub=m2-m1;
+//std::cerr << "l6" << std::endl;
+
 		if(m2==INT_MIN && m1==INT_MIN){ // possible problem
-			sub=0;
+//std::cerr << "l7" << std::endl;
+
+            sub=0;
 		}
-		Z=m1 + log(1 + exp(sub));
+//std::cerr << "l8" << std::endl;
+
+        Z=m1 + log(1 + exp(sub));
 	}
 	return Z;
 }

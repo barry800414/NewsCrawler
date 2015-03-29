@@ -174,7 +174,7 @@ int DataSequence::load(istream* isData, istream* isLabels, istream* isAdjMat,
 
 	if(isData)
 	{
-		dMatrix* pNewMat = new dMatrix;
+        dMatrix* pNewMat = new dMatrix;
 		if(pNewMat->read(isData)==0)
 			precompFeatures = pNewMat;
 		else
@@ -465,7 +465,7 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
 
 	if(fileData != NULL)
 	{
-		isData = new ifstream(fileData);
+        isData = new ifstream(fileData);
 		if(!((ifstream*)isData)->is_open())
 		{
 			cerr << "Can't find data file: " << fileData << endl;
@@ -587,8 +587,7 @@ int DataSet::load(const char *fileData, const char *fileStateLabels,
     //additional data: sentiment dictionary
     if(isSentiDict){
         sentiDict = new SentiDict();
-        char *sep = " ";
-        if(sentiDict->read(isSentiDict, sep)==0){
+        if(sentiDict->read(isSentiDict, " ")==0){
             //read in sentiment dictionary successfully
         }
         else{

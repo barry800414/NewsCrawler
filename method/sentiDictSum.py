@@ -5,8 +5,8 @@ import json
 import dataPreprocess
 
 # return a dict (word -> sentiment score)
-def readSentDict(filename):
-    sentDict = dict()
+def readSentiDict(filename):
+    sentiDict = dict()
     dupSet = set()
     with open(filename, 'r') as f:
         for i, line in enumerate(f):
@@ -16,20 +16,20 @@ def readSentDict(filename):
                 continue
             w = entry[0]
             s = int(entry[1])
-            if w in sentDict:
+            if w in sentiDict:
                 #print(w, 'is already in dictionary', file=sys.stderr)
                 dupSet.add(w)
             else:
-                sentDict[w] = s
+                sentiDict[w] = s
 
     for w in dupSet:
-        del sentDict[w]
+        del sentiDict[w]
     print(len(dupSet), 'words are +1&-1', file=sys.stderr)
-    return sentDict
+    return sentiDict
 		
-def sentDictSumPredict(content, sentDict):
+def sentiDictSumPredict(content, sentiDict):
 	sentValue = 0
-	for w, sent in sentDict.items():
+	for w, sent in sentiDict.items():
 		sentValue += content.count(w) * sent
 
 	if sentValue > 0:
@@ -54,11 +54,11 @@ def convertToLabel(labelStr):
 
 if __name__ == '__main__':
 	if len(sys.argv) != 3:
-		print('Usage:', sys.argv[0], 'newsJson sentDict', file=sys.stderr)
+		print('Usage:', sys.argv[0], 'newsJson sentiDict', file=sys.stderr)
 		exit(-1)
 
 	newsJsonFile = sys.argv[1]
-	sentDictFile = sys.argv[2]
+	sentiDictFile = sys.argv[2]
 
 	with open(newsJsonFile, 'r') as f:
 		news = json.load(f)
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
 	dataPreprocess.printStatInfo(news)
 	
-	sentDict = readSentDict(sentDictFile)
+	sentiDict = readSentiDict(sentiDictFile)
 
 	accu = 0
 	labelTypeNum = [0, 0, 0]
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 			continue
 		newsCnt += 1
 		labelTypeNum[label+1] += 1
-		predict = sentDictSumPredict(n['news']['content'], sentDict)
+		predict = sentiDictSumPredict(n['news']['content'], sentiDict)
 		if label == predict:
 			accu += 1
 		print('Label:', label, ' Predict:', predict)

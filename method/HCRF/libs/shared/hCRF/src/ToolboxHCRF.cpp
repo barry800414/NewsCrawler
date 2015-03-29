@@ -30,7 +30,8 @@ void ToolboxHCRF::init(int nbHiddenStates, int opt, int windowSize)
 void ToolboxHCRF::initModel(DataSet &X)
 {
 	// Find number of states and initialize Model
-    //Important 	
+    //Important 
+    std::cerr << "nbHiddenState in initModel:" << numberOfHiddenStates << std::endl;
 	pModel->setNumberOfStates(numberOfHiddenStates);
 	pModel->setNumberOfSequenceLabels(X.searchNumberOfSequenceLabels());
 
