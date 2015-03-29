@@ -109,10 +109,12 @@
             dataType: "json",
             success: function(response){
                 //console.log(response);
+                
                 if(response['success']){
                     var data = response['data']; 
                     $("#statement_id").val(data["statement_id"]);
                     $("#news_id").val(data["news_id"]);
+                    $(".news_id").text(data["news_id"]);
                     $("#statement").text(data["statement"]);
                     $(".statement").each(function(){
                         $(this).text(data["statement"]);
@@ -149,7 +151,6 @@
             data: { user_id: user_id },
             success: function(response){
                 //console.log(response);
-                
                 if(response['success']){
                     //console.log(response['labeled_num']);
                     $("#labeled_num").text(response['labeled_num']);
@@ -323,7 +324,11 @@
     		<tr class="news_row">
     			<td class="first_col">標題</td>
     			<td class="second_col"><span id="title"></span></td>
-    		</tr>
+            </tr>
+            <tr class="news_row">
+                <td class="first_col">新聞ID</td>
+                <td class="second_col"><span class="news_id"></span></td>    
+            </tr>
     		<!--<tr class="small_row">
     			<td class="first_col">來源</td>
     			<td class="second_col"><span id="source"></span></td>
