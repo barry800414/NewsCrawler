@@ -1,9 +1,13 @@
 
+import sys
 import math
 import random
 from collections import defaultdict
 
 import numpy as np
+from numpy.matrixlib.defmatrix import matrix
+from scipy.sparse import csr_matrix, hstack, vstack
+
 from sklearn import svm, cross_validation, grid_search
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
@@ -19,7 +23,7 @@ Last Update: 2015/03/29
 
 # class for providing frameworks for running experiments
 class RunExp:
-    def selfTrainTest(X, y, scorerName, clfList, randSeed=1, testSize=0.2, prefix=''):
+    def selfTrainTest(X, y, scorerName, clfList, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
@@ -62,12 +66,13 @@ class RunExp:
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
-            result = Evaluator.evaluate(yTestPredict, yTrue)
-                
+            result = Evaluator.evaluate(yTestPredict, yTest)
+            
             # printing out results
-            ResultPrinter.print(prefix, clf, bestParam, result)
-
-    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix=''):
+            ResultPrinter.print(prefix + ', selfTrainTest', clf, bestParam, scorerName, result, outfile=outfile)
+    
+    #FIXME
+    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, prefix=''):
         # divide data according to the topic
         (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
 
@@ -82,10 +87,10 @@ class RunExp:
             # split data
             (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
                     nowX, nowy, randSeed, testSize)
-            topicXTrain.append(XTrain)
-            topicXTest.append(XTest)
-            topicyTrain.append(yTrain)
-            topicyTest.append(yTest)
+            topicXTrain[topic] = XTrain
+            topicXTest[topic] = XTest
+            topicyTrain[topic] = yTrain
+            topicyTest[topic] = yTest
         (XTrain, XTest, yTrain, yTest, trainMap, testMap) = DataTool.mergeData(
                 topicXTrain, topicXTest, topicyTrain, topicyTest, topicList)
 
@@ -105,9 +110,9 @@ class RunExp:
             result = Evaluator.topicEvaluate(yTestPredict, yTrue, testMap)
                 
             # printing out results
-            ResultPrinter.print(prefix + "all, ", clf, bestParam, result)
+            ResultPrinter.print(prefix + ", allMixed", clf, bestParam, scorerName, result)
 
-    def leaveOneTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix=''):
+    def leaveOneTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix='', outfile=sys.stdout):
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
@@ -117,21 +122,19 @@ class RunExp:
         # N-1 topics are as training data, 1 topic is testing
         for topic in topicList:
             (XTrain, XTest, yTrain, yTest, trainMap, 
-                    testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topic)
+                    testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topicList, topic)
 
             for clfName in clfList:
                 # training using validation
-                (clf, bestParam, yTrainPredict) = ML.train(
-                        XTrain, yTrain, clfName, scorer, trainMap=trainMap)
-
+                (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, scorer)
                 # testing 
                 yTestPredict = ML.test(XTest, clf)
 
                 # evaluation
-                result = Evaluator.evaluate(yTestPredict, yTrue, topicMap)
+                result = Evaluator.evaluate(yTestPredict, yTest)
                 
                 # printing out results
-                ResultPrinter.print(prefix + "Test:%d, " % topic, clf, bestParam, result)
+                ResultPrinter.print(prefix + ", Test on %d " % topic, clf, bestParam, scorerName, result, outfile=outfile)
 
 
 # The class for providing functions to manipulate data
@@ -145,18 +148,35 @@ class DataTool:
                 topics.add(t)
                 index[t] = list()
             index[t].append(i)
-
+        
+        topicX = dict()
+        topicy = dict()
         for t in topics:
             topicX[t] = X[index[t]]
             topicy[t] = y[index[t]]
         
         return (list(topics), topicX, topicy)
 
+    def divideYByTopic(y, topicMap):
+        assert len(y) == len(topicMap)
+        topics = set()
+        index = dict()
+        for i, t in enumerate(topicMap):
+            if t not in topics:
+                topics.add(t)
+                index[t] = list()
+            index[t].append(i)
+
+        for t in topics:
+            topicy[t] = y[index[t]]
+        
+        return (list(topics), topicy)
+
     # In order to prevent 0 cases in training or testing data (s.t. evaluation 
     # metric is illed-defined), we first get the expected number of instance first
     def stratifiedSplitTrainTest(X, y, randSeed=1, testSize=0.2):
         assert X.shape[0] == len(y)
-        assert test_size > 0.0 and test_size < 1.0
+        assert testSize > 0.0 and testSize < 1.0
         length = len(y)
 
         # count the number of instance for each y class
@@ -165,12 +185,12 @@ class DataTool:
             yNum[y[i]] += 1
 
         # calculate expected number of instance for each class
-        yTestNum = { yi: int(math.ceil(cnt*test_size)) for yi, cnt in yNum.items() }
+        yTestNum = { yi: int(math.ceil(cnt*testSize)) for yi, cnt in yNum.items() }
         yTrainNum = { yi: yNum[yi] - yTestNum[yi] for yi in yNum.keys() }
         
         # random shuffle
         index = [i for i in range(0, length)]
-        random.seed(randomSeed)
+        random.seed(randSeed)
         random.shuffle(index)
 
         nowNum = { yi: 0 for yi in yNum.keys() }
@@ -186,6 +206,11 @@ class DataTool:
         XTest = X[testIndex]
         yTrain = y[trainIndex]
         yTest = y[testIndex]
+        
+        #print('y:', y)
+        #print('yTrain:', yTrain)
+        #print('yTest:', yTest)
+        
         return (XTrain, XTest, yTrain, yTest)
 
     def mergeData(topicXTrain, topicXTest, topicyTrain, topicyTest, topicList):
@@ -206,7 +231,7 @@ class DataTool:
             trainMap.extend([t for i in range(0, len(topicyTrain[t]))])
             testMap.extend([t for i in range(0, len(topicyTest[t]))])
         
-        xType = type(topicXTrain.values()[0])
+        xType = type(next (iter (topicXTrain.values())))
         if xType == matrix: #dense
             XTrain = np.concatenate(XTrainList, axis=0)
             XTest = np.concatenate(XTestList, axis=0)
@@ -231,20 +256,80 @@ class DataTool:
                 XTrainList.append(topicX[t])
                 yTrainList.append(topicy[t])
                 trainMap.extend([t for i in range(0, len(topicy[t]))])
-        testMap = [testTopic for i in range(0, len(yTest))]
+        
+        # concatenate XTrain Matrix
+        xType = type(XTrainList[0])
+        if xType == matrix: #dense
+            XTrain = np.concatenate(XTrainList, axis=0)
+        elif xType == csr_matrix: #sparse
+            XTrain = vstack(XTrainList)
+        # concatenate yTrain vector
+        yTrain = np.concatenate(yTrainList, axis=0)
 
+        testMap = [testTopic for i in range(0, len(yTest))]
         return (XTrain, XTest, yTrain, yTest, trainMap, testMap)
 
+    def topicStraitifiedKFold(yTrain, trainMap, n_fold=3):
+        assert n_fold > 1
+        ySet = set(yTrain)
+        (topicList, topicy) = DataTool.divideYByTopic(yTrain, trainMap)
+        topicyFoldNum = dict()
+        for t in topicList:
+            nowy = topicy[t]
+            length = len(nowy)
+
+            # count the number of instance for each y class
+            yNum = defaultdict(int)
+            for i in range(0, length):
+                yNum[y[i]] += 1
+
+            # calculate number of instance in each fold for each class
+            topicyFoldNum[t] = { yClass: int(math.ceil(float(cnt)/n_fold)) for yClass, cnt in yNum.items() }
+
+        testFold = list()
+        foldIndex = { t: { yClass: 0 for yClass in ySet } for t in topicList }
+        nowCnt = { t: { yClass: 0 for yClass in ySet } for t in topicList }
+        for i, y in enumerate(yTrain):
+            t = trainMap[i]
+            if nowCnt[t][y] >= topicyFoldNum[t][y]:
+                foldIndex[t][y] += 1
+                nowCnt[t][y] = 0 
+            nowCnt[t][y] += 1
+            testFold.append(foldIndex[t][y])
+        #print('yTrain:', yTrain)
+        #print('trainMap:', trainMap)
+        #print('testFold:', testFold)
+        return PredefinedSplit(testFold)
 
 # The class for providing function to do machine learning procedure
 class ML:
-    def train(XTrain, yTrain, clfName, scorer, trainMap=None):
-        # make cross validation iterator FIXME: topicTrain?
+    def train(XTrain, yTrain, clfName, scorer):
+        # make cross validation iterator 
         kfold = cross_validation.StratifiedKFold(yTrain, n_folds=3)
 
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
             
+        # get grid search classifier
+        clfGS = grid_search.GridSearchCV(clf, parameters, scoring=scorer, 
+                refit=True, cv=kfold, n_jobs=-1)
+        
+        # refit the data by the best parameters
+        clfGS.fit(XTrain, yTrain)
+        # testing on training data
+        yPredict = clfGS.predict(XTrain)
+        
+        return (clfGS.best_estimator_, clfGS.best_params_, yPredict)
+
+    # FIXME
+    def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap):
+        # make cross validation iterator 
+        kfold = topicStratifiedKFold(yTrain, trainMap, n_folds=3)
+        
+        # get classifier and parameters to try
+        (clf, parameters) = ML.__genClfAndParams(clfName)
+         
+        # FIXME: topicGridSearch: to pass argument to scoring function
         # get grid search classifier
         clfGS = grid_search.GridSearchCV(clf, parameters, scoring=scorer, 
                 refit=True, cv=kfold, n_jobs=-1)
@@ -255,7 +340,8 @@ class ML:
         # testing on training data
         yPredict = clfGS.predict(XTrain)
         
-        return (clfGS.best_estimator_, clfGS.best_param_, yPredict)
+        return (clfGS.best_estimator_, clfGS.best_params_, yPredict)
+
 
     def test(XTest, bestClf):
         yPredict = bestClf.predict(XTest)
@@ -268,13 +354,13 @@ class ML:
                 'fit_prior': [True, False]
             }
             clf = MultinomialNB()
-        elif classifier == 'MaxEnt' or classifier == 'LogReg':
+        elif clfName == 'MaxEnt' or clfName == 'LogReg':
             parameters = {
                 'penalty': ('l1', 'l2'),
                 'C': [0.5, 1, 2],
             }
             clf = LogisticRegression()
-        elif classifier == 'SVM':
+        elif clfName == 'SVM':
             C = [math.pow(2, i) for i in range(-1,11,2)]
             gamma = [math.pow(2, i) for i in range(-11,-1,2)]
             parameters = {
@@ -283,7 +369,7 @@ class ML:
                     'gamma': gamma
                 }
             clf = svm.SVC()
-        elif classifier == 'RandomForest': #depricated: RF does not support sparse matrix
+        elif clfName == 'RandomForest': #depricated: RF does not support sparse matrix
             estNum = [5, 10, 15, 20]
             minSampleSplit = [1, 2]
             parameters = {
@@ -298,8 +384,6 @@ class ML:
         return (clf, parameters) 
 
 
-
-
 cmScorer = make_scorer(confusion_matrix)
 macroF1Scorer = make_scorer(f1_score, average='macro')
 microF1Scorer = make_scorer(f1_score, average='micro')
@@ -311,7 +395,7 @@ scorerMap = {"accuracy" : "accuracy", "macroF1": macroF1Scorer,
 # The class for providing function to evaluate results
 class Evaluator:
     def topicEvaluate(yPredict, yTrue, topicMap, topicWeight=None):
-        assert len(yTrue) == len(yPredict)
+        assert len(yTrue) == len(yPredict) and len(yTrue) == len(topicMap)
         length = len(yTrue)
 
         # find all possible topic
@@ -383,12 +467,12 @@ class Evaluator:
         return avgR['MacroF1']
 
 class ResultPrinter:
-    def print(prefix, clf, params, result, outfile):
+    def print(prefix, clf, params, scorerName, result, outfile):
         clfStr = "%s" % (clf)
-        clfStr.replace(',', ' ')
+        clfStr = clfStr[0:clfStr.find('(')]
         paramStr = "%s" % (params)
-        paramStr.replace(',', ' ')
-        print(prefix, clfStr, paramStr, result['Accuracy'], 
+        paramStr = paramStr.replace(',', ' ').replace('\n', ' ')
+        print(prefix, clfStr, paramStr, scorerName,  result['Accuracy'], 
                 result['MacroF1'], result['MacroR'], sep=',', 
                 file=outfile)
 

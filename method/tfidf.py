@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix, hstack
 
 import dataPreprocess
 import MLProcedure
+from RunExperiments import *
 from misc import *
 
 '''
@@ -20,8 +21,8 @@ Date: 2015/02/16
 
 '''
 
-# convert the contents of news to tf/tf-idf (a list of dict)
-def convertToTFIDF(labelNewsList, column='content', IDF=None, volc=None):
+# convert the corpus of news to tf/tf-idf (a list of dict)
+def corpusToTFIDF(labelNewsList, column='content', IDF=None, volc=None, zeroOne=False):
     vectorList = list() # a list of dict()
     if volc == None:
         volc = dict() # vocabulary
@@ -32,8 +33,37 @@ def convertToTFIDF(labelNewsList, column='content', IDF=None, volc=None):
             text = labelNews['news']['title_seg']
         elif column == 'statement':
             text = labelNews['statement']['seg']
-        vectorList.append(sentToTFIDF(text, IDF, volc))
+        vectorList.append(text2TFIDF(text, IDF, volc, zeroOne))
     return (vectorList, volc)
+
+# convert text to TF-IDF features (dict)
+def text2TFIDF(text, IDF=None, volc=None, zeroOne=False, sentSep=",", wordSep=" "):
+    f = dict()
+    if volc == None:
+        volc = dict()
+    # term frequency 
+    for sent in text.split(sentSep):
+        for word in sent.split(wordSep):
+            if word not in volc:
+                volc[word] = len(volc)
+            if volc[word] not in f:
+                f[volc[word]] = 1
+            else:
+                if not zeroOne: #if not zeroOne, calculate the count
+                    f[volc[word]] += 1
+                
+    # if idf is given, then calculate tf-idf
+    if IDF != None:
+        for key, value in f.items():
+            if key not in IDF:
+                #print('Document Frequency Error', file=sys.stderr)
+                f[key] = value * IDF['default']
+            else:
+                f[key] = value * IDF[key]
+
+    return f
+
+
 
 def __dictAdd(dict1, dict2):
     if dict1 == None:
@@ -80,31 +110,6 @@ def __listOfDictAdd(listOfDict1, listOfDict2):
         
     return result
 
-# convert sentence to TF-IDF features (dict)
-def sentToTFIDF(text, IDF=None, volc=None, sentSep=",", wordSep=" "):
-    f = dict()
-    if volc == None:
-        volc = dict()
-    # term frequency 
-    for sent in text.split(sentSep):
-        for word in sent.split(wordSep):
-            if word not in volc:
-                volc[word] = len(volc)
-            if volc[word] not in f:
-                f[volc[word]] = 1
-            else:
-                f[volc[word]] += 1
-                
-    # if idf is given, then calculate tf-idf
-    if IDF != None:
-        for key, value in f.items():
-            if key not in IDF:
-                #print('Document Frequency Error', file=sys.stderr)
-                f[key] = value * IDF['default']
-            else:
-                f[key] = value * IDF[key]
-
-    return f
 
 def getLabels(labelNewsList):
     mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
@@ -160,12 +165,14 @@ def calcIDF(labelNewsList, newsCols=['content'], sentSep=",",
     IDF['default'] = math.log(float(docNum+1))
     return (IDF, volc)
 
-def generateXY(labelNewsList, newsCols=['content'], statementCol=False, 
-        feature='tf'):
+def generateXY(labelNewsList, newsCols=['content'], statementCol=False, feature='tf'):
 
     #initialization
     volc = dict()
     IDF = None
+    zeroOne = False
+    if feature == '0/1' or feature == '01':
+        zeroOne = True
 
     # calculate IDF 
     if feature == 'tfidf' or feature == 'tf-idf':
@@ -177,18 +184,18 @@ def generateXY(labelNewsList, newsCols=['content'], statementCol=False,
 
     for col in newsCols:
         if col == 'title':
-            (titleTFIDF, volc) = convertToTFIDF(labelNewsList, 
-                    column='title', IDF=IDF, volc=volc)
+            (titleTFIDF, volc) = corpusToTFIDF(labelNewsList, 
+                    column='title', IDF=IDF, volc=volc, zeroOne=zeroOne)
         elif col == 'content':
-            (contentTFIDF, volc) = convertToTFIDF(labelNewsList, 
-                    column='content', IDF=IDF, volc=volc)
+            (contentTFIDF, volc) = corpusToTFIDF(labelNewsList, 
+                    column='content', IDF=IDF, volc=volc, zeroOne=zeroOne)
     newsTFIDF = __listOfDictAdd(titleTFIDF, contentTFIDF)
     
     # calculate TF/TF-IDF (statement)
     statementTFIDF = None
     if statementCol:
-        (statementTFIDF, volc) = convertToTFIDF(labelNewsList, 
-                column='statement', IDF=IDF, volc=volc)
+        (statementTFIDF, volc) = corpusToTFIDF(labelNewsList, 
+                column='statement', IDF=IDF, volc=volc, zeroOne=zeroOne)
     
     # convert to CSR sparse matrix format
     X = convertToCSRMatrix(newsTFIDF, volc)
@@ -229,19 +236,18 @@ if __name__ == '__main__':
 
     # print results
     print('topicId, feature, columnSource, statementCol, ', 
-            'classifier, val_or_test, parameters, scorer, ',
-            'accuracy, macroF1, microF1, macroR', sep='')
+            'experimental settings, classifier, parameters, scorer, ',
+            'accuracy, macroF1, macroR', sep='')
 
     # main loop for running experiments
     # generating X and y
     cnt = 0
-    featureList = ['tf', 'tfidf']
+    featureList = ['0/1', 'tf', 'tfidf']
     colsList = [['content'], ['title'], ['title', 'content']]
     statList = [False, True]
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
     
-    # all news are mixed to train and predict
-    '''
+    # all topic are mixed to train and predict/ leave-one-test
     for feature in featureList:
         for newsCols in colsList:
             for statementCol in statList:
@@ -249,11 +255,13 @@ if __name__ == '__main__':
                        statementCol=statementCol, feature=feature)
                 
                 prefix = "all, %s, %s, %s" % (feature, list2Str(newsCols), statementCol)
-                #FIXME topicMapping or statMapping??
-                topicMapping = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-                MLProcedure.runExperiments(X, y, topicMapping, clfList=clfList, prefix=prefix)
-    '''
-        
+                topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+                
+                # all train and test
+                #RunExp.allTrainTest(X, y, topicMap, clfList, "MarcoF1", testSize=0.2, prefix=prefix)
+                # leave one test
+                RunExp.leaveOneTest(X, y, topicMap, clfList, "macroF1", prefix=prefix)
+
     # divide the news into different topic, each of them are trained and test by itself
     labelNewsInTopic = divideLabel(labelNewsList)
     for topicId, labelNewsList in labelNewsInTopic.items():
@@ -264,5 +272,6 @@ if __name__ == '__main__':
                        statementCol=statementCol, feature=feature)
                 
                     prefix = "%d, %s, %s, %s" % (topicId, feature, list2Str(newsCols), statementCol)
-                    MLProcedure.runExperiments(X, y, clfList=clfList, prefix=prefix)
+                    #MLProcedure.runExperiments(X, y, clfList=clfList, prefix=prefix)
+                    RunExp.selfTrainTest(X, y, 'macroF1', clfList, testSize=0.2, prefix=prefix)
 
