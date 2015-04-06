@@ -47,7 +47,7 @@ public class FullNNDepParser {
         String untokenizedSent = "這是一個測試用的句子";
         List<TypedDependency> tdList = fdp.parseUntokenizedSent(untokenizedSent, Lang.ZHT, Lang.ZHT);
         System.out.println(untokenizedSent);
-        System.out.println(DepToString.TDsToString(tdList));
+        System.out.println(DepPrinter.TDsToString(tdList));
     }
 
     public DependencyParser parser = null; 
@@ -91,10 +91,10 @@ public class FullNNDepParser {
     }
 
     //get the dependency parsed results from "tokenized" and "ZHS" sentence
-    public List<TypedDependency> parseTokenizedSent(String sent){
+    public List<TypedDependency> parseTokenizedSent(String sent, int inLang, int outLang){
         //TODO: may be inconsistent to tagger
         tokenizedSentBuffer = sent.split(" ");
-        List<TaggedWord> tagged = tagger.tagTokenizedSent(sent);
+        List<TaggedWord> tagged = tagger.tagTokenizedSent(sent, inLang, outLang);
         GrammaticalStructure gs = parser.predict(tagged);
         // Print typed dependencies
         //System.err.println(gs);
@@ -113,7 +113,7 @@ public class FullNNDepParser {
         tokenizedSentBuffer = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
         // dependency parsing
-        List<TypedDependency> tdList = parseTokenizedSent(mergeStr(tokenizedSentBuffer));
+        List<TypedDependency> tdList = parseTokenizedSent(mergeStr(tokenizedSentBuffer), Lang.ZHS, Lang.ZHS);
 
         // convert the language if necessary
         if(outLang == Lang.ZHT){

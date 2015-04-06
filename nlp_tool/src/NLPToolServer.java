@@ -14,7 +14,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.Headers;
 
 import jopencc.ZhtZhsConvertor;
-import edu.stanford.nlp.trees.TypedDependency;
+import edu.stanford.nlp.trees.*;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.ling.Sentence;
 
@@ -60,6 +60,7 @@ public class NLPToolServer {
             server.createContext("/info", new InfoHandler());
             server.createContext("/segmenter", new SegHandler());
             server.createContext("/pos", new POSHandler());
+			server.createContext("/pcfg", new PCFGConstParserHandler());
             //server.createContext("/nn_dep", new NNDepParserHandler());
             server.createContext("/pcfg_dep", new PCFGDepParserHandler());
 
@@ -156,7 +157,7 @@ public class NLPToolServer {
             List<TypedDependency> tdList = fdp.parseUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
             String tokenizedSent = fdp.getTokenizedSentBuffer();
             response.append(tokenizedSent + "\n");
-            String output = DepToString.TDsToString(tdList);
+            String output = DepPrinter.TDsToString(tdList);
             response.append(output);
 
             //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
@@ -190,7 +191,6 @@ public class NLPToolServer {
                 seg = true;
             }
 
-
             //Check drawing dependency tree or not
             String drawFlag = parms.get("draw");
             if(drawFlag != null){
@@ -216,7 +216,7 @@ public class NLPToolServer {
             }
             String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
             response.append(tokenizedSent + "\n");
-            String depStr = DepToString.TDsToString(tdList); //get typed dependencies
+            String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
             response.append(depStr);
 
             //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
@@ -224,12 +224,53 @@ public class NLPToolServer {
             System.out.println("Reqeust:" + text);
             System.out.println("Response:" + tokenizedSent + "\n" + depStr);
  
-            
-           
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
 
+	// Stanford PCFG Constituent Parser handler (output: stanford parsing tree as a list of nodes and edges)
+    //http://localhost:port/pcfg?s=sentence
+    static class PCFGConstParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange) throws IOException {
+            //retrieve sentence
+            StringBuilder response = new StringBuilder();
+            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            
+            boolean seg = false;
+            String text = parms.get("seg_s");
+            if(text == null || text.length() == 0){
+                text = parms.get("s");
+                if(text == null || text.length() == 0){
+                    return ;
+                }
+            }
+            else{
+                seg = true;
+            }
+
+            System.out.println(text);
+            //constituent parsing by pcfg parser
+            Tree tree;
+            if(seg){
+                tree = fpp.parseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT);
+            }
+            else{
+                tree = fpp.parseUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
+            }
+            String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
+            response.append(tokenizedSent + "\n");
+            String treeStr = TreePrinter.treeToString(tree); //get string of tree
+            response.append(treeStr);
+
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + text);
+            System.out.println("Response:" + tokenizedSent + "\n" + treeStr);
+ 
+            NLPToolServer.writeResponse(httpExchange, response.toString());
+        }
+    }
+	
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
         Headers header = httpExchange.getResponseHeaders();

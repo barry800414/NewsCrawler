@@ -1,8 +1,9 @@
 
+import java.util.ArrayList;
 import java.util.List;
 
- 
 import edu.stanford.nlp.ling.IndexedWord;
+import edu.stanford.nlp.ling.Label;
 import edu.stanford.nlp.trees.*;
 import edu.stanford.nlp.trees.international.pennchinese.ChineseTreebankLanguagePack;
 
@@ -35,9 +36,15 @@ public class FullPCFGParser extends PCFGParser{
         Tree parse = fpp.parseUntokenizedSent(untokenizedSent, Lang.ZHT, Lang.ZHT);
         System.out.println("Constituent parsing:");
         parse.pennPrint();
+        System.out.println(TreePrinter.treeToString(parse));
+        
         System.out.println("Dependency parsing:");
         List<TypedDependency> tdl = fpp.toTypedDependency(parse);
-        System.out.println(DepToString.TDsToString(tdl));
+        //FIXME: Although the words in this tree has been converted to ZHT,
+        //it seems that when we convert tree to typed dependencies, the
+        //words in TDs remains ZHS
+        tdl = fpp.wordToZht(tdl);
+        System.out.println(DepPrinter.TDsToString(tdl));
 
     }
 	
@@ -58,22 +65,16 @@ public class FullPCFGParser extends PCFGParser{
 
 	//sent: untokenized sentence
 	public Tree parseUntokenizedSent(String untokenizedSent, int inLang, int outLang){
-		if(inLang == Lang.ENG){
-			System.err.println("Untokenized English sentences parsign is not supported now");
-			return null;	
-		}
-
 		// tokenize the sentence & converting the language
-		String[] sent = null;
-		sent = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
+		tokenizedSentBuffer = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
 
 		// parse
-		Tree result = parseTokenizedSent(sent);
+		Tree result = parseTokenizedSent(tokenizedSentBuffer);
 
 		// convert the language if necessary
-		if(outLang == Lang.ZHT){
-			//TODO
-			return result;
+		if(inLang != Lang.ENG && outLang == Lang.ZHT){
+			result = wordToZht(result);
+            tokenizedSentBuffer = wordToZht(tokenizedSentBuffer);
 		}
 		return result;
 	}
@@ -90,7 +91,7 @@ public class FullPCFGParser extends PCFGParser{
         List<TypedDependency> tdl = toTypedDependency(parse);
 
 		// convert the language if necessary
-		if(outLang == Lang.ZHT){
+		if(inLang != Lang.ENG && outLang == Lang.ZHT){
 		    tdl = wordToZht(tdl); 
             tokenizedSentBuffer = wordToZht(tokenizedSentBuffer);
             //TODO: the conversion from zhs to zht is inperfect
@@ -118,8 +119,8 @@ public class FullPCFGParser extends PCFGParser{
 		Tree result = parseTokenizedSent(sent);
 
 		// convert the language if necessary
-		if(outLang == Lang.ZHT){
-			//TODO
+		if(inLang != Lang.ENG && outLang == Lang.ZHT){
+			result = wordToZht(result);
 			return result;
 		}
 		return result;
@@ -136,8 +137,6 @@ public class FullPCFGParser extends PCFGParser{
         else{
             sent = tokenizedSent.split(sep);
         }
-
-
 		// constituent parsing
 		Tree parse = parseTokenizedSent(sent);
     
@@ -161,9 +160,14 @@ public class FullPCFGParser extends PCFGParser{
 
 
     public String getTokenizedSentBuffer(){
-        return mergeStr(tokenizedSentBuffer);
+        if(tokenizedSentBuffer == null){
+            return null;
+        }
+        else{
+            return mergeStr(tokenizedSentBuffer);
+        }
     }
-
+	//convert the words in a typed dependency to ZHT  
     public TypedDependency wordToZht(TypedDependency td){
         IndexedWord g = td.gov();
         IndexedWord d = td.dep();
@@ -174,6 +178,7 @@ public class FullPCFGParser extends PCFGParser{
         return td;
     }
 
+	//convert the words in a list of type dependency to ZHT 
     public List<TypedDependency> wordToZht(List<TypedDependency> tdl){
         for(int i = 0; i < tdl.size(); i++){
             tdl.set(i, wordToZht(tdl.get(i)));
@@ -181,12 +186,42 @@ public class FullPCFGParser extends PCFGParser{
         return tdl;
     }
 
+	//convert the list of string to ZHT
     public String[] wordToZht(String[] text){
         for(int i = 0; i < text.length; i++){
             text[i] = convertor.convertToZht(text[i]);
         }
         return text;
     }
+	
+	//convert the words in a tree to ZHT
+	public Tree wordToZht(Tree tree){
+		//recursively traverse the tree to convert words to ZHT;
+		__leafWordToZht(tree);
+		return tree;
+	}
+	
+	private void __leafWordToZht(Tree tree){
+        if(tree.numChildren() == 0){ //leave node (word node)
+			//convert words to ZHT
+            Label label = tree.label();
+            label.setValue(convertor.convertToZht(label.toString()));
+        }
+        else{ 
+			for(Tree c: tree.children()){
+				__leafWordToZht(c);
+			}
+        }
+    }
+	
+	//convert the words in list of nodes
+	public ArrayList<Node> wordToZht(ArrayList<Node> nodes){
+		for(Node n : nodes){
+			n.word = convertor.convertToZht(n.word);
+		}
+		return nodes;
+	}
 
-
+	
+	
 }

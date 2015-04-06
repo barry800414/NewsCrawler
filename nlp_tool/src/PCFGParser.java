@@ -25,9 +25,9 @@ public class PCFGParser{
         ArrayList<Label> posTags = new ArrayList<Label>();
         PCFGParser.treeTraversalGetPOSTags(result,posTags);
 
-        TreePrinter.treeToString(result);
-
+        String str = TreePrinter.treeToString(result);
         System.out.println(posTags);
+        System.out.println(str);
     	//Example 2: Parse tokenized sentences 
     	//(original sentence which is separated by sep)
     	//String sepSent = "今天 天气 很 好";

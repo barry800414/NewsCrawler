@@ -16,9 +16,9 @@ import com.sun.net.httpserver.Headers;
 import edu.stanford.nlp.trees.TypedDependency;
 import edu.stanford.nlp.ling.TaggedWord;
 import edu.stanford.nlp.ling.Sentence;
+import edu.stanford.nlp.trees.*;
 
 public class EngNLPToolServer {
-
     public static FullPOSTagger tagger;
     public static FullNNDepParser fdp;
     public static PCFGParser fpp;
@@ -40,6 +40,7 @@ public class EngNLPToolServer {
             HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
             server.createContext("/info", new InfoHandler());
             server.createContext("/pos", new POSHandler());
+            server.createContext("/pcfg", new PCFGConstParserHandler());
             server.createContext("/pcfg_dep", new PCFGDepParserHandler());
 
             server.setExecutor(null); // creates a default executor
@@ -65,7 +66,7 @@ public class EngNLPToolServer {
     static class POSHandler implements HttpHandler {
         public void handle(HttpExchange httpExchange) throws IOException {
             StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
             
             // default: segemented sentence (word delimiter is space)
             String input = parms.get("seg_s");
@@ -92,7 +93,7 @@ public class EngNLPToolServer {
 
             //retrieve sentence
             StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
             String text = parms.get("seg_s");
 
             //Check drawing dependency tree or not
@@ -112,20 +113,40 @@ public class EngNLPToolServer {
 
             //dependency parsing by pcfg parser
             List<TypedDependency> tdList = fpp.depParseTokenizedSent(text, " ", imgPath);
-            String depStr = DepToString.TDsToString(tdList); //get typed dependencies
+            String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
             response.append(depStr);
 
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
             System.out.println("Reqeust:" + text);
             System.out.println("Response:" + depStr);
- 
-            
-           
+   
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }
     }
 
+	// Stanford PCFG Constituent Parser handler (output: stanford parsing tree as a list of nodes and edges)
+    //http://localhost:port/pcfg?s=sentence
+    static class PCFGConstParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange) throws IOException {
+            //retrieve sentence
+            StringBuilder response = new StringBuilder();
+            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+            String text = parms.get("seg_s");
+
+            //constituent parsing by pcfg parser
+            Tree tree = fpp.parseTokenizedSent(text, " ");
+            String treeStr = TreePrinter.treeToString(tree); //get string of tree
+            response.append(treeStr);
+
+            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+            System.out.println("Reqeust:" + text);
+            System.out.println("Response:" + treeStr);
+ 
+            NLPToolServer.writeResponse(httpExchange, response.toString());
+        }
+    }
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
         Headers header = httpExchange.getResponseHeaders();

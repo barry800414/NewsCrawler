@@ -38,26 +38,37 @@ public class TreePrinter{
         }
     }
 
+	//#nodes #edges
+	//node1_id node1_type node1_word
+	//...
+	//edge1_from_id edge1_to_id 
+	//...
     public static String treeToString(Tree tree){
-        ArrayList<Node> nodes = new ArrayList<Node>();
+        String str;
+		ArrayList<Node> nodes = new ArrayList<Node>();
         ArrayList<Edge> edges = new ArrayList<Edge>();
-        getNodesEdges(tree, 0, nodes, edges);
-        for(Node n: nodes){
-            System.out.println(n);
+        //convert a tree to nodes and edges list
+		getNodesEdges(tree, 0, nodes, edges);
+		
+		str = nodes.size() + " " + edges.size() + "\n";
+		for(Node n: nodes){
+			str = str + n.toString() + "\n";
         }
         for(Edge e: edges){
-            System.out.println(e);
+			str = str + e.toString() + "\n";
         }
-        return "";
+        return str;
     }
 }
 
-
+//phrase: all nodes excluding: POS, word node
+//POS: the second layer from last, POS tagger node
+//word: the last layer, word node
 class Node{
     public static final int PHRASE_NODE=0, POS_NODE=1, WORD_NODE=2;
     public static final String[] TYPE_STR = new String[] { "phrase", "POS", "word" };
-    int id, type;
-    String word;
+    public int id, type;
+    public String word;
 
     public Node(int id, int type){
         this(id, type, (String) null);
@@ -74,7 +85,7 @@ class Node{
 }
 
 class Edge{
-    int fromId, toId;
+    public int fromId, toId;
     public Edge(int fromId, int toId){
         this.fromId = fromId;
         this.toId = toId;
