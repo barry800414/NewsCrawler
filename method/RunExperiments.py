@@ -9,10 +9,18 @@ from numpy.matrixlib.defmatrix import matrix
 from scipy.sparse import csr_matrix, hstack, vstack
 
 from sklearn import svm, cross_validation, grid_search
+from sklearn.grid_search import GridSearchCV, ParameterGrid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, f1_score, recall_score, accuracy_score, make_scorer
+
+from sklearn.externals.joblib import Parallel, delayed
+from sklearn.base import clone
+
+# need sklearn 0.16.0
+from sklearn.cross_validation import PredefinedSplit
+
 
 from misc import *
 
@@ -72,7 +80,7 @@ class RunExp:
             ResultPrinter.print(prefix + ', selfTrainTest', clf, bestParam, scorerName, result, outfile=outfile)
     
     #FIXME
-    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, prefix=''):
+    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
         # divide data according to the topic
         (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
 
@@ -94,23 +102,20 @@ class RunExp:
         (XTrain, XTest, yTrain, yTest, trainMap, testMap) = DataTool.mergeData(
                 topicXTrain, topicXTest, topicyTrain, topicyTest, topicList)
 
-        # making scorer
-        scorer = Evaluator.makeScorer(scorerName, trainMap)
-        
         # training using validation
         for clfName in clfList:
-            (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, 
-                    scorer, trainMap=trainMap)
+            (clf, bestParam, yTrainPredict) = ML.topicTrain(XTrain, yTrain, 
+                    clfName, scorerName, trainMap)
 
             # testing 
             scorer = Evaluator.makeScorer(scorerName, testMap)
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
-            result = Evaluator.topicEvaluate(yTestPredict, yTrue, testMap)
+            (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
                 
             # printing out results
-            ResultPrinter.print(prefix + ", allMixed", clf, bestParam, scorerName, result)
+            ResultPrinter.print(prefix + ", allMixed", clf, bestParam, scorerName, avgR, outfile=outfile)
 
     def leaveOneTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix='', outfile=sys.stdout):
         # making scorer
@@ -167,9 +172,9 @@ class DataTool:
                 index[t] = list()
             index[t].append(i)
 
+        topicy = dict()
         for t in topics:
             topicy[t] = y[index[t]]
-        
         return (list(topics), topicy)
 
     # In order to prevent 0 cases in training or testing data (s.t. evaluation 
@@ -269,7 +274,8 @@ class DataTool:
         testMap = [testTopic for i in range(0, len(yTest))]
         return (XTrain, XTest, yTrain, yTest, trainMap, testMap)
 
-    def topicStraitifiedKFold(yTrain, trainMap, n_fold=3):
+    # for each topic, do stratified K fold, and then merge them
+    def topicStratifiedKFold(yTrain, trainMap, n_fold=3, randSeed=1):
         assert n_fold > 1
         ySet = set(yTrain)
         (topicList, topicy) = DataTool.divideYByTopic(yTrain, trainMap)
@@ -281,25 +287,37 @@ class DataTool:
             # count the number of instance for each y class
             yNum = defaultdict(int)
             for i in range(0, length):
-                yNum[y[i]] += 1
-
+                yNum[topicy[t][i]] += 1
+            
             # calculate number of instance in each fold for each class
-            topicyFoldNum[t] = { yClass: int(math.ceil(float(cnt)/n_fold)) for yClass, cnt in yNum.items() }
-
+            # topicyFoldNum[t][y]: the expected number of instances for topic t and class y
+            topicyFoldNum[t] = { yClass: int(round(float(cnt)/n_fold)) for yClass, cnt in yNum.items() }
+    
+        # the list for making PredefinedFold
         testFold = list()
+        
+        # foldIndex[t][y]: current fold index for topic t and class y
         foldIndex = { t: { yClass: 0 for yClass in ySet } for t in topicList }
+        # nowCnt[t][y]: the number of instance in topic t and with class y
         nowCnt = { t: { yClass: 0 for yClass in ySet } for t in topicList }
         for i, y in enumerate(yTrain):
             t = trainMap[i]
-            if nowCnt[t][y] >= topicyFoldNum[t][y]:
+            if nowCnt[t][y] >= topicyFoldNum[t][y] and foldIndex[t][y] < n_fold - 1:
                 foldIndex[t][y] += 1
                 nowCnt[t][y] = 0 
             nowCnt[t][y] += 1
             testFold.append(foldIndex[t][y])
+        
+        # making topicMapping for testing(validation) parts of instances
+        foldTopicMap = [list() for i in range(0, n_fold)]
+        for i, fi in enumerate(testFold):
+            foldTopicMap[fi].append(trainMap[i])
+
         #print('yTrain:', yTrain)
         #print('trainMap:', trainMap)
         #print('testFold:', testFold)
-        return PredefinedSplit(testFold)
+        #print('foldTopicMap', foldTopicMap)
+        return (PredefinedSplit(testFold), foldTopicMap)
 
 # The class for providing function to do machine learning procedure
 class ML:
@@ -311,7 +329,7 @@ class ML:
         (clf, parameters) = ML.__genClfAndParams(clfName)
             
         # get grid search classifier
-        clfGS = grid_search.GridSearchCV(clf, parameters, scoring=scorer, 
+        clfGS = GridSearchCV(clf, parameters, scoring=scorer, 
                 refit=True, cv=kfold, n_jobs=-1)
         
         # refit the data by the best parameters
@@ -321,27 +339,74 @@ class ML:
         
         return (clfGS.best_estimator_, clfGS.best_params_, yPredict)
 
-    # FIXME
     def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap):
-        # make cross validation iterator 
-        kfold = topicStratifiedKFold(yTrain, trainMap, n_folds=3)
-        
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
-         
-        # FIXME: topicGridSearch: to pass argument to scoring function
-        # get grid search classifier
-        clfGS = grid_search.GridSearchCV(clf, parameters, scoring=scorer, 
-                refit=True, cv=kfold, n_jobs=-1)
 
+        bestParams = ML.topicGridSearchCV(clf, parameters, scorerName, XTrain, yTrain, trainMap, n_fold=3, n_jobs=-1)
+        
         # refit the data by the best parameters
-        clfGS.fit(XTrain, yTrain)
+        clf.set_params(**bestParams)
+        clf.fit(XTrain, yTrain)
                 
         # testing on training data
-        yPredict = clfGS.predict(XTrain)
+        yPredict = clf.predict(XTrain)
         
-        return (clfGS.best_estimator_, clfGS.best_params_, yPredict)
+        return (clf, bestParams, yPredict)
 
+
+    def topicGridSearchCV(clf, parameters, scorerName, XTrain, yTrain, trainMap, n_fold, randSeed=1, n_jobs=1):
+        # get topic stratified K-fold and its topicMapping
+        (kfold, foldTopicMap) = DataTool.topicStratifiedKFold(yTrain, 
+                trainMap, n_fold, randSeed=randSeed) 
+        
+        paramsGrid = ParameterGrid(parameters)
+        
+        out = Parallel(n_jobs=n_jobs)(delayed(topicGSCV_oneTask)(clone(clf), 
+            params, k, train, test, XTrain, yTrain, foldTopicMap[k]) 
+                for params in paramsGrid 
+                for k, (train, test) in enumerate(kfold))
+
+        bestParams = None
+        bestScore = None
+        n_fits = len(out)
+        # collecting results
+        for grid_start in range(0, n_fits, n_fold):
+            avgScore = 0.0
+            for r in out[grid_start:grid_start + n_fold]:
+                avgScore += r['avgR'][scorerName]
+            avgScore /= n_fold
+            if bestScore == None or avgScore > bestScore:
+                bestScore = avgScore
+                bestParams = out[grid_start]['params']
+        
+        return bestParams
+        '''
+        for params in paramsGrid:
+            avgScore = 0.0
+            for k, (train, test) in enumerate(kfold):
+                clf.set_params(**params)
+                clf.fit(XTrain[train], yTrain[train])
+                yPredict = clf.predict(XTrain[test])
+                #print('yPredict:', len(yPredict))
+                #print('yTrain[test]:', len(yTrain[test]))
+                (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMap[k])
+                avgScore += avgR[scorerName]
+            avgScore /= n_fold
+            if bestScore == None or avgScore > bestScore:
+                bestScore = avgScore
+                bestParams = params
+        return bestParams
+        '''
+
+    def __topicGSCV_oneTask(clf, params, k, train, test, XTrain, yTrain, foldTopicMapAtK):
+        clf.set_params(**params)
+        clf.fit(XTrain[train], yTrain[train])
+        yPredict = clf.predict(XTrain[test])
+        #print('yPredict:', len(yPredict))
+        #print('yTrain[test]:', len(yTrain[test]))
+        (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK)
+        return {'params': params, 'avgR': avgR, 'k': k }
 
     def test(XTest, bestClf):
         yPredict = bestClf.predict(XTest)
@@ -383,24 +448,33 @@ class ML:
 
         return (clf, parameters) 
 
+def topicGSCV_oneTask(clf, params, k, train, test, XTrain, yTrain, foldTopicMapAtK):
+    clf.set_params(**params)
+    clf.fit(XTrain[train], yTrain[train])
+    yPredict = clf.predict(XTrain[test])
+    #print('yPredict:', len(yPredict))
+    #print('yTrain[test]:', len(yTrain[test]))
+    (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK)
+    return {'params': params, 'avgR': avgR, 'k': k }
+
 
 cmScorer = make_scorer(confusion_matrix)
 macroF1Scorer = make_scorer(f1_score, average='macro')
 microF1Scorer = make_scorer(f1_score, average='micro')
 macroRScorer = make_scorer(recall_score, average='macro')
 
-scorerMap = {"accuracy" : "accuracy", "macroF1": macroF1Scorer, 
-        "microF1": microF1Scorer, "macroR": macroRScorer } 
+scorerMap = {"Accuracy" : "accuracy", "MacroF1": macroF1Scorer, 
+        "MicroF1": microF1Scorer, "MacroR": macroRScorer } 
 
 # The class for providing function to evaluate results
 class Evaluator:
-    def topicEvaluate(yPredict, yTrue, topicMap, topicWeight=None):
+    def topicEvaluate(yPredict, yTrue, topicMap, topicWeights=None):
         assert len(yTrue) == len(yPredict) and len(yTrue) == len(topicMap)
         length = len(yTrue)
 
         # find all possible topic
         topicSet = set(topicMap)
-    
+
         # divide yTrue and yPredict
         topicyTrue = {t:list() for t in topicSet}
         topicyPredict = {t:list() for t in topicSet}
@@ -414,18 +488,18 @@ class Evaluator:
             topicyPredict[t] = np.array(topicyPredict[t])
 
         # evaluation for each topic
-        topicResult = dict()
+        topicResults = dict()
         for t in topicSet:
-            assert topicyTrue[t] == topicyPredict[t] and len(topicyTrue[t]) != 0
-            r = Evaluator.evaluate(topicyTrue, topicyPredict[t])
-            topicResult[t] = r
+            assert len(topicyTrue[t]) == len(topicyPredict[t]) and len(topicyTrue[t]) != 0
+            r = Evaluator.evaluate(topicyTrue[t], topicyPredict[t])
+            topicResults[t] = r
     
         # calculate average metric for all topics
-        if topicWeight == None: # default: equal weight
-            weight = { t: 1.0/len(topicSet) for t in topicSet }
-        avgR = Evaluator.avgTopicResults(topicResult, topicWeight)
-
-        return (topicResult, avgR)
+        if topicWeights == None: # default: equal weight
+            topicWeights = { t: 1.0/len(topicSet) for t in topicSet }
+        avgR = Evaluator.avgTopicResults(topicResults, topicWeights)
+        
+        return (topicResults, avgR)
 
     def evaluate(yPredict, yTrue):
         # accuracy 
@@ -439,17 +513,17 @@ class Evaluator:
         return { "Accuracy": accu, "ConfusionMatrix": cm, "MacroF1": macroF1, 
                  "MacroR": macroR }
 
-    def avgTopicResult(topicResult, weight):
-        if topicResult == None or len(topicResult) == 0:
+    def avgTopicResults(topicResults, weights):
+        if topicResults == None or len(topicResults) == 0:
             return None
         avgAccu = 0.0
         avgMacroF1 = 0.0
         avgMacroR = 0.0
         cnt = 0
-        for t, r in topicResult.items():
-            avgAccu += weight[t] * r["Accuracy"]
-            avgMacroF1 += weight[t] * r["MacroF1"]
-            avgMacroR += weight[t] * r["MacroR"]
+        for t, r in topicResults.items():
+            avgAccu += weights[t] * r["Accuracy"]
+            avgMacroF1 += weights[t] * r["MacroF1"]
+            avgMacroR += weights[t] * r["MacroR"]
         
         return { "Accuracy": avgAccu, "MacroF1": avgMacroF1, "MacroR": avgMacroR }
 

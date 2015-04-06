@@ -21,12 +21,19 @@ public class PCFGParser{
     	//Example 1: Parse tokenized sentences
     	String[] tokenizedSent = {"今天", "天气", "很", "好"};
     	Tree result = p.parseTokenizedSent(tokenizedSent);
+        result.pennPrint();
+        ArrayList<Label> posTags = new ArrayList<Label>();
+        PCFGParser.treeTraversalGetPOSTags(result,posTags);
 
+        TreePrinter.treeToString(result);
+
+        System.out.println(posTags);
     	//Example 2: Parse tokenized sentences 
     	//(original sentence which is separated by sep)
-    	String sepSent = "今天 天气 很 好";
-    	result = p.parseTokenizedSent(sepSent, " ");
+    	//String sepSent = "今天 天气 很 好";
+    	//result = p.parseTokenizedSent(sepSent, " ");
     }
+
 
 	public LexicalizedParser lp = null;
 	private int lang = -1;

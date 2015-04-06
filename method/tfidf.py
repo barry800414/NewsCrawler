@@ -258,10 +258,10 @@ if __name__ == '__main__':
                 topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
                 
                 # all train and test
-                #RunExp.allTrainTest(X, y, topicMap, clfList, "MarcoF1", testSize=0.2, prefix=prefix)
+                RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", testSize=0.2, prefix=prefix)
                 # leave one test
-                RunExp.leaveOneTest(X, y, topicMap, clfList, "macroF1", prefix=prefix)
-
+                #RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+    '''
     # divide the news into different topic, each of them are trained and test by itself
     labelNewsInTopic = divideLabel(labelNewsList)
     for topicId, labelNewsList in labelNewsInTopic.items():
@@ -274,4 +274,4 @@ if __name__ == '__main__':
                     prefix = "%d, %s, %s, %s" % (topicId, feature, list2Str(newsCols), statementCol)
                     #MLProcedure.runExperiments(X, y, clfList=clfList, prefix=prefix)
                     RunExp.selfTrainTest(X, y, 'macroF1', clfList, testSize=0.2, prefix=prefix)
-
+    '''

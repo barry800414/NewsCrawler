@@ -11,7 +11,7 @@ class NewsLoader():
         self.connectToDB(db_info)
         if table_info != None:
             self.topicNewsTable = table_info['topic_news_table']
-            self.topicTable = table_info['topic_table']
+            #self.topicTable = table_info['topic_table']
         
     def connectToDB(self, db_info):
         # initialize the connection to database
@@ -23,7 +23,7 @@ class NewsLoader():
         self.db = db
         self.cursor = cursor
 
-    def __convert_to_sql(self, column, prefix=None):
+    def convertToSql(self, column, prefix=None):
         s = ''
         if prefix != None:
             for c in column[0:-1]:
@@ -36,8 +36,8 @@ class NewsLoader():
         return s
 
     # get one piece of news from given table
-    def getNews(self, newsId, table, newsColumns = ['title', 'content']):
-        sql = 'SELECT %s FROM %s' % (self.__convert_to_sql(newsColumns), table)
+    def getNews(self, newsId, corpusTable, newsColumns = ['title', 'content']):
+        sql = 'SELECT %s FROM %s' % (self.convertToSql(newsColumns), corpusTable)
         try:
             self.cursor.execute(sql + ' WHERE id=%s', (newsId, ))
             tmp = self.cursor.fetchone()
@@ -52,28 +52,31 @@ class NewsLoader():
             print traceback.format_exc()
             return None
 
+    def genWhereClause(self, topicIdList, limitNum):
+        # select news of all possible topics
+        sql = ''
+        for i, topicId in enumerate(topicIdList):
+            if i == 0:
+                sql = sql + ' AND (A.topic_id = %d' % topicId
+            else:
+                sql = sql + ' OR A.topic_id = %d' % topicId
+            if i == len(topicIdList) - 1:
+                sql = sql + ')'
+        if limitNum != -1:
+            sql = sql + ' LIMIT 0, %s' % (limitNum)
+        return sql
+
     # get news from given topic and given table
     def getNewsByTopic(self, topicIdList, limitNum, corpusTable, 
             newsColumns = ['title', 'content']):
         sql = '''
-            SELECT DISTINCT A.news_id, %s FROM %s as A, %s as B, %s as C
-            WHERE A.topic_id = B.id AND A.news_id = C.id
-        ''' % (self.__convert_to_sql(newsColumns, 'C'), 
-                self.topicNewsTable, self.topicTable, corpusTable)
+            SELECT DISTINCT A.news_id, %s FROM %s as A, %s as C
+            WHERE A.news_id = C.id %s
+        ''' % (self.convertToSql(newsColumns, 'C'), self.topicNewsTable, 
+                corpusTable, self.genWhereClause(topicIdList, limitNum))
         
         try:
-            # select news of all possible topics
-            for i, topicId in enumerate(topicIdList):
-                if i == 0:
-                    sql = sql + ' AND (A.topic_id = %d' % topicId
-                else:
-                    sql = sql + ' OR A.topic_id = %d' % topicId
-                if i == len(topicIdList) - 1:
-                    sql = sql + ')'
-            if limitNum != -1:
-                sql = sql + ' LIMIT 0, %s' % (limitNum)
             print(sql)
-
             #execute the sql 
             self.cursor.execute(sql)
             
@@ -93,9 +96,48 @@ class NewsLoader():
         except Exception as e:
             print traceback.format_exc()
             return None
+    
+    # get topic news from given topic and given table
+    # topicNewsDict[topicId] is a list of topicNews
+    # topicNews['topicNewsId'] is the id of topicNews
+    # topicNews['news'] is the news
+    def getTopicNews(self, topicIdList, limitNum, corpusTable, 
+            newsColumns = ['title', 'content']):
+        sql = '''
+            SELECT A.id, A.topic_id, A.news_id, %s FROM %s as A, %s as C
+            WHERE A.news_id = C.id %s
+        ''' % (self.convertToSql(newsColumns, 'C'), self.topicNewsTable, 
+                 corpusTable, self.genWhereClause(topicIdList, limitNum))
         
+        try:
+            print(sql)
+            #execute the sql 
+            self.cursor.execute(sql)
+            
+            #fetch rows
+            topicNewsDict = dict()
+            while True:
+                tmp = self.cursor.fetchone()
+                if tmp == None:
+                    break
+                else:
+                    news = dict()
+                    topicNewsId = tmp[0]
+                    topicId = tmp[1]
+                    news['id'] = tmp[2]
+                    for i, c in enumerate(newsColumns):
+                        news[c] = tmp[i+3]
+                    if topicId not in topicNewsDict:
+                        topicNewsDict[topicId] = list()
+                    topicNewsDict[topicId].append({"topicNewsId": topicNewsId, "news": news})
+            return topicNewsDict
+        except Exception as e:
+            print traceback.format_exc()
+            return None
+
+
     def getTopic(self, newsId, limitTopics):
-        sql = "SELECT topic_id FROm %s WHERE news_id='%s'" % (
+        sql = "SELECT topic_id FROM %s WHERE news_id='%s'" % (
                 self.topicNewsTable, newsId)
         for i, topicId in enumerate(limitTopics):
             if i == 0:

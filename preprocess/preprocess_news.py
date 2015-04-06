@@ -7,7 +7,8 @@ import re
 
 from bs4 import BeautifulSoup
 
-# 
+# preprocess all news (removing meanlingless information from news
+# and insert into another table)
 class NewsPreprocessor():
     defaultColumns = ['title', 'content', 'time', 'url', 'source', 'short_name'] 
 

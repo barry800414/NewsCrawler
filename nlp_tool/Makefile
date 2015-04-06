@@ -31,10 +31,10 @@ nndep_parser: nndep_parser_compile
 
 # full PCFG parser (for constituent & dependency parsing) 
 parser_compile: 
-	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/FullPCFGParser.java
+	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/PCFGParser.java
 
 parser: parser_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" FullPCFGParser
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" PCFGParser
 
 #server_compile: segmenter_compile tagger_compile nndep_parser_compile parser_compile
 server_compile: 
