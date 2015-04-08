@@ -54,9 +54,9 @@ def tagText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
             '''
             # tag the sentence, return a string with tags
             if len(result) == 0:
-                result = tagStr(cleanSent)
+                result = sendTagRequest(cleanSent)
             else:
-                result = result + new_sep + tagStr(cleanSent)
+                result = result + new_sep + sendTagRequest(cleanSent)
     return result
 
 if __name__ == '__main__':

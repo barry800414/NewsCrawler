@@ -54,7 +54,7 @@ def segText(content, sep=SEP, new_sep=NEW_SEP,
         
         print('|%s|' % (s2))
         # segment the string by Stanford NLP segmenter
-        result = segmentStr(s2)
+        result = sendSegmentRequest(s2)
         # remove punctuation
         result = re.sub(to_remove, '', result) 
         # normalizing spaces (N -> 1 space char)

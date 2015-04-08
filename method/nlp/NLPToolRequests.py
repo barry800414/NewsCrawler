@@ -2,27 +2,25 @@ import requests
 import json
 import sys
 
-payload={
-    's': u'簽訂服務貿易協定', 
-}
+
+#TODO: depParse & constParse together
 
 # segment zht string to zht string, " " is the sep
-def segmentStr(sentence):
+def sendSegmentRequest(sentence):
     api_url = 'http://localhost:8000/segmenter'
     payload = {
         's': sentence        
     }
     r = requests.get(api_url, params = payload)
-    #print(r.url)
     if r.status_code == 200:
         return r.text
     else:
         return None
 
-#print(segmentStr("測試 我是一個句子"))
+#print(sendSegmentRequest("測試 我是一個句子"))
 
 # typedDependency format:  reln gov_index gov_word gov_tag dep_index dep_word dep_tag
-def depParseStr(sentence, seg=False, draw=False, fileFolder=None, 
+def sendDepParseRequest(sentence, seg=False, draw=False, fileFolder=None, 
         fileName=None, returnTokenizedSent=False):
     api_url = 'http://localhost:8000/pcfg_dep'
     
@@ -48,13 +46,13 @@ def depParseStr(sentence, seg=False, draw=False, fileFolder=None,
     else:
         return None
 
-#print(depParseStr("我是一個人", draw = True, fileFolder='test'))
-#print(depParseStr("這是一個測試用的句子"))
-#print(depParseStr("台灣應廢除死刑"))		
+#print(sendDepParseRequest("我是一個人", draw = True, fileFolder='test'))
+#print(sendDepParseRequest("這是一個測試用的句子"))
+#print(sendDepParseRequest("台灣應廢除死刑"))		
 		
 		
 #constituent parsing by stanford pcfg parser
-def constParseStr(sentence, seg=False, returnTokenizedSent=False):
+def sendConstParseRequest(sentence, seg=False, returnTokenizedSent=False):
     api_url = 'http://localhost:8000/pcfg'
     
     if seg == False:
@@ -70,26 +68,30 @@ def constParseStr(sentence, seg=False, returnTokenizedSent=False):
         nodesNum = int(entry[0])
         edgesNum = int(entry[1])
         assert (nodesNum + edgesNum + 2) == len(lines)
+        nodeLines = lines[2:2+nodesNum]
+        edgeLines = lines[2+nodesNum:]
+        '''
         nodes = list()
         edges = list()
-        for line in lines[2:2:nodesNum]:
+        for line in lines[2:2+nodesNum]:
             entry = line.strip().split(' ')
             nodes.append((int(entry[0]), entry[1], entry[2]))
         for line in lines[2+nodesNum:]:
             entry = line.strip().split(' ')
-            edges.append((int(entry[0]),int(entrt[1])))
+            edges.append((int(entry[0]),int(entry[1])))
+        '''
         if returnTokenizedSent:
-            return (tokenizedSent, nodes, edges)
+            return (tokenizedSent, nodeLines, edgeLines)
         else:
-            return (nodes, edges)
+            return (nodeLines, edgeLines)
     else:
         return None
 
-print(constParseStr("我是一個人"))
-#print(constParseStr("這是一個測試用的句子"))
-#print(constParseStr("台灣應廢除死刑"))
+#print(sendConstParseRequest("我是一個人", returnTokenizedSent=True))
+#print(sendConstParseRequest("這是一個測試用的句子"))
+#print(sendConstParseRequest("台灣應廢除死刑"))
 
-def tagStr(sentence, seg=True):
+def sendTagRequest(sentence, seg=True):
     api_url = 'http://localhost:8000/pos'
     if seg == False:
         payload = { 's': sentence }
@@ -102,5 +104,5 @@ def tagStr(sentence, seg=True):
     else:
         return None
 
-#print(tagStr(segmentStr("我是一個人")))
+#print(sendTagRequest(sendSegmentRequest("我是一個人")))
 

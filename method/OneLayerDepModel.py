@@ -8,13 +8,13 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 import WFMapping
-from DepGraph import DepGraph
+from DepTree import DepTree
 import MLProcedure 
 import dataPreprocess
 
 '''
 This codes implements the OneLayerDepModel for stance classification.
-DepGraph.py, WFDict.py and Word->frequency mapping are required.
+DepTree.py, WFDict.py and Word->frequency mapping are required.
 Author: Wei-Ming Chen
 Date: 2015/03/08
 Last Updated: 2015/03/08
@@ -52,7 +52,7 @@ class OneLayerDepModel():
             newsEdgeList = list()
             for depList in contentDep:
                 # generate dependency graph for each dependency list
-                dg = DepGraph(depList)
+                dg = DepTree(depList)
                 dg.setAllowedDepWord(self.aflw[topicId], type='[t][w]')
                 dg.setAllowedGovWord(self.aflw[topicId], type='[t][w]')
                 dg.setAllowedRel(self.ar[topicId])

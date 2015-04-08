@@ -11,7 +11,7 @@ Last Update: 2015/03/08
 
 import networkx as nx
 
-class DepGraph():
+class DepTree():
     # depList: the list of typed dependencies
     def __init__(self, depList):
         self.g = nx.DiGraph()
@@ -173,6 +173,17 @@ class DepGraph():
         self.allowedDep = set()
         self.allowedRel = set()
 
+    def nodes(data=False):
+        return self.t.nodes(data)
 
+    def edges(data=False):
+        return self.t.edges(data)
 
-
+    def __repr__(self):
+        outStr = 'Nodes\n'
+        for n in self.t.nodes(data=True):
+            outStr += n + '\n'
+        outStr += 'Edges:\n'
+        for e in self.t.edges(data=True):
+            outStr += e + '\n'
+        return outStr
