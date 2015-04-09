@@ -11,7 +11,7 @@ function load_a_statement_news_fewer(){
     $query =
 	"SELECT diff, statement_id, news_id 
 	FROM `FINAL_TABLE` 
-	WHERE diff = (SELECT MAX(diff) FROM `FINAL_TABLE`) 
+	WHERE diff = (SELECT MAX(diff) FROM `FINAL_TABLE`) and diff > 0 
     order by rand() LIMIT 0, 1";
     if (!($stmt = $mysqli->prepare($query))) {
         echo "Prepare failed: (" . $mysqli->errno . ") " . $mysqli->error;
