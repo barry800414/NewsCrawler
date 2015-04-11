@@ -7,3 +7,6 @@ The way to preprocess
     ./rm_duplicate.py topic_config.json db_info.json
     ./preprocess_news.py preprocess_news.json db_info.json
 
+
+To add more news
+============================
