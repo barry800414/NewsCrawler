@@ -2,6 +2,7 @@
 
 import sys
 import networkx as nx
+from PhraseDepTree import Phrase
 
 # constituent tree data structure 
 class ConstTree:
@@ -97,13 +98,23 @@ class ConstTree:
         return False
 
     # merge the words in a constituent tree
-    def mergeWords(tree):
-        nodesList = sorted(tree.t.nodes(data=True), key=lambda x:x[0])
+    def getWords(self, wordSep=' '):
+        nodesList = sorted(self.t.nodes(data=True), key=lambda x:x[0])
         words = ''
         for n in nodesList:
             if n[1]['type'] == 'word':
-                words += n[1]['label'] + ' '
-        return words
+                words += n[1]['label'] + wordSep
+        return words.strip()
+
+    # return the tag(label) of root node
+    def getRootTag(self):
+        return self.t.node[self.rootId]['label']
+
+    def getPhrase(self, wordSep=' '):
+        #print('word: %s  tag:%s' % (self.getWords(wordSep), self.getRootTag()))
+        #print(Phrase(self.getWords(wordSep), self.getRootTag()))
+
+        return Phrase(self.getWords(wordSep), self.getRootTag())
 
     def printTree(tree, outfile=sys.stdout):
         print('Root:', tree.t.node[tree.rootId], file=outfile)

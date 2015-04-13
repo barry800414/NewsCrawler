@@ -23,11 +23,21 @@ class DepTree():
                 # skip root node in typed dependency list, using the child or root
                 if gW == 'ROOT':
                     self.rootId = dP
+                    self.add_node(dP, word=dW, tag=dT)
                     continue
                 self.t.add_edge(gP, dP, rel=rel, gone=False)
                 self.t.add_node(gP, word=gW, tag=gT)
                 self.t.add_node(dP, word=dW, tag=dT)
             self.reset()
+        self.nowNodes = None
+        self.allowedGov = None
+        self.allowedDep = None
+
+    def isValid(self):
+        if self.rootId == -1:
+            return False
+        else:
+            return True
 
     def add_node(self, nodeId, word, tag):
         self.t.add_node(nodeId, word=word, tag=tag)
@@ -212,6 +222,9 @@ class DepTree():
         obj = dict()
         obj['nodes']= self.t.nodes(data=True)
         obj['edges'] = self.t.edges(data=True)
+        obj['nowNodes'] = self.nowNodes
+        obj['allowedGovNodes'] = self.allowedGov
+        obj['allowedDepNodes'] = self.allowedDep
         return json.dumps(obj)
 
         outStr = 'Nodes:'
@@ -220,4 +233,6 @@ class DepTree():
         outStr += 'Edges:'
         for e in self.t.edges(data=True):
             outStr += str(e) + ','
+        
         return outStr
+

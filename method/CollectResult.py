@@ -61,8 +61,10 @@ def floatEq(f1, f2):
 # f3Rows: topic -> row of leave one test
 def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
     print('TopicId, Self-TrainTest(%s), LeaveOneTest(%s), All-TrainTest(%s)' % (scoreName, scoreName, scoreName), file=outfile)
-    si = colNameMap['macroF1']
+    si = colNameMap['MacroF1']
     for t in topicList:
+        print(f1Rows[t])
+        print(f3Rows[t])
         print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
     print('All,         ,         , %f' % f2Row[si])
 
@@ -82,20 +84,20 @@ if __name__ == '__main__':
     f1Rows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'topicId', allow='%d' % t, type='string')
-        sortByColumn(newData, colNameMap, 'macroF1', reverse=True)
+        sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f1Rows[t] = newData[0]
     
     # second framework (whole train-> whole test)
     newData = allowData(data, colNameMap, 'experimental settings', allow='allMixed', type='string')
-    sortByColumn(newData, colNameMap, 'macroF1', reverse=True)
+    sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
     f2Row = newData[0]
 
     # third framework (leave one test)
     f3Rows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'experimental settings', allow='Test on %d' % t, type='string')
-        sortByColumn(newData, colNameMap, 'macroF1', reverse=True)
+        sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f3Rows[t] = newData[0]
 
-    printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, 'macroF1')
+    printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, 'MacroF1')
 

@@ -63,18 +63,21 @@ class Phrase:
     def __repr__(self):
         return '[%s] %s' % (self.tag, self.getSepStr())
 
-
+# data[topicId][tag] = a list of phrases
 def loadPhraseFile(jsonFile, wordSep=' '):
     with open(jsonFile, 'r') as f:
         topicPhraseList = json.load(f)
 
     newDict = dict()
     for topicId, phraseDict in topicPhraseList.items():
-        newDict[topicId] = list()
+        if topicId == 'all':
+            continue
+        tId = int(topicId)
+        newDict[tId] = list()
         for tag, phraseList in phraseDict.items():
             for i in range(0, len(phraseList)):
                 # convert Phrase object
-                newDict[topicId].append(Phrase(phraseList[i], tag, wordSep=' '))
+                newDict[tId].append(Phrase(phraseList[i], tag, wordSep=' '))
     return newDict  # newDict[t]: the list of phrase objects of topic t           
 
 def filterPhraseByTag(phraseList, allowedTag):
@@ -86,7 +89,9 @@ def filterPhraseByTag(phraseList, allowedTag):
 
 class PhraseDepTree(DepTree):
     def __init__(self, tdList, phraseList, wordSep=' '):
+        #print('tdList:', tdList)
         super(PhraseDepTree, self).__init__(tdList)
+        #print('original Tree:', self.t)
         # filter out impossible phrases
         self.phraseList = self.filterPhrases(phraseList)
         self.wPMap = PhraseDepTree.genPhraseInvertedIndex(self.phraseList, wordSep)
@@ -101,12 +106,16 @@ class PhraseDepTree(DepTree):
 
     # construct the phrase dependency tree
     def construct(self):
+        #print(self)
         self.__constructPhraseDepTree(self.rootId)
 
     # recursively(pre-order) generate phrase dependency tree
     # rNode: current root node 
     # sNode: current child node of root node
     def __constructPhraseDepTree(self, rootId):
+        if rootId not in self.t.node:
+            print('Node %s has been removed' % (rootId), file=sys.stderr)
+            return 
         rNode = self.t.node[rootId]
         rWord = rNode['word']
         
@@ -114,7 +123,7 @@ class PhraseDepTree(DepTree):
         if rWord in self.wPMap:
             # possible phrases of this word
             pCandList = self.wPMap[rWord]
-            print('#possible Phrases of %s: %d' % (rWord, len(pCandList)), file=sys.stderr)
+            #print('#possible Phrases of %s: %d' % (rWord, len(pCandList)), file=sys.stderr)
             # FIXME: here I simply select the first one (the longest one)
             phrase = self.phraseList[pCandList[0]] 
             
@@ -134,16 +143,18 @@ class PhraseDepTree(DepTree):
 
                     # give all edges of child node to root node
                     for e2 in self.t.out_edges(sNodeId, data=True):
-                        self.t.add_edge(rootId, e2[1], rel=e2[2]['rel'])
+                        self.t.add_edge(rootId, e2[1], rel=e2[2]['rel'], gone=False)
                     self.t.remove_edge(rootId, sNodeId)
                     self.t.remove_node(sNodeId)
             # update the 'word' attribute of node
-            rNode['word'] = rNode['innerDepTree'].getSepStr()
+            if rNode['innerDepTree'] != None:
+                rNode['word'] = rNode['innerDepTree'].getSepStr()
 
             # to check whether it complete the phrase
-            if rNode['word'] != phrase.getSepStr():
-                print('merged node words:', rNode['word'])
-                print('phrase:', phrase.getSepStr())
+            #if rNode['word'] != phrase.getSepStr():
+            #    print('merge process is incomplete', file=sys.stderr)
+            #    print('merged node words:', rNode['word'], file=sys.stderr)
+            #    print('phrase:', phrase.getSepStr(), file=sys.stderr)
 
         # for each child node, to repeat the same process
         for e in self.t.out_edges(rootId):
@@ -178,6 +189,7 @@ class PhraseDepTree(DepTree):
         for p in self.phraseList:
             outStr += str(p) + ', '
         outStr += '\nPhrase Dependency Tree:\n'
+        outStr += 'rootId: %s\n' %(self.rootId)
         outStr += 'Nodes:\n'
         for n in self.t.nodes(data=True):
             outStr += str(n) + '\n'

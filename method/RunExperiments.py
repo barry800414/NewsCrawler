@@ -31,7 +31,7 @@ Last Update: 2015/03/29
 
 # class for providing frameworks for running experiments
 class RunExp:
-    def selfTrainTest(X, y, scorerName, clfList, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+    def selfTrainTest(X, y, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
@@ -218,6 +218,7 @@ class DataTool:
         
         return (XTrain, XTest, yTrain, yTest)
 
+    # merge topicX and topicy 
     def mergeData(topicXTrain, topicXTest, topicyTrain, topicyTest, topicList):
         assert len(topicList) != 0
         XTrainList = list()
@@ -319,6 +320,23 @@ class DataTool:
         #print('foldTopicMap', foldTopicMap)
         return (PredefinedSplit(testFold), foldTopicMap)
 
+    # horzontally merge two matrix, height should be identical
+    def hstack(X1, X2):
+        if X1.shape[0] != X2.shape[0]:
+            print('X1%s and X2%s has different height' % (X1.shape, X2.shape), file=sys.stderr)
+            return None
+        if type(X1) != type(X2):
+            print('X1(%s) and X2(%s) are different type of matrix' % (type(X1), type(X2)), file=sys.stderr)
+            return None
+
+        # concatenate XTrain Matrix
+        xType = type(X1)
+        if xType == matrix: #dense
+            return np.concatenate((X1, X2), axis=1)
+        elif xType == csr_matrix: #sparse
+            return csr_matrix(hstack((X1, X2)))
+        
+    
 # The class for providing function to do machine learning procedure
 class ML:
     def train(XTrain, yTrain, clfName, scorer):

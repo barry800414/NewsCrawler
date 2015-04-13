@@ -10,6 +10,8 @@ from scipy.sparse import csr_matrix
 import dataTool
 from OneLayerDepModel import *
 from PhraseDepTree import *
+from sentiDictSum import readSentiDict
+from RunExperiments import *
 
 '''
 This codes implements the OneLayerPhraseDepModel for stance classification.
@@ -34,14 +36,18 @@ class OneLayerPhraseDepModel(OneLayerDepModel):
     def __init__(self, parsedLabelNews, topicPhraseList, allowedSeedWord, 
             allowedSeedWordType, allowedFirstLayerWord, allowedFirstLayerWordType, 
             allowedRel):
-        super(OneLayerPhraseDepModel, this).__init__(parsedLabelNews, 
+        super(OneLayerPhraseDepModel, self).__init__(parsedLabelNews, 
                 allowedSeedWord, allowedSeedWordType, allowedFirstLayerWord, 
                 allowedFirstLayerWordType, allowedRel)
         self.topicPhraseList = topicPhraseList
 
     # override
     def getDepTree(self, tdList, topicId):
-        return PhraseDepTree(tdList, self.topicPhraseList[topicId])
+        pdt = PhraseDepTree(tdList, self.topicPhraseList[topicId])
+        if pdt.isValid():
+            pdt.construct()
+            return pdt
+        return None
 
 
 # TODO: calculate frequency from dependencies
@@ -62,7 +68,7 @@ if __name__ == '__main__':
     topicPhraseList = loadPhraseFile(phrasesJsonFile)
 
     # load sentiment dictionary
-    sentiDict = SentiDictSum.readSentiDict(sentiDictFile)
+    sentiDict = readSentiDict(sentiDictFile)
 
     # get the set of all possible topic
     topicSet = set()
@@ -74,46 +80,35 @@ if __name__ == '__main__':
     #firstLayerPOSType = ['VA', 'VV', 'JJ', 'AD']
     #thresList = [0.01, 0.005, 0.001, 0.0005, 0.00001]
 
-    '''
-    # all news are mixed to train and test
-    for threshold in thresList:
-        allowedSeedWord = dict() 
-        allowedFirstLayerWord = dict()
-        allowedRel = dict()
-        for topicId in topicSet:
-            allowedSeedWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], seedWordPOSType, threshold)
-            allowedFirstLayerWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], firstLayerPOSType, threshold)
-            allowedRel[topicId] = None
-            
-            for pos in seedWordPOSType:
-                print('#%s:%d' % (pos, len(allowedSeedWord[topicId][pos])), end='\t')
-            for pos in firstLayerPOSType:    
-                print('#%s:%d' % (pos, len(allowedFirstLayerWord[topicId][pos])), end='\t')
-            print('')
+    clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
 
-        # building the model
-        oldm = OneLayerDepModel(parsedLabelNews, allowedSeedWord, 
-            allowedFirstLayerWord, allowedRel)
-        (X, y) = oldm.genXY()
+    # here we don't have to specify allowed phrases words, because only valid phrases are 
+    # contruct in the process of constructing phrase dependency tree
+    allowedSeedWord = { topicId: set(seedWordPOSType) for topicId in topicSet }
+    allowedFirstLayerWord = { topicId: set(sentiDict.keys()) for topicId in topicSet }
+    allowedRel = { topicId: None for topicId in topicSet }
     
-        MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'SVM'], 
-            prefix='Threshold=%f' % (threshold))
-    '''
+    topicMap = [ parsedLabelNews[i]['statement_id'] for i in range(0, len(parsedLabelNews)) ]
+    # all news are mixed to train and test
+    oldm = OneLayerPhraseDepModel(parsedLabelNews, topicPhraseList, allowedSeedWord,
+                'tag', allowedFirstLayerWord, 'word', allowedRel)
+    (X, y) = oldm.genXY()
+    
+    prefix = "%s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', '[content]', 'False')
+    RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+    RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+    
     # news are divided into different topic to train and test
     labelNewsInTopic = dataTool.divideLabel(parsedLabelNews)
     for topicId, labelNewsList in labelNewsInTopic.items():
-        # here we don't have to specify allowed phrases words, because only valid phrases are 
-        # contruct in the process of constructing phrase dependency tree
-        allowedSeedWord = { topicId: set(seedWordPOSType) } 
-        allowedFirstLayerWord = set(sentiDict.keys())
-        allowedRel[topicId] = None
-                
+        print('topicId:', topicId, file=sys.stderr)
         # building the model
         oldm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList, allowedSeedWord,
                 'tag', allowedFirstLayerWord, 'word', allowedRel)
         (X, y) = oldm.genXY()
         
-            #MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'MaxEnt',  'SVM'], 
-            #    prefix='topicId=%d, Threshold=%f' % (topicId,threshold))
+        prefix = "%d, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', '[content]', 'False')
+        RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
 
+            
     

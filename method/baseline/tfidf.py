@@ -8,8 +8,6 @@ from collections import defaultdict
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
 
-import dataPreprocess
-import MLProcedure
 from RunExperiments import *
 from misc import *
 
@@ -230,9 +228,6 @@ if __name__ == '__main__':
     # load labels and news 
     with open(segLabelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
-
-    # print statiscal information
-    dataPreprocess.printStatInfo(labelNewsList)
 
     # print results
     print('topicId, feature, columnSource, statementCol, ', 

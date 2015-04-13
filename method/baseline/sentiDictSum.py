@@ -2,7 +2,6 @@
 
 import sys
 import json
-import dataPreprocess
 
 # return a dict (word -> sentiment score)
 def readSentiDict(filename):
@@ -62,7 +61,6 @@ if __name__ == '__main__':
 
 	with open(newsJsonFile, 'r') as f:
 		news = json.load(f)
-	news = dataPreprocess.data_cleaning(news)
 
 	dataPreprocess.printStatInfo(news)
 	
