@@ -31,7 +31,11 @@ Last Update: 2015/03/29
 
 # class for providing frameworks for running experiments
 class RunExp:
-    def selfTrainTest(X, y, scorerName, clfList, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+    def selfTrainTest(X, y, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+        # check data
+        if not DataTool.XyIsValid(X, y): #do nothing
+            return
+
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
@@ -77,10 +81,14 @@ class RunExp:
             result = Evaluator.evaluate(yTestPredict, yTest)
             
             # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', clf, bestParam, scorerName, result, outfile=outfile)
+            ResultPrinter.print(prefix + ', selfTrainTest', clfName, bestParam, scorerName, result, outfile=outfile)
     
     #FIXME
     def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+        # check data
+        if not DataTool.XyIsValid(X, y): #do nothing
+            return
+
         # divide data according to the topic
         (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
 
@@ -115,9 +123,13 @@ class RunExp:
             (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
                 
             # printing out results
-            ResultPrinter.print(prefix + ", allMixed", clf, bestParam, scorerName, avgR, outfile=outfile)
+            ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, scorerName, avgR, outfile=outfile)
 
     def leaveOneTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix='', outfile=sys.stdout):
+        # check data
+        if not DataTool.XyIsValid(X, y): #do nothing
+            return
+
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
@@ -139,7 +151,7 @@ class RunExp:
                 result = Evaluator.evaluate(yTestPredict, yTest)
                 
                 # printing out results
-                ResultPrinter.print(prefix + ", Test on %d " % topic, clf, bestParam, scorerName, result, outfile=outfile)
+                ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, scorerName, result, outfile=outfile)
 
 
 # The class for providing functions to manipulate data
@@ -218,6 +230,7 @@ class DataTool:
         
         return (XTrain, XTest, yTrain, yTest)
 
+    # merge topicX and topicy 
     def mergeData(topicXTrain, topicXTest, topicyTrain, topicyTest, topicList):
         assert len(topicList) != 0
         XTrainList = list()
@@ -319,6 +332,36 @@ class DataTool:
         #print('foldTopicMap', foldTopicMap)
         return (PredefinedSplit(testFold), foldTopicMap)
 
+    # horzontally merge two matrix, height should be identical
+    def hstack(X1, X2):
+        if X1.shape[0] != X2.shape[0]:
+            print('X1%s and X2%s has different height' % (X1.shape, X2.shape), file=sys.stderr)
+            return None
+        if type(X1) != type(X2):
+            print('X1(%s) and X2(%s) are different type of matrix' % (type(X1), type(X2)), file=sys.stderr)
+            return None
+
+        # concatenate XTrain Matrix
+        xType = type(X1)
+        if xType == matrix: #dense
+            return np.concatenate((X1, X2), axis=1)
+        elif xType == csr_matrix: #sparse
+            return csr_matrix(hstack((X1, X2)))
+        
+    def XyIsValid(X, y):
+        if X.shape[0] != len(y):
+            print('X.shape[0] != len(y)', file=sys.stderr)
+            return False
+        elif X.shape[0] == 0:
+            print('X.shape[0] == 0', file=sys.stderr)
+            return False
+        elif X.shape[1] == 0:
+            print('X.shape[1] == 0', file=sys.stderr)
+            return False
+        else:
+            return True
+
+    
 # The class for providing function to do machine learning procedure
 class ML:
     def train(XTrain, yTrain, clfName, scorer):
@@ -541,12 +584,15 @@ class Evaluator:
         return avgR['MacroF1']
 
 class ResultPrinter:
-    def print(prefix, clf, params, scorerName, result, outfile):
-        clfStr = "%s" % (clf)
-        clfStr = clfStr[0:clfStr.find('(')]
+    def printFirstLine(outfile=sys.stdout):
+        print('topicId, feature, model settings, columnSource,'
+          ' statementCol, experimental settings, classifier,'
+          'parameters, scorer, accuracy, MacroF1, MacroR', file=outfile)
+
+    def print(prefix, clfName, params, scorerName, result, outfile):
         paramStr = "%s" % (params)
         paramStr = paramStr.replace(',', ' ').replace('\n', ' ')
-        print(prefix, clfStr, paramStr, scorerName,  result['Accuracy'], 
+        print(prefix, clfName, paramStr, scorerName,  result['Accuracy'], 
                 result['MacroF1'], result['MacroR'], sep=',', 
                 file=outfile)
 

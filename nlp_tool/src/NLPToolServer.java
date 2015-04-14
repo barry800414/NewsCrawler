@@ -265,7 +265,7 @@ public class NLPToolServer {
             //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
             //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
             System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + tokenizedSent + "\n" + treeStr);
+            //System.out.println("Response:" + tokenizedSent + "\n" + treeStr);
  
             NLPToolServer.writeResponse(httpExchange, response.toString());
         }

@@ -1,20 +1,20 @@
 
+import json
 
-def list2Str(L, sep=' '):
-    buf = '['
-    for i, e in enumerate(L):
-        if i == 0:
-            buf += e
-        else:
-            buf += sep + e
-        if i == len(L) - 1:
-            buf += ']'
-    return buf
+def toStr(v, sep='**'):
+    outStr = json.dumps(v)
+    outStr = outStr.replace(',', sep)
+    return outStr
 
-def dict2Str(D, sep=' '):
-    buf = '{'
-    for key, value in D.items():
-        buf += sep + str(key) + ':' + str(value) 
-    buf += '}'
-    return buf
-        
+def str2Var(inStr, sep='**'):
+    return json.loads(inStr.replace(sep, ','))
+
+
+def toFStr(v):
+    outStr = json.dumps(v)
+    outStr = outStr.replace("'", '')
+    outStr = outStr.replace('"', '')
+    outStr = outStr.replace(',', '')
+    outStr = outStr.replace(' ', '')
+    return outStr
+

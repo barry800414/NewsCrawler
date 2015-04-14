@@ -2,6 +2,7 @@
 
 import sys
 import networkx as nx
+from PhraseDepTree import Phrase
 
 # constituent tree data structure 
 class ConstTree:
@@ -52,7 +53,7 @@ class ConstTree:
         else:
             for e in outEdges:
                 subTree.add_edge(e[0], e[1])
-                self.tetSubTree(e[1], subTree)
+                self.getSubTree(e[1], subTree)
         return subTree
 
     # return true if all grand children are leaves
@@ -84,7 +85,7 @@ class ConstTree:
         phrases = list()
         for n in self.t.nodes():
             if self.isPhraseCandidate(n, allowedLabelSet):
-                phrases.append(self.tetSubTree(n, ConstTree(None, None, n)))
+                phrases.append(self.getSubTree(n, ConstTree(None, None, n)))
         return phrases    
 
     # to check whether subtree(phrase) is candidate or not
@@ -92,27 +93,37 @@ class ConstTree:
         maxHeight = self.t.node[nodeId]['maxHeight']
         label = self.t.node[nodeId]['label']
         if maxHeight == self.phraseHeight and label in allowedLabelSet:
-            if self.trandChildrenAreLeaves(nodeId):
+            if self.grandChildrenAreLeaves(nodeId):
                 return True
         return False
 
     # merge the words in a constituent tree
-    def mergeWords(tree):
-        nodesList = sorted(tree.g.nodes(data=True), key=lambda x:x[0])
+    def getWords(self, wordSep=' '):
+        nodesList = sorted(self.t.nodes(data=True), key=lambda x:x[0])
         words = ''
         for n in nodesList:
             if n[1]['type'] == 'word':
-                words += n[1]['label'] + ' '
-        return words
+                words += n[1]['label'] + wordSep
+        return words.strip()
+
+    # return the tag(label) of root node
+    def getRootTag(self):
+        return self.t.node[self.rootId]['label']
+
+    def getPhrase(self, wordSep=' '):
+        #print('word: %s  tag:%s' % (self.getWords(wordSep), self.getRootTag()))
+        #print(Phrase(self.getWords(wordSep), self.getRootTag()))
+
+        return Phrase(self.getWords(wordSep), self.getRootTag())
 
     def printTree(tree, outfile=sys.stdout):
-        print('Root:', tree.g.node[tree.rootId], file=outfile)
+        print('Root:', tree.t.node[tree.rootId], file=outfile)
         print('Nodes:', file=outfile)
-        for n in tree.g.nodes(data=True):
+        for n in tree.t.nodes(data=True):
             if n[0] != tree.rootId:
                 print(n, file=outfile)
         print('Edges:', file=outfile)
-        for e in tree.g.edges():
+        for e in tree.t.edges():
             print(e, file=outfile)
 
 

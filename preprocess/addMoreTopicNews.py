@@ -113,7 +113,7 @@ def eval(rel, irrel, hasKeyword, noKeyword, selected=None, minFreq=None):
     print 'MinFreq:', minFreq
 
 def getOriginalTopicNews(nl, topicId):
-    sql = 'SELECT DISTINCT(news_id) FROM topic_news_backup WHERE topic_id = %d' % topicId 
+    sql = 'SELECT DISTINCT(news_id) FROM topic_news_backup20150331 WHERE topic_id = %d' % topicId 
     try:
         newsIdSet = set()
         nl.cursor.execute(sql)
@@ -185,13 +185,13 @@ if __name__ == '__main__':
     nl = NewsLoader.NewsLoader(dbConfig, {"topic_news_table": "topic_news_all_backup"})
     f = filter.NewsFilter(dbConfig)
 
-    topicNewsDict = nl.getTopicNews(topicIdList=[topicId], 
+    allTopicNewsDict = nl.getTopicNews(topicIdList=[topicId], 
             limitNum=-1, corpusTable='merge_necessary')
     
     # topicNewsDict[topicId] is a list of topicNews
     # topicNews['topicNewsId'] is the id of topicNews
     # topicNews['news'] is the news
-    topicNewsList = topicNewsDict[topicId]
+    allTopicNewsList = allTopicNewsDict[topicId]
     
     configs = topicConfig['topic_configs']
     keywords = configs[topicId-1]['keywords']
@@ -200,11 +200,14 @@ if __name__ == '__main__':
     minFreq = 4
     maxLen = 1000
 
+    # original number of topic news
     oriTopicNews = getOriginalTopicNews(nl, topicId)
-    print '#original topic news:', len(oriTopicNews)
+    print '#original topic %d news:' % (topicId), len(oriTopicNews)
     toInsert = set()
     cnt = cnt2 = cnt3 = 0
-    for tn in topicNewsList:
+
+    # all filtered topic news
+    for tn in allTopicNewsList:
         news = tn['news']
         newsId = news['id']
         if f.contain_keywords(news, keywords, minFreq) and len(news['content']) <= maxLen and newsId not in oriTopicNews:
@@ -215,14 +218,15 @@ if __name__ == '__main__':
             cnt2 += 1
         if newsId not in oriTopicNews:
             cnt3 += 1
+    print '#all topic %d news' % (topicId), len(allTopicNewsList)
     print '#news containing %d keywords:' % minFreq, cnt
     print '#news length < %d:' % maxLen, cnt2
     print '#news not in original topic news: ', cnt3
 
     print '#news to be inserted:', len(toInsert)  
 
-    #tni = TopicNewsInserter(dbConfig, {"topic_news_table": "topic_news"})
-    #tni.insertTopicNews(toInsert)
+    tni = TopicNewsInserter(dbConfig, {"topic_news_table": "topic_news"})
+    tni.insertTopicNews(toInsert)
     
     #for recursively (brute force) find all possible combination
     #recursiveTry(nl, topicId, topicNewsList)

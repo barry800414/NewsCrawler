@@ -17,11 +17,11 @@ if __name__ == '__main__':
     with open(labelNewsJsonFile, 'r') as f:
         labelNewsList = json.load(f)
     
-    # load sentiment lexicon & 
-    # generate word -> color mapping (for sentiment lexicon)
+    # load sentiment lexicon & generate word -> color mapping (for sentiment lexicon)
     sentiDict = readSentiDict(wordLexiconFile)
     wordColorForSent = dictToWordColorMapping(sentiDict)
 
+    '''
     # load opinion targets list for each topic
     with open(targetLexiconFile, 'r') as f:
         targetLexiconJson = json.load(f)
@@ -52,3 +52,20 @@ if __name__ == '__main__':
 
         if i % 10 == 0:
             print('Progress:(%d/%d)' % (i, len(labelNewsList)), file=sys.stderr)
+    '''
+    for i, labelNews in enumerate(labelNewsList):
+        statID = labelNews['statement_id']
+        label = labelNews['label']
+        stat = labelNews['statement']['seg']
+        title = labelNews['news']['title_seg']
+        content = labelNews['news']['content_seg']
+        
+        print(ct2("立場:", WC.LIGHT_BLUE), ct(stat, wordColorForSent))
+        print(ct2("標記:", WC.LIGHT_BLUE), label)
+        print(ct2("標題:", WC.LIGHT_BLUE), ct(title, wordColorForSent))
+        print(ct2("內文:", WC.LIGHT_BLUE), ct(content, wordColorForSent))
+        print('=================================================================')
+
+        if i % 10 == 0:
+            print('Progress:(%d/%d)' % (i, len(labelNewsList)), file=sys.stderr)
+
