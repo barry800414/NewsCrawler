@@ -6,12 +6,14 @@ from collections import defaultdict
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from sklearn.grid_search import ParameterGrid
 
 import dataTool
 from OneLayerDepModel import *
 from PhraseDepTree import *
 from sentiDictSum import readSentiDict
 from RunExperiments import *
+from misc import *
 
 '''
 This codes implements the OneLayerPhraseDepModel for stance classification.
@@ -33,13 +35,9 @@ class OneLayerPhraseDepModel(OneLayerDepModel):
     # allowedFirstLayerWord is similar to allowedSeedWord
     # allowedRel[T][P]
 
-    def __init__(self, parsedLabelNews, topicPhraseList, allowedSeedWord, 
-            allowedSeedWordType, allowedFirstLayerWord, allowedFirstLayerWordType, 
-            allowedRel):
-        super(OneLayerPhraseDepModel, self).__init__(parsedLabelNews, 
-                allowedSeedWord, allowedSeedWordType, allowedFirstLayerWord, 
-                allowedFirstLayerWordType, allowedRel)
+    def __init__(self, parsedLabelNews, topicPhraseList):
         self.topicPhraseList = topicPhraseList
+        super(OneLayerPhraseDepModel, self).__init__(parsedLabelNews)
 
     # override
     def getDepTree(self, tdList, topicId):
@@ -49,6 +47,13 @@ class OneLayerPhraseDepModel(OneLayerDepModel):
             return pdt
         return None
 
+# initialize allowed set. dictionary: word -> score
+def initAllowedSet(topicSet, config, dictionary=None):
+    if config['type'] == 'word': #using words in dictionary
+        allowedSet = { topicId: set(dictionary.keys()) for topicId in topicSet }
+    elif config['type'] == 'tag': #using tag
+        allowedSet = { topicId: set(config['allow']) for topicId in topicSet }
+    return allowedSet
 
 # TODO: calculate frequency from dependencies
 if __name__ == '__main__':
@@ -75,40 +80,74 @@ if __name__ == '__main__':
     for labelNews in parsedLabelNews:
         topicSet.add(labelNews['statement_id'])
 
-    # model setting
-    seedWordPOSType = ['NP'] #FIXME: how about NN, NR?
-    #firstLayerPOSType = ['VA', 'VV', 'JJ', 'AD']
-    #thresList = [0.01, 0.005, 0.001, 0.0005, 0.00001]
+    # model parameters #FIXME: allowed relation
+    params = { 'seedWordType': [
+                    {'type': 'tag', 'allow': ('NP',)},
+                    {'type': 'tag', 'allow': ('NP','NR')},
+                    {'type': 'tag', 'allow': ('NP','NR','NN')}
+                ],
+               'firstLayerType': [ 
+                    {'type': 'word', 'allow': 'NTUSD_core'}, 
+                    {'type': 'tag', 'allow': ('VV',)},
+                    {'type': 'tag', 'allow': ('JJ',)},
+                    {'type': 'tag', 'allow': ('VA',)},
+                    {'type': 'tag', 'allow': ('VV','JJ')},
+                    {'type': 'tag', 'allow': ('VV','VA')},
+                    {'type': 'tag', 'allow': ('JJ','VA')},
+                    {'type': 'tag', 'allow': ('VV','JJ','VA')} 
+                ]
+            }
 
+    paramsGrid = ParameterGrid(params)
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
-
-    # here we don't have to specify allowed phrases words, because only valid phrases are 
-    # contruct in the process of constructing phrase dependency tree
-    allowedSeedWord = { topicId: set(seedWordPOSType) for topicId in topicSet }
-    allowedFirstLayerWord = { topicId: set(sentiDict.keys()) for topicId in topicSet }
-    allowedRel = { topicId: None for topicId in topicSet }
-    
     topicMap = [ parsedLabelNews[i]['statement_id'] for i in range(0, len(parsedLabelNews)) ]
-    # all news are mixed to train and test
-    oldm = OneLayerPhraseDepModel(parsedLabelNews, topicPhraseList, allowedSeedWord,
-                'tag', allowedFirstLayerWord, 'word', allowedRel)
-    (X, y) = oldm.genXY()
-    
-    prefix = "%s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', '[content]', 'False')
-    RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
-    RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
-    
-    # news are divided into different topic to train and test
     labelNewsInTopic = dataTool.divideLabel(parsedLabelNews)
-    for topicId, labelNewsList in labelNewsInTopic.items():
-        print('topicId:', topicId, file=sys.stderr)
-        # building the model
-        oldm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList, allowedSeedWord,
-                'tag', allowedFirstLayerWord, 'word', allowedRel)
-        (X, y) = oldm.genXY()
-        
-        prefix = "%d, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', '[content]', 'False')
-        RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
-
-            
     
+    debugFolder = './debug'
+    ResultPrinter.printFirstLine()
+
+    # intialize the model
+    print('Intializing the model...', file=sys.stderr)
+    olpdm = OneLayerPhraseDepModel(parsedLabelNews, topicPhraseList)
+    tolpdm = dict()
+    for topicId, labelNewsList in labelNewsInTopic.items():
+        tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
+                topicPhraseList)
+
+    print('Experiments starts...', file=sys.stderr)
+    for p in paramsGrid:
+        print('Model Setting:', p, file=sys.stderr)
+        print('All-Train-Test and Leave-One-Test ... ', file=sys.stderr)
+        # initialization for this parameter
+        allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
+        allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
+        allowedRel = { topicId: None for topicId in topicSet }
+
+        ## allTrainTest and leaveOneTest
+        fStr = 'allMixedPairs_%s_%s' %(toFStr(p['seedWordType']['allow']), 
+                toFStr(p['firstLayerType']['allow']))
+        debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
+
+        olpdm.setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
+                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+        (X, y) = olpdm.genXY()
+        prefix = "%s, %s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', toStr(p), '[content]', 'False')
+        RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+        RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+        debugFile.close()
+        
+        ## selfTrainTest
+        print('self-Train-Test ...', file=sys.stderr)
+        for topicId in topicSet:
+            print('topicId:', topicId, file=sys.stderr)
+            fStr = 'topic%dPairs_%s_%s' %(topicId, toFStr(p['seedWordType']['allow']), 
+                    toFStr(p['firstLayerType']['allow']))
+            debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
+            tolpdm[topicId].setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
+                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+            (X, y) = tolpdm[topicId].genXY()
+            
+            prefix = "%d, %s, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', toStr(p),'[content]', 'False')
+            RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+            debugFile.close()
+        

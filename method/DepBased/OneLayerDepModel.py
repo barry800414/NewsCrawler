@@ -30,32 +30,22 @@ class OneLayerDepModel():
     # 
     # allowedFirstLayerWord is similar to allowedSeedWord
     # allowedRel[T][P]
-    def __init__(self, parsedLabelNews, allowedSeedWord, allowedSeedWordType, 
-            allowedFirstLayerWord, allowedFirstLayerWordType, allowedRel):
+    def __init__(self, parsedLabelNews):
         self.pln = parsedLabelNews
-        self.asw = allowedSeedWord
-        self.aswType = allowedSeedWordType
-        self.aflw = allowedFirstLayerWord
-        self.aflwType = allowedFirstLayerWordType
-        self.ar = allowedRel
-        self.seedVolc = dict() # seed word volcabulary
-        self.__initSeedVolc()  
-        self.newVolc = dict() # word volcabulary for first layer
+        self.init()
         
-    # TODO: word/word-tag/word-relation??
-    # initialize the seed word volcabulary
-    def __initSeedVolc(self):
-        if self.aswType == '[t][w]':
-            for topicId, seedWord in self.asw.items():
-                for tag, wordSet in seedWord.items():
-                    addWordSetToVolc(wordSet, self.seedVolc)
-            print('#seedVolc:', len(self.seedVolc), file=sys.stderr)
-        elif self.aswType == 'word':
-            for topicId, seedWord in self.asw.items():
-                addWordSetToVolc(set(seedWord), self.seedVolc)
-            print('#seedVolc:', len(self.seedVolc), file=sys.stderr)
-        elif self.aswType == 'tag':
-            pass # we cannot initialize seed word volcabulary in advance
+    def init(self):
+        self.corpusDGList = list()
+        for labelNews in self.pln:
+            topicId = labelNews['statement_id'] # FIXME
+            contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
+            newsDGList = list()
+            for depList in contentDep:
+                # generate dependency graph for each dependency list
+                dg = self.getDepTree(depList['tdList'], topicId)
+                if dg != None:
+                    newsDGList.append(dg)
+            self.corpusDGList.append((topicId, newsDGList))
 
     def getDepTree(self, tdList, topicId):
         dt = DepTree(tdList)
@@ -64,18 +54,24 @@ class OneLayerDepModel():
         else:
             return None
 
-    # generate X, y 
+    def setModel(self, allowedSeedWord, allowedSeedWordType, 
+            allowedFirstLayerWord, allowedFirstLayerWordType, 
+            allowedRel, debugLevel=0, debugFile=sys.stderr):
+        self.asw = allowedSeedWord
+        self.aswType = allowedSeedWordType
+        self.aflw = allowedFirstLayerWord
+        self.aflwType = allowedFirstLayerWordType
+        self.ar = allowedRel
+        self.debugLevel = debugLevel
+        self.debugFile = debugFile
+
+    # generate X, y. You must call setModel in advance 
     def genXY(self):
         corpusEdgeList = list()
-        for labelNews in self.pln:
-            topicId = labelNews['statement_id'] # FIXME
-            contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
+        for topicId, newsDGList in self.corpusDGList:
             newsEdgeList = list()
-            for depList in contentDep:
-                # generate dependency graph for each dependency list
-                dg = self.getDepTree(depList['tdList'], topicId)
-                if dg == None:
-                    continue
+            for dg in newsDGList:
+                dg.reset()
                 dg.setAllowedDepWord(self.aflw[topicId], type=self.aflwType)
                 dg.setAllowedGovWord(self.aflw[topicId], type=self.aflwType)
                 dg.setAllowedRel(self.ar[topicId])
@@ -84,36 +80,33 @@ class OneLayerDepModel():
                 # go one step for searching dependencies (edges) which matches the rule
                 edgeList = dg.searchOneStep()
                 
-                # if type of seed word set is 'tag', then we have to initialize
-                # the volcabulary from data
-                if self.aswType == 'tag':
-                    seedWordSet = set([sW for rel,sP,sW,sT,eP,eW,eT in edgeList])
-                    addWordSetToVolc(seedWordSet, self.seedVolc)
-
-                # add new word to volcabulary
-                newWordSet = set([eW for rel,sP,sW,sT,eP,eW,eT in edgeList])
-                addWordSetToVolc(newWordSet, self.newVolc)
-
                 # save all the searched depenencies for later usage
                 newsEdgeList.append(edgeList)
 
             # corpusEdgeList[newsIndex][depGraphIndex][edgeIndex]
             corpusEdgeList.append(newsEdgeList)
 
-        if self.aswType == 'tag':
-            print('#seedVolc:', len(self.seedVolc), file=sys.stderr)
-        print("#newVolc:", len(self.newVolc), file=sys.stderr)
+        # build the dictionary
+        volc = dict()
+        for newsEdgeList in corpusEdgeList:
+            for edgeList in newsEdgeList:
+                for rel,sP,sW,sT,eP,eW,eT in edgeList:
+                    if (sW, eW) not in volc:
+                        volc[(sW,eW)] = len(volc)
+
+        if self.debugLevel > 0:
+            print('# distinct pairs: ', len(volc), file=sys.stderr)
+            for (sW, eW), index in volc.items():
+                print(sW, '/', eW, index, file=self.debugFile)
 
         # converting all extraced dependencies to features X
         # Here the features are the word counts from each seed word, 
-        # so the dimension of X will be len(seedVolc) * len(newVolc)
-        base = len(self.newVolc)
+        # first layer word pair
         XFeature = [defaultdict(int) for i in range(0, len(self.pln))]
         for i, newsEdgeList in enumerate(corpusEdgeList):
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    index = self.seedVolc[sW] * base + self.newVolc[eW]
-                    XFeature[i][index] += 1
+                    XFeature[i][volc[(sW, eW)]] += 1
         
         rows = list()
         cols = list()
@@ -124,7 +117,7 @@ class OneLayerDepModel():
                 cols.append(colId)
                 entries.append(cnt)
         numRow = len(XFeature)
-        numCol = len(self.seedVolc) * len(self.newVolc)
+        numCol = len(volc)
         X = csr_matrix((entries, (rows, cols)), shape=(numRow, 
             numCol), dtype=np.float64)
         y = np.array(getLabels(self.pln))

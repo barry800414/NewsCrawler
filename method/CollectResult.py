@@ -65,8 +65,24 @@ def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, 
     for t in topicList:
         print(f1Rows[t])
         print(f3Rows[t])
-        print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
-    print('All,         ,         , %f' % f2Row[si])
+        #print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
+    print(f2Row[si])
+    #print('All,         ,         , %f' % f2Row[si])
+
+def getBestParams(f1Rows, f2Row, f3Rows):
+    bestF1 = None
+    bestF2 = None
+    bestF3 = None
+    if f1Rows != None:
+        for r in f1Rows:
+            topicId = int(row[0])
+            feature = row[1]
+            colSource = row
+    if f2Row != None:
+        pass
+    if f3Row != None:
+        pass
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
