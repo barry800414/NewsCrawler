@@ -337,7 +337,7 @@
     			<td class="second_col"><span id="content" class="content"></span></td>
             </tr>
             <tr id="valid_format_row" class="label_row">
-    			<td class="first_col">格式正確性</td>
+    			<td class="first_col">格式正確性 <br>  <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a> </td>
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
@@ -353,16 +353,16 @@
                     </label>
 
                 </div>
-                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有段落遺失、廣告文字、亂碼或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span>
-                    <button class="btn btn-primary pull-right" id="valid_format_button">確定</button>
-                </td>
+                <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有段落遺失、廣告文字、亂碼或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span><br>
+                    <button class="btn btn-primary pull-right" id="valid_format_button">確定</button><br>   
+            </td>
             </tr>
             <tr id="topic_row" class="statement_row" >
                 <td class="first_col">主題</td>
                 <td class="second_col"><span id="topic" class="second_row topic"></span></td>
             </tr>
             <tr id="relevance_row" class="label_row">
-    			<td class="first_col">文章與主題相關性</td>
+    			<td class="first_col">文章與主題相關性 <br> <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a>  </td>
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
@@ -386,7 +386,7 @@
             </tr>
            
             <tr id="mention_row" class="label_row">
-    			<td class="first_col">文章提及正反意見</td>
+    			<td class="first_col">文章提及正反意見  <br> <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a> </td>
     			<td class="second_col">
                 <div>
                     <label class="checkbox-inline">
@@ -404,7 +404,7 @@
     		</tr>
             
     		<tr id="label_row" class="label_row">
-    			<td class="first_col">標記</td>
+    			<td class="first_col">標記  <br> <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a> </td>
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">

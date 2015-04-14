@@ -17,7 +17,8 @@
         <ul class="nav navbar-nav">
             <li><a href="./annotate.php">標記頁面</a></li>
             <li><a href="./contact.php">聯絡我們</a></li>
-            <li><a href="./qa.php">Q&A</a></li>
+            <li><a href="./qa.php">網站Q&A</a></li>
+            <li><a href="./qa2.php">標記Q&A</a></li>
         </ul>
 
         <ul class="nav navbar-nav navbar-right">
