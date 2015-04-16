@@ -317,12 +317,12 @@
     		<input type="hidden" id="news_id">
     		<tr id="topic_row_top" class="statement_row" >
                 <td class="first_col">主題</td>
-                <td class="second_col"><span id="topic" class="second_row topic"></span></td>
+                <td class="second_col"><span id="topic" class="second_row topic">載入中...</span></td>
             </tr>
 
     		<tr class="news_row">
     			<td class="first_col">標題</td>
-    			<td class="second_col"><span id="title"></span></td>
+    			<td class="second_col"><span id="title">載入中...</span></td>
     		</tr>
     		<!--<tr class="small_row">
     			<td class="first_col">來源</td>
@@ -330,11 +330,11 @@
     		</tr>-->
     		<tr class="news_row">
     			<td class="first_col">來源網址</td>
-    			<td class="second_col"><a target="_blank" id="url"></a></td>
+    			<td class="second_col"><a target="_blank" id="url">載入中...</a></td>
     		</tr>
     		<tr class="news_row">
     			<td class="first_col">內文</td>
-    			<td class="second_col"><span id="content" class="content"></span></td>
+    			<td class="second_col"><span id="content" class="content">載入中...</span></td>
             </tr>
             <tr id="valid_format_row" class="label_row">
     			<td class="first_col">格式正確性 <br>  <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a> </td>
