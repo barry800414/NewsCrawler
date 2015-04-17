@@ -3,6 +3,7 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
 <head>
+    <title>新聞標記系統-介紹</title>
     <style type="text/css">
         #main_interface{
             max-width: 600px;
@@ -49,6 +50,13 @@
             <li class="text-left">the overall polarity(agree/disagree/neutral) of the whole article to the given statement.</li>
         </ol>
     </p>
+    
+
+    <h2> 標記Q&A </h2>
+    <p> 在開始標記前，請先參考標記時可能會遇到的疑問與回答: <a href="qa2.php">標記Q&A</a></p>
+    
+    <br><br>
+
     <a class="btn btn-primary" href="./annotate.php">前往標記頁面</a><br><br>
     <p>如果有任何疑問，歡迎隨時<a href="./contact.php" >聯絡我們</a></p>
     <p>If you have any question, please <a href="./contact.php">contact us</a></p>

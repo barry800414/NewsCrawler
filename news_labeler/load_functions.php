@@ -3,6 +3,8 @@
 require_once('connect.php');
 require_once('check_login.php');
 
+$corpus_table = 'merge_necessary_clean';
+
 /* older version: load a statement news by randomly sample available 
  * statement news, then check whether the user has labeled it or not
  * It is better to use it when the user label fewer data */
@@ -152,13 +154,13 @@ function load_toLabel_statement_news(){
 
 /*Get a piece of news-statement*/
 function get_content($statement_id, $news_id, $remain_num){
-    global $mysqli;
+    global $mysqli, $corpus_table;
     $query =
     "SELECT 
         C.topic_id, D.name, C.content as statement,
         B.title as news_title, B.content as news_content, 
         B.url as news_url 
-    FROM merge_necessary as B, statement as C, topic as D
+    FROM `$corpus_table` as B, statement as C, topic as D
     WHERE 
         B.id = ? AND C.id = ? AND D.id = C.topic_id";
     $success=TRUE;
@@ -247,11 +249,11 @@ function get_labeled_num($user_id){
 
 
 function get_label_content_length($user_id){
-    global $mysqli;
+    global $mysqli, $corpus_table;
     /*load total length of contents*/
     $query = "SELECT SUM(C.length) 
               FROM (SELECT CHAR_LENGTH(B.content) as length 
-                        FROM `statement_news` as A, `merge_necessary` as B 
+                        FROM `statement_news` as A, `$corpus_table` as B 
                         WHERE A.news_id = B.id AND labeler=?) as C";
 
     $success=TRUE;
