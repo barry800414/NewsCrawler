@@ -128,10 +128,10 @@ if __name__ == '__main__':
                 toFStr(p['firstLayerType']['allow']))
         debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
 
-        olpdm.setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
-                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+        olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
+                p['firstLayerType']['type'], allowedRel, debugLevel=1, debugFile=debugFile)
         (X, y) = olpdm.genXY()
-        prefix = "%s, %s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', toStr(p), '[content]', 'False')
+        prefix = "%s, %s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', toStr(p), '["content"]', 'False')
         RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
         RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
         debugFile.close()
@@ -143,11 +143,11 @@ if __name__ == '__main__':
             fStr = 'topic%dPairs_%s_%s' %(topicId, toFStr(p['seedWordType']['allow']), 
                     toFStr(p['firstLayerType']['allow']))
             debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
-            tolpdm[topicId].setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
-                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+            tolpdm[topicId].setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
+                p['firstLayerType']['type'], allowedRel, debugLevel=1, debugFile=debugFile)
             (X, y) = tolpdm[topicId].genXY()
             
-            prefix = "%d, %s, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', toStr(p),'[content]', 'False')
+            prefix = "%d, %s, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', toStr(p),'["content"]', 'False')
             RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
             debugFile.close()
         

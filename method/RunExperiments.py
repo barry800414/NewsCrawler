@@ -72,12 +72,14 @@ class RunExp:
 
         for clfName in clfList:
             # training using validation
+            print('In Cross Validation ...', file=sys.stderr)
             (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, scorer)
 
             # testing 
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
+            print('In testing ...', file=sys.stderr)
             result = Evaluator.evaluate(yTestPredict, yTest)
             
             # printing out results
@@ -112,6 +114,7 @@ class RunExp:
 
         # training using validation
         for clfName in clfList:
+            print('In Cross Validation ...', file=sys.stderr)
             (clf, bestParam, yTrainPredict) = ML.topicTrain(XTrain, yTrain, 
                     clfName, scorerName, trainMap)
 
@@ -120,12 +123,13 @@ class RunExp:
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
+            print('In testing ...', file=sys.stderr)
             (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
                 
             # printing out results
             ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, scorerName, avgR, outfile=outfile)
 
-    def leaveOneTest(X, y, topicMap, clfList, scorerName, randSeed=1, prefix='', outfile=sys.stdout):
+    def leaveOneTest(X, y, topicMap, clfList, scorerName, testTopic=None, randSeed=1, prefix='', outfile=sys.stdout):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -137,17 +141,22 @@ class RunExp:
         (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
 
         # N-1 topics are as training data, 1 topic is testing
-        for topic in topicList:
+        # if the test topic id is given, then only test it
+        if testTopic == None:
+            testTopic = list(topicList)
+        for topic in testTopic:
             (XTrain, XTest, yTrain, yTest, trainMap, 
                     testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topicList, topic)
 
             for clfName in clfList:
                 # training using validation
+                print('In Cross Validation ...', file=sys.stderr)
                 (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, scorer)
                 # testing 
                 yTestPredict = ML.test(XTest, clf)
 
                 # evaluation
+                print('In testing ...', file=sys.stderr)
                 result = Evaluator.evaluate(yTestPredict, yTest)
                 
                 # printing out results
@@ -589,9 +598,12 @@ class ResultPrinter:
           ' statementCol, experimental settings, classifier,'
           'parameters, scorer, accuracy, MacroF1, MacroR', file=outfile)
 
+    def getDataType():
+        return ('str', 'str', 'str', 'str', 'str', 'str', 'str', 
+                'str', 'str', 'float', 'float', 'float')
+
     def print(prefix, clfName, params, scorerName, result, outfile):
-        paramStr = "%s" % (params)
-        paramStr = paramStr.replace(',', ' ').replace('\n', ' ')
+        paramStr = toStr("%s" % params)
         print(prefix, clfName, paramStr, scorerName,  result['Accuracy'], 
                 result['MacroF1'], result['MacroR'], sep=',', 
                 file=outfile)

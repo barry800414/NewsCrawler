@@ -229,10 +229,8 @@ if __name__ == '__main__':
     with open(segLabelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
 
-    # print results
-    print('topicId, feature, columnSource, statementCol, ', 
-            'experimental settings, classifier, parameters, scorer, ',
-            'accuracy, macroF1, macroR', sep='')
+    # print first line of results
+    ResultPrinter.printFirstLine()
 
     # main loop for running experiments
     # generating X and y
@@ -249,14 +247,14 @@ if __name__ == '__main__':
                 (X, y) = generateXY(labelNewsList, newsCols=newsCols, 
                        statementCol=statementCol, feature=feature)
                 
-                prefix = "all, %s, %s, %s" % (feature, list2Str(newsCols), statementCol)
+                prefix = 'all, %s, %s, %s, %s' % (feature, '"None"', toStr(newsCols), statementCol)
                 topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
                 
                 # all train and test
                 RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", testSize=0.2, prefix=prefix)
                 # leave one test
-                #RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
-    '''
+                RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+    
     # divide the news into different topic, each of them are trained and test by itself
     labelNewsInTopic = divideLabel(labelNewsList)
     for topicId, labelNewsList in labelNewsInTopic.items():
@@ -266,7 +264,7 @@ if __name__ == '__main__':
                     (X, y) = generateXY(labelNewsList, newsCols=newsCols, 
                        statementCol=statementCol, feature=feature)
                 
-                    prefix = "%d, %s, %s, %s" % (topicId, feature, list2Str(newsCols), statementCol)
+                    prefix = "%d, %s, %s, %s, %s" % (topicId, feature, '"None"', toStr(newsCols), statementCol)
                     #MLProcedure.runExperiments(X, y, clfList=clfList, prefix=prefix)
-                    RunExp.selfTrainTest(X, y, 'macroF1', clfList, testSize=0.2, prefix=prefix)
-    '''
+                    RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+    

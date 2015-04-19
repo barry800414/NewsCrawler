@@ -1,4 +1,5 @@
 
+import json
 
 # default sentence separator
 SEP = '[,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\[\]!?？！\u2019 ]'
@@ -38,5 +39,9 @@ for b in BRACKETS:
 puncList = list(puncSet)
 puncList.sort()
 
+obj = dict()
 for c in puncList:
-    print(c, ':', hex(ord(c)))    
+    #print(c, hex(ord(c)))    
+    obj[c] = hex(ord(c))
+
+print(json.dumps(obj, indent=2, ensure_ascii=False))
