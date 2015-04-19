@@ -135,7 +135,7 @@
                 }
                 else{
                     alert("1.資料可能已全部標記完畢 \n2.您已經沒有可以標記的文章了 \n3.發生錯誤。 \n\n1.There is no articles to be labeled. \n2.There is no article for you to label. \n3. Errors occurred.");
-                }
+            }
             }
         });
     }
@@ -317,12 +317,12 @@
     		<input type="hidden" id="news_id">
     		<tr id="topic_row_top" class="statement_row" >
                 <td class="first_col">主題</td>
-                <td class="second_col"><span id="topic" class="second_row topic"></span></td>
+                <td class="second_col"><span id="topic" class="second_row topic">載入中...</span></td>
             </tr>
 
     		<tr class="news_row">
     			<td class="first_col">標題</td>
-    			<td class="second_col"><span id="title"></span></td>
+    			<td class="second_col"><span id="title">載入中...</span></td>
     		</tr>
     		<!--<tr class="small_row">
     			<td class="first_col">來源</td>
@@ -330,28 +330,27 @@
     		</tr>-->
     		<tr class="news_row">
     			<td class="first_col">來源網址</td>
-    			<td class="second_col"><a target="_blank" id="url"></a></td>
+    			<td class="second_col"><a target="_blank" id="url">載入中...</a></td>
     		</tr>
     		<tr class="news_row">
     			<td class="first_col">內文</td>
-    			<td class="second_col"><span id="content" class="content"></span></td>
+    			<td class="second_col"><span id="content" class="content">載入中...</span></td>
             </tr>
             <tr id="valid_format_row" class="label_row">
     			<td class="first_col">格式正確性 <br>  <a class="link2qa2" href="qa2.php" target="_blank">我有疑問?</a> </td>
     			<td class="second_col">
                 <div>
                     <label class="radio-inline">
-                        <input type="radio" name="valid_format" class="valid_format" value="small_error">內文有些許錯誤，但不致影響閱讀
+    				    <input type="radio" name="valid_format" class="valid_format" value="valid">內文無錯誤
+                    </label>
+                    <br>
+                    <label class="radio-inline">
+                        <input type="radio" name="valid_format" class="valid_format" value="small_error">內文有些許錯誤，但不致於影響閱讀
                     </label>
                     <br>
                     <label class="radio-inline">
                         <input type="radio" name="valid_format" class="valid_format" value="invalid">內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼等等）
                     </label>
-                    <br>
-                    <label class="radio-inline">
-    				    <input type="radio" name="valid_format" class="valid_format" value="valid">內文無錯誤
-                    </label>
-
                 </div>
                 <br><span id="overall_polarity_hint_text"> 請標記<span class="this_article">本篇文章</span>內，是否有段落遺失、廣告文字、亂碼或格式上的錯誤。<!--<ul><li>若文章內有少許錯誤，但不致影響閱讀，請標記「內文有些許錯誤」。</li><li>若內文有相當大的錯誤（例如段落遺失、大量廣告文字等等），請標記「內文不完整/格式有大錯誤/有很多非文章內文的雜訊」。</li><li>若沒有錯誤，請標記「內文無錯誤」。</li></ul>--!></span><br>
                     <button class="btn btn-primary pull-right" id="valid_format_button">確定</button><br>   
