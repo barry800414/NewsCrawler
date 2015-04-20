@@ -2,7 +2,7 @@
     "label_table": "statement_news",
     "statement_table": "statement", 
     "topic_table": "topic",
-    "corpus_table": "merge_necessary",
+    "corpus_table": "merge_necessary_clean",
     "topic_id": [2, 3, 4, 5, 6, 13, 16],
     "statement_id": [1],
     "news_id": "ltn0000001",
