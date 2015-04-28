@@ -90,7 +90,7 @@ def reRankPhrasesList(pList, lm, minCnt=1, minLength=1, outfile=sys.stdout):
     for p in sortedByCnt:
         if len(p.getSepStr().strip().split(' ')) >= minLength and p.cnt >= minCnt:
             #print(p, p.cnt, p.logProb, p.sumRank, file=outfile)
-            print('|', p.getStr(), '|', file=outfile)
+            print(p.getSepStr(), file=outfile)
 
     '''
     print('====sort by Log Prob====', file=outfile)
@@ -113,7 +113,6 @@ def filterPhrase(pList, minCnt=2, minLength=2):
     return newList
 
 def dividePhraseByTag(pList):
-    
     pDict = dict()
     for p in pList:
         tag = p.getTag()

@@ -2,6 +2,8 @@
 import sys
 import math
 import random
+import tempfile
+import pickle
 from collections import defaultdict
 
 import numpy as np
@@ -31,7 +33,8 @@ Last Update: 2015/03/29
 
 # class for providing frameworks for running experiments
 class RunExp:
-    def selfTrainTest(X, y, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+    def selfTrainTest(X, y, clfList, scorerName, randSeed=1, 
+            testSize=0.2, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -69,7 +72,8 @@ class RunExp:
         # split data
         (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
                 X, y, randSeed, testSize)
-
+        
+        returnObj = list()
         for clfName in clfList:
             # training using validation
             print('In Cross Validation ...', file=sys.stderr)
@@ -82,11 +86,22 @@ class RunExp:
             print('In testing ...', file=sys.stderr)
             result = Evaluator.evaluate(yTestPredict, yTest)
             
+            if modelDir != None:
+                filename = dumpModel(modelDir, clf)
+            else:
+                filename = None
+
             # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', clfName, bestParam, scorerName, result, outfile=outfile)
-    
-    #FIXME
-    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, prefix='', outfile=sys.stdout):
+            ResultPrinter.print(prefix + ', selfTrainTest', clfName, bestParam, 
+                    scorerName, result, filename, outfile=outfile)
+
+            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': result, 
+                'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest } } )
+        
+        return returnObj
+
+    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, 
+            testSize=0.2, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -112,6 +127,7 @@ class RunExp:
         (XTrain, XTest, yTrain, yTest, trainMap, testMap) = DataTool.mergeData(
                 topicXTrain, topicXTest, topicyTrain, topicyTest, topicList)
 
+        returnObj = list()
         # training using validation
         for clfName in clfList:
             print('In Cross Validation ...', file=sys.stderr)
@@ -125,11 +141,24 @@ class RunExp:
             # evaluation
             print('In testing ...', file=sys.stderr)
             (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
-                
-            # printing out results
-            ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, scorerName, avgR, outfile=outfile)
+            
+            if modelDir != None:
+                filename = dumpModel(modelDir, clf)
+            else:
+                filename = None
 
-    def leaveOneTest(X, y, topicMap, clfList, scorerName, testTopic=None, randSeed=1, prefix='', outfile=sys.stdout):
+            # printing out results
+            ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, 
+                    scorerName, avgR, filename, outfile=outfile)
+            
+            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': avgR, 
+                'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }} )
+
+
+        return returnObj
+
+    def leaveOneTest(X, y, topicMap, clfList, scorerName, testTopic=None, 
+            randSeed=1, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -144,7 +173,10 @@ class RunExp:
         # if the test topic id is given, then only test it
         if testTopic == None:
             testTopic = list(topicList)
+        
+        returnObj = dict()
         for topic in testTopic:
+            returnObj[topic] = list()
             (XTrain, XTest, yTrain, yTest, trainMap, 
                     testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topicList, topic)
 
@@ -159,9 +191,25 @@ class RunExp:
                 print('In testing ...', file=sys.stderr)
                 result = Evaluator.evaluate(yTestPredict, yTest)
                 
-                # printing out results
-                ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, scorerName, result, outfile=outfile)
+                if modelDir != None:
+                    filename = dumpModel(modelDir, clf)
+                else:
+                    filename = None
 
+                # printing out results
+                ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, 
+                        scorerName, result, filename, outfile=outfile)
+                returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': result,  
+                    'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
+
+        return returnObj
+    
+def dumpModel(dir, clf):
+    tmpF = tempfile.NamedTemporaryFile(mode='w+b', dir=dir, prefix='clf', delete=False)
+    with tmpF.file as f:
+        pickle.dump(clf, f)
+    return tmpF.name
+        
 
 # The class for providing functions to manipulate data
 class DataTool:
@@ -596,15 +644,35 @@ class ResultPrinter:
     def printFirstLine(outfile=sys.stdout):
         print('topicId, feature, model settings, columnSource,'
           ' statementCol, experimental settings, classifier,'
-          'parameters, scorer, accuracy, MacroF1, MacroR', file=outfile)
+          'parameters, scorer, accuracy, MacroF1, MacroR, modelPath(pickle)', file=outfile)
 
     def getDataType():
         return ('str', 'str', 'str', 'str', 'str', 'str', 'str', 
-                'str', 'str', 'float', 'float', 'float')
+                'str', 'str', 'float', 'float', 'float', 'str')
 
-    def print(prefix, clfName, params, scorerName, result, outfile):
+    def print(prefix, clfName, params, scorerName, result, filename, outfile):
         paramStr = toStr("%s" % params)
         print(prefix, clfName, paramStr, scorerName,  result['Accuracy'], 
-                result['MacroF1'], result['MacroR'], sep=',', 
+                result['MacroF1'], result['MacroR'], filename, sep=',', 
                 file=outfile)
+
+def keepBestResult(nowBestR, nextRs, scorerName, largerIsBetter=True):
+    if nowBestR == None:
+        for r in nextRs:
+            return r
+    
+    nowS = nowBestR['result'][scorerName]
+    
+    for r in nextRs: 
+        nextS = r['result'][scorerName]
+        if largerIsBetter:
+            if nextS > nowS:
+                return r
+            else:
+                return nowBestR
+        else:
+            if nextS < nowS:
+                return r
+            else:
+                return nowBestR
 

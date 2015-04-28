@@ -110,10 +110,11 @@ public class EngNLPToolServer {
                     imgPath = EngNLPToolServer.imgFolder + fileFolder + "/" + fileName;
                 }
             }
-
+            System.out.println(imgPath);
             //dependency parsing by pcfg parser
             List<TypedDependency> tdList = fpp.depParseTokenizedSent(text, " ", imgPath);
             String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
+            response.append(text + "\n");
             response.append(depStr);
 
             //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
@@ -137,6 +138,7 @@ public class EngNLPToolServer {
             //constituent parsing by pcfg parser
             Tree tree = fpp.parseTokenizedSent(text, " ");
             String treeStr = TreePrinter.treeToString(tree); //get string of tree
+            response.append(text + "\n");
             response.append(treeStr);
 
             //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
