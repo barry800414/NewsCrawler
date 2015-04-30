@@ -158,7 +158,6 @@ if __name__ == '__main__':
     '''
  
     # ============= Run for self-train-test ===============
-    '''
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
         bestR = None
@@ -168,7 +167,7 @@ if __name__ == '__main__':
             bestR = keepBestResult(bestR, r, 'MacroF1')
         with open('OLPDM_SelfTrainTest_topic%d.pickle' % t, 'w+b') as f:
             pickle.dump(bestR, f)
-    '''
+
     # ============= Run for all-train-test ================
     print('All-Train-Test...', file=sys.stderr)
     bestR = None

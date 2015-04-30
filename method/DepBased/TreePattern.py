@@ -1,17 +1,17 @@
 
+import json
 import networkx as nx
 import DepTree 
 
 # The class for matching given patterns on dependency tree
 class TreePattern():
-    
     # first node is root 
     # word, tag, rel fields are originally list, here we convert them to set
-    def __init__(self, nodeList, edgeList, rootId=0):
+    def __init__(self, name, nodeList, edgeList, rootId=0):
         self.p = nx.DiGraph()
         self.rootId = rootId
+        self.name = name
         for i, n in enumerate(nodeList):
-            
             self.p.add_node(i, 
                     tag=set(n['tag']) if n['tag'] != None else None, 
                     word=set(n['word']) if n['tag'] != None else None,
@@ -22,7 +22,7 @@ class TreePattern():
                     rel=set(e['rel']) if e['rel'] != None else None)
 
     # using this pattern to match the dependency trees
-    def match(self, depTree):
+    def match(self, depTree, returnMapping=True):
         results = list()
         for tn in depTree.t.nodes():
             if TreePattern.matchNode(depTree.t.node[tn], 
@@ -32,7 +32,8 @@ class TreePattern():
                 tMatchedNodes = set([tn])
                 mapping = { self.rootId : tn }
                 TreePattern.matchTree(depTree, self, pEdge, 
-                        tMatchedNodes, pEdgeStack, mapping, results)
+                        tMatchedNodes, pEdgeStack, mapping, 
+                        results, returnMapping)
         return results
 
     # recursively match the pattern on dependency tree, one call is for 
@@ -46,7 +47,8 @@ class TreePattern():
     # mapping: matching node pairs between pattern tree and dependency tree.
     #          it is a dict a -> b, where a is node id of pattern 
     #          tree and b is node id of target tree
-    def matchTree(tTree, pTree, pEdge, tMatchedNodes, pEdgeStack, mapping, results):
+    def matchTree(tTree, pTree, pEdge, tMatchedNodes, pEdgeStack, 
+            mapping, results, returnMapping=True):
         # matching success
         (p1, p2) = pEdge
         t1 = mapping[p1] # find the mapped nodes in target tree
@@ -69,9 +71,11 @@ class TreePattern():
                         # restore 
                         pEdgeStack.append(nextPEdge)
                     else:
+                        # match success
                         assert len(mapping) == pTree.p.number_of_nodes()
-                        results.append(TreePattern.getMatchResult(tTree, pTree, mapping))
-                    
+                        results.append(TreePattern.getMatchResult(tTree, pTree, 
+                            mapping, returnMapping))
+
                     # restore to original state
                     tMatchedNodes.remove(t2)
                     pEdgeStack = pEdgeStack[:(-1)*appendLen]
@@ -98,12 +102,21 @@ class TreePattern():
         return True
     
     # get the matched result
-    def getMatchResult(tTree, pTree, mapping):
+    def getMatchResult(tTree, pTree, mapping, returnMapping=True):
         r = dict()
         for pId, tId in mapping.items():
             r[pTree.p.node[pId]['output_as']] = tTree.t.node[tId]['word']
+        if returnMapping:
+            r['mapping'] = dict(mapping)
         return r
 
+def loadPatterns(filename):
+    with open(filename, 'r') as f:
+        patternList = json.load(f)
+    pTreeList = list()
+    for p in patternList:
+        pTreeList.append(TreePattern(p['name'], p['nodes'], p['edges']))
+    return pTreeList
 
 # unit test
 if __name__ == '__main__':
@@ -123,8 +136,8 @@ if __name__ == '__main__':
                 {'word':None, 'tag':None, 'output_as':'target'}
             ],
             'edges': [
-                {'from': 0, 'to': 1, 'rel': set(['nsubj'])}, 
-                {'from': 0, 'to': 2, 'rel': set(['dobj'])}
+                {'from': 0, 'to': 1, 'rel': ['nsubj']}, 
+                {'from': 0, 'to': 2, 'rel': ['dobj']}
             ],
             'name': 'holder-opinion-target'
     }
@@ -135,14 +148,11 @@ if __name__ == '__main__':
 
 
     from NLPToolRequests import *
-    
-    sList = ['I like this product',
-             'I hate this product',
+    sList = ['I hate this product',
              'Although I hate this product, Amy likes the product']
     for s in sList:
         tdList = sendDepParseRequest(s, seg=True, draw=True, fileFolder='.', fileName=s)
-        print(tdList)
+        #print(tdList)
         depTree = DepTree.DepTree(tdList)
         print(pTree.match(depTree))
-
 
