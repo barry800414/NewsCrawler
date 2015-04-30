@@ -1,6 +1,9 @@
 
 import sys
 
+from RunExperiments import ResultPrinter
+from misc import *
+
 def readCSV(filename, dataType=None):
     with open(filename, 'r') as f:
         line = f.readline() # first line: column name
@@ -56,64 +59,128 @@ def allowData(data, colNameMap, filterColumn, allow, type='string'):
 def floatEq(f1, f2):
     return fabs(f1 - f2) < 1e-10
 
-# f1Rows: topic -> row of self-train to self-test
-# f2Row: all train all test
-# f3Rows: topic -> row of leave one test
+# f1Rows: topic -> a row of self-train to self-test
+# f2Row: a row of all-train-all-test
+# f3Rows: topic -> a row of leave-one-test
 def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
     print('TopicId, Self-TrainTest(%s), LeaveOneTest(%s), All-TrainTest(%s)' % (scoreName, scoreName, scoreName), file=outfile)
     si = colNameMap['MacroF1']
     for t in topicList:
-        print(f1Rows[t])
-        print(f3Rows[t])
-        #print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
-    print(f2Row[si])
-    #print('All,         ,         , %f' % f2Row[si])
+        print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
+    print('All,         ,         , %f' % f2Row[si], file=outfile)
 
-def getBestParams(f1Rows, f2Row, f3Rows):
-    bestF1 = None
-    bestF2 = None
-    bestF3 = None
+def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
+    ResultPrinter.printFirstLine()
+    for t in topicList:
+        print(f1Rows[t], file=outfile)
+    for t in topicList:
+        print(f3Rows[t], file=outfile)
+    print(f2Row, file=outfile)
+
+# f1TopicRows: topic -> a list of rows
+# f2Rows: a list of rows
+# f3TopicRows: topic -> a list of rows
+def getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType):
+    f1Params = f2Params = f3Parms = None
     if f1Rows != None:
-        for r in f1Rows:
-            topicId = int(row[0])
-            feature = row[1]
-            colSource = row
-    if f2Row != None:
-        pass
-    if f3Row != None:
-        pass
+        f1Params = dict()
+        for topicId, rows in f1TopicRows.items():
+            f1Params[topicId] = list()
+            for r in rows:
+                params = getParamFromRow(r, colNameMap, extractColType)
+                f1Params[topicId].append(params)
 
+    if f2Row != None:
+        f2Params = list()
+        for r in f2Rows:
+            f2Params.append(getParamFromRow(r, colNameMap, extractColType))
+
+    if f3Rows != None:
+        f3Params = dict()
+        for topicId, rows in f3TopicRows.items():
+            f3Params[topicId] = list()
+            for r in rows:
+                params = getParamFromRow(r, colNameMap, extractColType)
+                f3Params[topicId].append(params)
+
+    return (f1Params, f2Params, f3Params)
+    
+
+def getParamFromRow(row, colNameMap, extractColType):
+    params = dict()
+    for col,type in extractColType.items():
+        if type == 'dict' or type == 'list':
+            params[col] = str2Var(row[colNameMap[col]])
+        elif type == 'bool':
+            params[col] = bool(row[colNameMap[col]])
+        elif type == 'str':
+            params[col] = row[colNameMap[col]]
+    return params
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage:', sys.argv[0], 'resultCSV', file=sys.stderr)
+    if len(sys.argv) != 3:
+        print('Usage:', sys.argv[0], 'resultCSV outParamsFile', file=sys.stderr)
         exit(-1)
     resultCSV = sys.argv[1]
+    outParamsFile = sys.argv[2]
 
-    dataType = ['str', 'str','str', 'str', 'str', 'str', 
-            'str', 'str', 'float', 'float', 'float']
+    dataType = ResultPrinter.getDataType()
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
+
     topicList = [2, 3, 4, 5, 6, 13, 16]
+    firstN = 3
+    # find the rows with best MacroF1 
     # first framework (self train->self test)
     f1Rows = dict()
+    f1TopicRows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'topicId', allow='%d' % t, type='string')
         sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f1Rows[t] = newData[0]
+        f1TopicRows[t] = list()
+        for i in range(0, firstN):
+            if i < len(newData):
+                f1TopicRows[t].append(newData[i])
     
     # second framework (whole train-> whole test)
     newData = allowData(data, colNameMap, 'experimental settings', allow='allMixed', type='string')
     sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
     f2Row = newData[0]
+    f2Rows = list()
+    for i in range(0, firstN):
+        if i < len(newData):
+            f2Rows.append(newData[i])
+
 
     # third framework (leave one test)
     f3Rows = dict()
+    f3TopicRows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'experimental settings', allow='Test on %d' % t, type='string')
         sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f3Rows[t] = newData[0]
+        f3TopicRows[t] = list()
+        for i in range(0, firstN):
+            if i < len(newData):
+                f3TopicRows[t].append(newData[i])
 
+    printBestRows(topicList, f1Rows, f2Row, f3Rows)
     printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, 'MacroF1')
+    extractColType = { 
+        'feature': 'str', 
+        'model settings': 'dict', 
+        'columnSource': 'list',
+        'statementCol': 'bool'
+    }
+    
+    # get best N params of given model
+    (f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)
+    result = dict()
+    result['SelfTrainTest'] = f1Params
+    result['AllTrainTest'] = f2Params
+    result['LeaveOneTest'] = f3Params
 
+    with open(outParamsFile, 'w') as f:
+        json.dump(result, f, indent=2)

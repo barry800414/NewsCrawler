@@ -10,3 +10,9 @@ The way to preprocess
 
 To add more news
 ============================
+
+
+Clean news 
+============================
+cleaned_news_part1.json: all valid & small error news in statement_news before 2015/3/31
+cleaned_news_part2.json: all news in topic_news after 2015/4/9 (topic3 has been added)

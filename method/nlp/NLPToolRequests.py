@@ -48,9 +48,16 @@ def sendDepParseRequest(sentence, seg=False, draw=False, fileFolder=None,
 
 #print(sendDepParseRequest("我是一個人", draw = True, fileFolder='test'))
 #print(sendDepParseRequest("這是一個測試用的句子"))
-#print(sendDepParseRequest("台灣應廢除死刑"))		
-		
-		
+#print(sendDepParseRequest("台灣應廢除死刑"))	
+
+#s = "I hate this product"
+#print(sendDepParseRequest(s, seg=True, draw=True, fileName=s, fileFolder='./'))
+#s = "This is a beautiful, useful and cheap product."
+#print(sendDepParseRequest(s, seg=True, draw=True, fileName=s, fileFolder='./'))
+#s = "This is a beautiful ring in the box."
+#print(sendDepParseRequest(s, seg=True, draw=True, fileName=s, fileFolder='./'))
+
+
 #constituent parsing by stanford pcfg parser
 def sendConstParseRequest(sentence, seg=False, returnTokenizedSent=False):
     api_url = 'http://localhost:8000/pcfg'

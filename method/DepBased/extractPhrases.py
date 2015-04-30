@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3 
 import sys
 import json
 
@@ -68,7 +68,7 @@ def toEdges(edgeLines):
 
 # pList: phrase -> count
 # lm: language model
-def reRankPhrasesList(pList, lm, minCnt=2, minLength=2, outfile=sys.stdout):
+def reRankPhrasesList(pList, lm, minCnt=1, minLength=1, outfile=sys.stdout):
     # extracting NP phrases
     sortedByCnt = sorted(pList, key=lambda x:x.cnt, reverse=True)
 
@@ -89,8 +89,10 @@ def reRankPhrasesList(pList, lm, minCnt=2, minLength=2, outfile=sys.stdout):
     print('====sort by count====', file=outfile)
     for p in sortedByCnt:
         if len(p.getSepStr().strip().split(' ')) >= minLength and p.cnt >= minCnt:
-            print(p, p.cnt, p.logProb, p.sumRank, file=outfile)
+            #print(p, p.cnt, p.logProb, p.sumRank, file=outfile)
+            print(p.getSepStr(), file=outfile)
 
+    '''
     print('====sort by Log Prob====', file=outfile)
     for p in sortedByLogProb:
         if len(p.getSepStr().strip().split(' ')) >= minLength and p.cnt >= minCnt:
@@ -100,6 +102,7 @@ def reRankPhrasesList(pList, lm, minCnt=2, minLength=2, outfile=sys.stdout):
     for p in sortedBySumRank:
         if len(p.getSepStr().strip().split(' ')) >= minLength and p.cnt >= minCnt:
             print(p, p.cnt, p.logProb, p.sumRank, file=outfile)
+    '''
 
 # filter out the unqualified phrases
 def filterPhrase(pList, minCnt=2, minLength=2):
@@ -110,7 +113,6 @@ def filterPhrase(pList, minCnt=2, minLength=2):
     return newList
 
 def dividePhraseByTag(pList):
-    
     pDict = dict()
     for p in pList:
         tag = p.getTag()
@@ -139,22 +141,25 @@ if __name__ == '__main__':
     minLength = 2
     topicPList = dict()
 
-    ###### extracting phrase for all topics ######
+    ###### extracting phrase ######
+    
     pList = extractPhrases(newsDict, allowedPhrases=set(['NP']))
     corpus = LM.constParsedNewsDictToCorpus(newsDict)
     lm = LM.LM(corpus, n=2)
     with open('phrases_all.txt', 'w') as f:
-        reRankPhrasesList(pList, lm, minCnt=1, minLength=2, outfile=f)
+        reRankPhrasesList(pList, lm, minCnt=1, minLength=1, outfile=f)
     topicPList['all'] = filterPhrase(pList, minCnt, minLength)
-
-    ###### extracting phrase for all topics ######
+    
+    '''
+    ###### extracting phrase for each topic ######
     topicNewsDict = dataTool.divideNewsByTopic(newsDict)
     for topicId, tNewsDict in topicNewsDict.items():
+        print(topicId)
         pList = extractPhrases(tNewsDict, allowedPhrases=set(['NP']))
         corpus = LM.constParsedNewsDictToCorpus(tNewsDict)
         lm = LM.LM(corpus, n=2)
         with open('phrases_topic%d.txt' % topicId, 'w') as f:
-            reRankPhrasesList(pList, lm, minCnt=1, minLength=2, outfile=f)
+            reRankPhrasesList(pList, lm, minCnt=1, minLength=1, outfile=f)
         topicPList[topicId] = filterPhrase(pList, minCnt, minLength)
 
     # convert topicPList to array or dict for json output
@@ -167,5 +172,5 @@ if __name__ == '__main__':
 
     with open(outPhraseJsonFile, 'w') as f:
         json.dump(topicPList, f, ensure_ascii=False, indent = 2)
-
-
+    '''
+    

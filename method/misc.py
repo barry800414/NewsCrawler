@@ -1,14 +1,16 @@
 
 import json
 
-def toStr(v, sep='**'):
-    outStr = json.dumps(v)
+label2i = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
+i2Label = ["oppose", "neutral", "agree"]
+
+def toStr(v, sep='**', ensure_ascii=True):
+    outStr = json.dumps(v, ensure_ascii=ensure_ascii)
     outStr = outStr.replace(',', sep)
     return outStr
 
 def str2Var(inStr, sep='**'):
     return json.loads(inStr.replace(sep, ','))
-
 
 def toFStr(v):
     outStr = json.dumps(v)
@@ -18,3 +20,20 @@ def toFStr(v):
     outStr = outStr.replace(' ', '')
     return outStr
 
+# volc: volc -> index (dict)
+# rVolc: index -> volc (list)
+def reverseVolc(volc):
+    rVolc = [None for i in range(0, len(volc))]
+    for v, i in volc.items():
+        rVolc[i] = v
+    return rVolc
+
+# merge two volcabulary
+# 0~len(volc1)-1 for volc1
+# len(volc1) ~ len(volc1)+len(volc2) -1 for volc2
+def mergeVolc(volc1, volc2):
+    volc3 = dict(volc1)
+    offset = len(volc1)
+    for key, value in volc2.items():
+        volc3[key] = value + offset
+    return volc3

@@ -47,6 +47,9 @@ class OneLayerDepModel():
                     newsDGList.append(dg)
             self.corpusDGList.append((topicId, newsDGList))
 
+    def getVolc(self):
+        return self.volc
+
     def getDepTree(self, tdList, topicId):
         dt = DepTree(tdList)
         if td.isValid():
@@ -122,6 +125,8 @@ class OneLayerDepModel():
             numCol), dtype=np.float64)
         y = np.array(getLabels(self.pln))
 
+        # update volc
+        self.volc = volc
         return (X, y)
 
 

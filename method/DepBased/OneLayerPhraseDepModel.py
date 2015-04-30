@@ -55,7 +55,48 @@ def initAllowedSet(topicSet, config, dictionary=None):
         allowedSet = { topicId: set(config['allow']) for topicId in topicSet }
     return allowedSet
 
-# TODO: calculate frequency from dependencies
+
+def runSingleTask(labelNewsList, taskType, olpdm, topicSet, sentiDict, params, clfList, topicMap=None, topicId=None):
+    p = params
+    allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
+    allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
+    allowedRel = { t: None for t in topicSet }
+    olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
+                p['firstLayerType']['type'], allowedRel)
+    (X, y) = olpdm.genXY()
+    volc = olpdm.getVolc()
+    #print('Size of volc2:', len(volc2), file=sys.stderr)
+    print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
+    
+    if taskType == 'SelfTrainTest':
+        prefix = "%s, %s, %s, %s, %s" % (topicId, toStr(list(params.keys())), toStr(params), '"None"', 'False')
+        rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+        for r in rs:
+            r['volc'] = volc
+            r['X'] = X
+            r['y'] = y
+            r['params'] = params
+
+    elif taskType == 'AllTrainTest': 
+        prefix = "%s, %s, %s, %s, %s" % ('all', toStr(list(params.keys())), toStr(params), '"None"', 'False')
+        rs = RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+        for r in rs:
+            r['volc'] = volc
+            r['X'] = X
+            r['y'] = y
+            r['params'] = params
+
+    elif taskType == 'LeaveOneTest':
+        prefix = "%s, %s, %s, %s, %s" % (topicId, toStr(list(params.keys())), toStr(params), '"None"', 'False')
+        rs = RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", testTopic=[topicId], prefix=prefix)
+        for r in rs[topicId]:
+            r['volc'] = volc
+            r['X'] = X
+            r['y'] = y
+            r['params'] = params
+     
+    return rs
+
 if __name__ == '__main__':
     if len(sys.argv) != 4:
         print('Usage:', sys.argv[0], 'depParsedLabelNewsJson phraseFile sentiDictFile', file=sys.stderr)
@@ -67,7 +108,7 @@ if __name__ == '__main__':
 
     # load label-news
     with open(parsedLabelNewsJsonFile, 'r') as f:
-        parsedLabelNews = json.load(f)
+        labelNewsList = json.load(f)
 
     # load phrases
     topicPhraseList = loadPhraseFile(phrasesJsonFile)
@@ -77,7 +118,7 @@ if __name__ == '__main__':
 
     # get the set of all possible topic
     topicSet = set()
-    for labelNews in parsedLabelNews:
+    for labelNews in labelNewsList:
         topicSet.add(labelNews['statement_id'])
 
     # model parameters #FIXME: allowed relation
@@ -98,22 +139,59 @@ if __name__ == '__main__':
                 ]
             }
 
-    paramsGrid = ParameterGrid(params)
+    paramsIter = ParameterGrid(params)
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
-    topicMap = [ parsedLabelNews[i]['statement_id'] for i in range(0, len(parsedLabelNews)) ]
-    labelNewsInTopic = dataTool.divideLabel(parsedLabelNews)
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+    labelNewsInTopic = dataTool.divideLabel(labelNewsList)
     
     debugFolder = './debug'
     ResultPrinter.printFirstLine()
 
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
-    olpdm = OneLayerPhraseDepModel(parsedLabelNews, topicPhraseList)
+    olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList)
+    '''
     tolpdm = dict()
     for topicId, labelNewsList in labelNewsInTopic.items():
         tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
                 topicPhraseList)
+    '''
+ 
+    # ============= Run for self-train-test ===============
+    print('Self-Train-Test...', file=sys.stderr)
+    for t in topicSet:
+        bestR = None
+        for p in paramsIter:
+            r = runSingleTask(labelNewsInTopic[t], 'SelfTrainTest', tolpdm[t], topicSet, 
+                    sentiDict, p, clfList, topicId=t)
+            bestR = keepBestResult(bestR, r, 'MacroF1')
+        with open('OLPDM_SelfTrainTest_topic%d.pickle' % t, 'w+b') as f:
+            pickle.dump(bestR, f)
 
+    # ============= Run for all-train-test ================
+    print('All-Train-Test...', file=sys.stderr)
+    bestR = None
+    for p in paramsIter:
+        r = runSingleTask(labelNewsList, 'AllTrainTest', olpdm, topicSet, sentiDict, 
+                p, clfList, topicMap=topicMap)
+        bestR = keepBestResult(bestR, r, 'MacroF1')
+    with open('OLPDM_AllTrainTest.pickle', 'w+b') as f:
+        pickle.dump(bestR, f)
+
+
+    # ============= Run for leave-one-test ================
+    print('Leave-One-Test...', file=sys.stderr)
+    for t in topicSet:
+        bestR = None
+        for p in paramsIter:
+            r = runSingleTask(labelNewsList, 'LeaveOneTest', olpdm, topicSet, sentiDict, 
+                p, clfList, topicMap=topicMap, topicId=t)
+            bestR = keepBestResult(bestR, r[t], 'MacroF1')
+        with open('OLPDM_LeaveOneTest_topic%d.pickle' % t, 'w+b') as f:
+            pickle.dump(bestR, f)
+
+
+    '''
     print('Experiments starts...', file=sys.stderr)
     for p in paramsGrid:
         print('Model Setting:', p, file=sys.stderr)
@@ -128,10 +206,10 @@ if __name__ == '__main__':
                 toFStr(p['firstLayerType']['allow']))
         debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
 
-        olpdm.setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
-                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+        olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
+                p['firstLayerType']['type'], allowedRel, debugLevel=1, debugFile=debugFile)
         (X, y) = olpdm.genXY()
-        prefix = "%s, %s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', toStr(p), '[content]', 'False')
+        prefix = "%s, %s, %s, %s, %s" % ('all', 'OneLayerPhraseDep', toStr(p), '["content"]', 'False')
         RunExp.allTrainTest(X, y, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
         RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
         debugFile.close()
@@ -143,11 +221,11 @@ if __name__ == '__main__':
             fStr = 'topic%dPairs_%s_%s' %(topicId, toFStr(p['seedWordType']['allow']), 
                     toFStr(p['firstLayerType']['allow']))
             debugFile = open(debugFolder + '/' + fStr+'.txt', 'w') 
-            tolpdm[topicId].setModel(allowedSeedWord, p['seedWordType'], allowedFirstLayerWord, 
-                p['firstLayerType'], allowedRel, debugLevel=1, debugFile=debugFile)
+            tolpdm[topicId].setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
+                p['firstLayerType']['type'], allowedRel, debugLevel=1, debugFile=debugFile)
             (X, y) = tolpdm[topicId].genXY()
             
-            prefix = "%d, %s, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', toStr(p),'[content]', 'False')
+            prefix = "%d, %s, %s, %s, %s" % (topicId, 'OneLayerPhraseDep', toStr(p),'["content"]', 'False')
             RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
             debugFile.close()
-        
+        '''

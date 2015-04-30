@@ -47,7 +47,7 @@ if __name__ == '__main__':
         dbInfo = json.load(f)
     
     config = {
-        "label_table": "statement_news",
+        "label_table": "statement_news_backup20150409",
         "statement_table": "statement", 
         "topic_table": "topic",
         "corpus_table": "merge_necessary_clean",
