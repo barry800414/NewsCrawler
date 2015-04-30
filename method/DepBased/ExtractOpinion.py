@@ -2,6 +2,7 @@
 
 import sys
 import json
+from collections import defaultdict
 
 import dataTool
 import TreePattern as TP
@@ -29,14 +30,47 @@ def extractOpinions(depParsedNews, pTreeList, negPList=None):
     return opinions
 
 # opinons: opinion-type-name -> list of opinions
-def countOpinions(opinions, opnCnt):
+# output: opinion-type-name -> a dict to count occurence of each opinions
+def countOpinions(opinions, opnCnts, opnColName):
     for opnName, opns in opinions.items():
-        if opnName not in opnCnt:
-            opnCnt[opnName] = dict()
+        if opnName not in opnCnts:
+            opnCnts[opnName] = defaultdict(int)
+            if len(opns) != 0 and opnName not in opnColName:
+                opnColName[opnName] = __genColKey(opns[0])
         for opn in opns:
-            #TODO
-            key = tuple(opn.keys())
+            key = __genWordKey(opn)
+            opnCnts[opnName][key] += 1
+
+    return (opnCnts, opnColName)
         
+def __genWordKey(opn):
+    kList = list()
+    sortItems = sorted(opn.items(), key=lambda x:x[0])
+    if 'neg' in opn:
+        for key, value in sortItems:
+            if key == 'neg':
+                continue
+            neg = opn['neg'][key] if key in opn['neg'] else 0
+            if neg != 0:
+                kList.append('%s_negCnt%d' % (value, neg))
+            else:
+                kList.append(value)
+    else:
+        for key, value in sortItems:
+            kList.append(value)
+    return tuple(kList)
+
+def __genColKey(opn):
+    return sorted([k for k in opn.keys() if k != 'neg'])
+
+def printOpnCnt(opnCnts, opnColName, outfile=sys.stdout):
+    for opnName, opnCnt in opnCnts.items():
+        print(opnName, file=outfile)
+        if opnName in opnColName:
+            print(opnColName[opnName], file=outfile)
+        for key, cnt in sorted(opnCnt.items(), key = lambda x:x[1], reverse=True):
+            print(key, cnt, sep=',', file=outfile)
+
 if __name__ == '__main__':
     if len(sys.argv) != 4:
         #print('Usage:', sys.argv[0], 'depParsedLabelNewsJson phraseFile sentiDictFile', file=sys.stderr)
@@ -70,7 +104,14 @@ if __name__ == '__main__':
     labelNewsInTopic = dataTool.divideLabel(labelNewsList)
 
     for t in topicSet:
-        topicLabelNews = labelNewsInTopic[t]
-        for labelNews in topicLabelNews[0:1]:
-            opinions = extractOpinions(labelNews['news'], pTreeList, negPList)
-        print(opinions)
+        with open('opinions_topic%d.txt' % (t), 'w') as f:
+            opnCnts = dict()
+            opnColName = dict()
+            topicLabelNews = labelNewsInTopic[t]
+            for i, labelNews in enumerate(topicLabelNews):
+                opinions = extractOpinions(labelNews['news'], pTreeList, negPList)
+                if i % 10 == 0:
+                    print('Progress(%d/%d)' % (i+1, len(topicLabelNews)), file=sys.stderr) 
+                countOpinions(opinions, opnCnts, opnColName)
+            printOpnCnt(opnCnts, opnColName, outfile=f)
+
