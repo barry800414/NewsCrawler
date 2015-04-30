@@ -290,6 +290,16 @@
             require_once('head.php');
         ?>
         <div id="main_interface" class="container"> 
+    <!--
+    <div style="background-color:rgb(206, 227, 200); padding:10px"> 
+    <h2> 公告 </h2>
+    <div class="text-left">
+        <h3> 恢復P幣發放標準 </h3>
+        <p>時間: 2015/04/18 23:58 </p>
+        <p>我們非常幸運地得到可以運用的資助，因此今日2015/04/20 23:59:59之後，P幣發放恢復為每100字 10P幣。連日修改方案，造成您的不便敬請見諒。還是非常希望能夠獲得各位的協助! 有關上篇公告詳見<a href="bulletin2.php">將低P幣發放標準</a></p>
+    </div>
+    </div>
+    -->
             <h3 class="title"> 「文章」對「立場」支持/反對/中立預測 資料庫建立頁面 </h3>
             <br>
             

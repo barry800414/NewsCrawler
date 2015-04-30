@@ -42,7 +42,7 @@
         if($success && $num == 1){
             //login success
             $_SESSION['valid_user'] = $_POST['user_id'];
-            header("location: annotate.php");
+            header("location: bulletin.php");
         }
         else{
             header("location: login.php?err=1");  
