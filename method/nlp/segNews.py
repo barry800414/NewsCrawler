@@ -2,7 +2,9 @@
 import sys
 import json
 import re
+
 from NLPToolRequests import *
+import Punctuation
 
 # default sentence separator
 SEP = '[,;\t\n，。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\[\]!?？！\u2019]'
@@ -20,9 +22,9 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
              ('（','）'), ('〔','〕')]
 
 # segment the news(title & content) & statement
-def segLabelNews(newsDict):
-    newsDict['title_seg'] = segText(newsDict['title'])
-    newsDict['content_seg'] = segText(newsDict['content'])
+def segLabelNews(newsDict, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE):
+    newsDict['title_seg'] = segText(newsDict['title'], sep, new_sep, to_remove)
+    newsDict['content_seg'] = segText(newsDict['content'], sep, new_sep, to_remove)
     return newsDict
 
 # segment all the sentences, dealing with punctuations
@@ -83,17 +85,29 @@ def isOverlapping(intervals):
     return False
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage:', sys.argv[0], 'InNewsJson OutNewsJson', file=sys.stderr)
+    if len(sys.argv) < 3:
+        print('Usage:', sys.argv[0], 'InNewsJson OutNewsJson [PunctuationJson]', file=sys.stderr)
         exit(-1)
     inNewsJsonFile = sys.argv[1]
     outNewsJsonFile = sys.argv[2]
+
+    # read in news file
     with open(inNewsJsonFile, 'r') as f:
         newsDict = json.load(f)
     
+    # read in punctuation file
+    if len(sys.argv) == 4:
+        punctuationJsonFile = sys.argv[3]
+        punct = Punctuation.readJsonFile(punctuationJsonFile)
+        sepRegexStr = Punctuation.toRegexStr(punct['sep'])
+        removeRegexStr = Punctuation.toRegexStr(punct['remove'])
+    else:
+        sepRegexStr = SEP
+        removeRegexStr = TO_REMOVE
+
     cnt = 0
     for newsId, news in newsDict.items():
-        segLabelNews(news)
+        segLabelNews(news, sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
         cnt =+ 1
         if cnt % 10 == 0:
             print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
