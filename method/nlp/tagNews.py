@@ -4,6 +4,7 @@ import json
 import re
 import random
 from NLPToolRequests import *
+import Punctuation 
 
 # default sentence separator
 #SEP = '[;\t\n。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\[\]!?？！]'
@@ -24,9 +25,9 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
 
 
 # parse the news
-def tagNews(news):
-    news['title_pos'] = tagText(news['title'])
-    news['content_pos'] = tagText(news['content'])
+def tagNews(news, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE):
+    news['title_pos'] = tagText(news['title'], sep, new_sep, to_remove)
+    news['content_pos'] = tagText(news['content'], sep, new_sep, to_remove)
     return news
 
 # segment all the sentences, dealing with punctuations
@@ -60,18 +61,30 @@ def tagText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
     return result
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage:', sys.argv[0], 'InSegNewsJson OutTaggedNewsJson', file=sys.stderr)
+    if len(sys.argv) < 3:
+        print('Usage:', sys.argv[0], 'InSegNewsJson OutTaggedNewsJson [PunctuationJson]', file=sys.stderr)
         exit(-1)
 
     inNewsJsonFile = sys.argv[1]
     outNewsJsonFile = sys.argv[2]
+
+    # read in news file
     with open(inNewsJsonFile, 'r') as f:
         newsDict = json.load(f)
     
+    # read in punctuation file
+    if len(sys.argv) == 4:
+        punctuationJsonFile = sys.argv[3]
+        punct = Punctuation.readJsonFile(punctuationJsonFile)
+        sepRegexStr = Punctuation.toRegexStr(punct['sep'])
+        removeRegexStr = Punctuation.toRegexStr(punct['remove'])
+    else:
+        sepRegexStr = SEP
+        removeRegexStr = TO_REMOVE
+
     cnt = 0
     for newsId, news in newsDict.items():
-        tagNews(news)
+        tagNews(news, sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
         cnt += 1
         if cnt % 10 == 0:
             print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)

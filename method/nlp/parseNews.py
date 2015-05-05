@@ -2,8 +2,8 @@
 import sys
 import json
 import re
-import random
 from NLPToolRequests import *
+import Punctuation
 
 # default sentence separator
 #SEP = '[;\t\n。；　「」﹝﹞【】《》〈〉（）〔〕『 』\(\)\[\]!?？！]'
@@ -26,11 +26,14 @@ BRACKETS = [ ('[', ']'), ('(', ')'), ('{', '}'),
 allRelationSet = set()
 
 # parse the news
-def depParseNews(news, draw=False, fileFolder=None):
+def depParseNews(news, draw=False, fileFolder=None, sep=SEP, 
+        new_sep=NEW_SEP, to_remove=TO_REMOVE):
     news['title_dep'] = depParseText(news['title'], draw=draw, 
-            fileFolder=fileFolder, fileName='title')
+            fileFolder=fileFolder, fileName='title', sep=sep,
+            new_sep=new_sep, to_remove=to_remove)
     news['content_dep'] = depParseText(news['content'], draw=draw, 
-            fileFolder=fileFolder, fileName='content')
+            fileFolder=fileFolder, fileName='content', sep=sep,
+            new_sep=new_sep, to_remove=to_remove)
     return news
 
 # segment all the sentences, dealing with punctuations
@@ -102,16 +105,17 @@ def constParseText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
     return result
 
 # parse the news
-def constParseNews(news):
-    news['title_constituent'] = constParseText(news['title'])
-    news['content_constituent'] = constParseText(news['content'])
+def constParseNews(news, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE) :
+    news['title_constituent'] = constParseText(news['title'], sep=sep,
+            new_sep=new_sep, to_remove=to_remove)
+    news['content_constituent'] = constParseText(news['content'], sep=sep,
+            new_sep=new_sep, to_remove=to_remove)
     return news
 
 
-
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage:', sys.argv[0], 'InNewsJson OutNewsJson Dependency/Constituent', file=sys.stderr)
+    if len(sys.argv) < 4:
+        print('Usage:', sys.argv[0], 'InNewsJson OutNewsJson Dependency/Constituent PunctuationJson', file=sys.stderr)
         exit(-1)
     inNewsJsonFile = sys.argv[1]
     outNewsJsonFile = sys.argv[2]
@@ -121,13 +125,25 @@ if __name__ == '__main__':
     with open(inNewsJsonFile, 'r') as f:
         newsDict = json.load(f)
     
-    #random.shuffle(newsDict)
+    # read in punctuation file
+    if len(sys.argv) == 5:
+        punctuationJsonFile = sys.argv[4]
+        punct = Punctuation.readJsonFile(punctuationJsonFile)
+        sepRegexStr = Punctuation.toRegexStr(punct['sep'])
+        removeRegexStr = Punctuation.toRegexStr(punct['remove'])
+    else:
+        sepRegexStr = SEP
+        removeRegexStr = TO_REMOVE
+
     cnt = 0
     for newsId, news in newsDict.items():
         if parseType == 'Dependency':
-            depParseNews(news, draw=True, fileFolder=newsId)
+            depParseNews(news, draw=True, fileFolder=newsId, 
+                    sep=sepRegexStr, new_sep=NEW_SEP, 
+                    to_remove=removeRegexStr)
         elif parseType == 'Constituent':
-            constParseNews(news)
+            constParseNews(news, sep=sepRegexStr, new_sep=NEW_SEP, 
+                    to_remove=removeRegexStr)
         cnt += 1
         if cnt % 10 == 0:
             print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
