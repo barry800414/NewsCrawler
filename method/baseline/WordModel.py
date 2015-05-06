@@ -7,6 +7,7 @@ from collections import defaultdict
 
 import numpy as np
 from scipy.sparse import csr_matrix, hstack
+from sklearn.grid_search import ParameterGrid
 
 from RunExperiments import *
 from misc import *
@@ -251,41 +252,41 @@ if __name__ == '__main__':
     # print first line of results
     ResultPrinter.printFirstLine()
 
-    # main loop for running experiments
-    # generating X and y
-    cnt = 0
-    featureList = ['0/1', 'tf', 'tfidf']
-    colsList = [['content'], ['title'], ['title', 'content']]
-    statList = [False, True]
+    # parameters:
+    params = {
+        'feature': ['0/1', 'tf', 'tfidf'],
+        'col': [['content'], ['title'], ['title', 'content']],
+        'stat': [False, True],
+        'randSeed': [1, 2, 3, 4, 5]
+    }
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
-    
+    paramIter = ParameterGrid(params)
+
     # all topic are mixed to train and predict/ leave-one-test
-    for feature in featureList:
-        for newsCols in colsList:
-            for statCol in statList:
-                wm = WordModel(labelNewsList, newsCols=newsCols, 
-                        statCol=statCol, feature=feature)
-                (X, y) = wm.genXY()
-                
-                prefix = 'all, %s, %s, %s, %s' % (feature, '"None"', toStr(newsCols), statCol)
-                topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-                
-                # all train and test
-                RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", testSize=0.2, prefix=prefix)
-                # leave one test
-                RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+    for p in paramIter:
+        wm = WordModel(labelNewsList, newsCols=p['col'], 
+                statCol=p['stat'], feature=p['feature'])
+        (X, y) = wm.genXY()
+                    
+        prefix = 'all, %s, %s, %s, %s' % (p['feature'], '"None"', toStr(p['col']), p['stat'])
+        topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+                    
+        # all train and test
+        RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", 
+                randSeed=p['randSeed'], testSize=0.2, prefix=prefix)
+        # leave one test
+        RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", 
+                randSeed=p['randSeed'], prefix=prefix)
     
     # divide the news into different topic, each of them are trained and test by itself
     labelNewsInTopic = divideLabel(labelNewsList)
     for topicId, labelNewsList in labelNewsInTopic.items():
-        for feature in featureList:
-            for newsCols in colsList:
-                for statCol in statList:
-                    wm = WordModel(labelNewsList, newsCols=newsCols, 
-                        statCol=statCol, feature=feature)
-                    (X, y) = wm.genXY()
+        for p in paramIter:
+            wm = WordModel(labelNewsList, newsCols=p['col'], 
+                    statCol=p['stat'], feature=p['feature'])
+            (X, y) = wm.genXY()
                 
-                    prefix = "%d, %s, %s, %s, %s" % (topicId, feature, '"None"', toStr(newsCols), statCol)
-                    #MLProcedure.runExperiments(X, y, clfList=clfList, prefix=prefix)
-                    RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+            prefix = "%d, %s, %s, %s, %s" % (topicId, p['feature'], '"None"', toStr(p['col']), p['stat'])
+            RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
+                    randSeed=p['randSeed'], testSize=0.2, prefix=prefix)
     

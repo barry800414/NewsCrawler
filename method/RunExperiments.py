@@ -28,7 +28,7 @@ from misc import *
 
 '''
 The whole experimental framework from X,y to results
-Last Update: 2015/03/29
+Date: 2015/03/29
 '''
 
 # class for providing frameworks for running experiments
@@ -42,33 +42,6 @@ class RunExp:
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
 
-        # divide data according to the topic
-        #(topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
-        
-        '''
-        # for each topic
-        for topic in topicList:
-            nowX = topicX[topic]
-            nowy = topicy[topic]
-            # split data
-            (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
-                    nowX, nowy, randSeed, testSize)
-            trainMap = [topic for i in range(0, len(yTrain))]
-            testMap = [topic for i in range(0, len(yTest))]
-
-            for clfName in clfList:
-                # training using validation
-                (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, trainMap, clfName, scorer)
-
-                # testing 
-                yTestPredict = ML.test(XTest, clf)
-
-                # evaluation
-                result = Evaluator.evaluate(yTestPredict, yTrue)
-                
-                # printing out results
-                ResultPrinter.print("%d, " % topic, clf, bestParam, result)
-        '''
         # split data
         (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
                 X, y, randSeed, testSize)
@@ -77,7 +50,8 @@ class RunExp:
         for clfName in clfList:
             # training using validation
             print('In Cross Validation ...', file=sys.stderr)
-            (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, scorer)
+            (clf, bestParam, bestValScore, yTrainPredict) = ML.train(
+                    XTrain, yTrain, clfName, scorer, randSeed=randSeed)
 
             # testing 
             yTestPredict = ML.test(XTest, clf)
@@ -85,7 +59,8 @@ class RunExp:
             # evaluation
             print('In testing ...', file=sys.stderr)
             result = Evaluator.evaluate(yTestPredict, yTest)
-            
+            result['valScore'] = bestValScore
+
             if modelDir != None:
                 filename = dumpModel(modelDir, clf)
             else:
@@ -95,8 +70,9 @@ class RunExp:
             ResultPrinter.print(prefix + ', selfTrainTest', clfName, bestParam, 
                     scorerName, result, filename, outfile=outfile)
 
-            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': result, 
-                'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest } } )
+            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
+                'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                    'XTest': XTest, 'yTest': yTest } } )
         
         return returnObj
 
@@ -131,8 +107,8 @@ class RunExp:
         # training using validation
         for clfName in clfList:
             print('In Cross Validation ...', file=sys.stderr)
-            (clf, bestParam, yTrainPredict) = ML.topicTrain(XTrain, yTrain, 
-                    clfName, scorerName, trainMap)
+            (clf, bestParam, bestValScore, yTrainPredict) = ML.topicTrain(XTrain, 
+                    yTrain, clfName, scorerName, trainMap, randSeed=randSeed)
 
             # testing 
             scorer = Evaluator.makeScorer(scorerName, testMap)
@@ -141,7 +117,8 @@ class RunExp:
             # evaluation
             print('In testing ...', file=sys.stderr)
             (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
-            
+            avgR['valScore'] = bestValScore
+
             if modelDir != None:
                 filename = dumpModel(modelDir, clf)
             else:
@@ -151,9 +128,9 @@ class RunExp:
             ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, 
                     scorerName, avgR, filename, outfile=outfile)
             
-            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': avgR, 
-                'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }} )
-
+            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
+                'result': avgR, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                    'XTest': XTest, 'yTest': yTest } } )
 
         return returnObj
 
@@ -183,14 +160,16 @@ class RunExp:
             for clfName in clfList:
                 # training using validation
                 print('In Cross Validation ...', file=sys.stderr)
-                (clf, bestParam, yTrainPredict) = ML.train(XTrain, yTrain, clfName, scorer)
+                (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
+                        yTrain, clfName, scorer, randSeed=randSeed)
                 # testing 
                 yTestPredict = ML.test(XTest, clf)
 
                 # evaluation
                 print('In testing ...', file=sys.stderr)
                 result = Evaluator.evaluate(yTestPredict, yTest)
-                
+                result['valScore'] = bestValScore
+
                 if modelDir != None:
                     filename = dumpModel(modelDir, clf)
                 else:
@@ -199,8 +178,9 @@ class RunExp:
                 # printing out results
                 ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, 
                         scorerName, result, filename, outfile=outfile)
-                returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'result': result,  
-                    'data':{'XTrain': XTrain, 'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
+                returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
+                    'param': bestParam, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                        'XTest': XTest, 'yTest': yTest }  } )
 
         return returnObj
     
@@ -348,8 +328,12 @@ class DataTool:
     def topicStratifiedKFold(yTrain, trainMap, n_fold=3, randSeed=1):
         assert n_fold > 1
         ySet = set(yTrain)
+        
+        # divide data by topic
         (topicList, topicy) = DataTool.divideYByTopic(yTrain, trainMap)
         topicyFoldNum = dict()
+        
+        # for each topic, do stratified K fold 
         for t in topicList:
             nowy = topicy[t]
             length = len(nowy)
@@ -359,24 +343,32 @@ class DataTool:
             for i in range(0, length):
                 yNum[topicy[t][i]] += 1
             
-            # calculate number of instance in each fold for each class
+            # calculate the expected number of instance in each fold for each class
             # topicyFoldNum[t][y]: the expected number of instances for topic t and class y
             topicyFoldNum[t] = { yClass: int(round(float(cnt)/n_fold)) for yClass, cnt in yNum.items() }
     
         # the list for making PredefinedFold
-        testFold = list()
+        testFold = [0 for i in range(0, len(yTrain))]
         
         # foldIndex[t][y]: current fold index for topic t and class y
         foldIndex = { t: { yClass: 0 for yClass in ySet } for t in topicList }
         # nowCnt[t][y]: the number of instance in topic t and with class y
         nowCnt = { t: { yClass: 0 for yClass in ySet } for t in topicList }
-        for i, y in enumerate(yTrain):
+        
+        # random shuffle
+        index = [i for i in range(0, len(yTrain))]
+        random.seed(randSeed)
+        random.shuffle(index)
+        
+        #for i, y in enumerate(yTrain):
+        for i in index:
+            y = yTrain[i]
             t = trainMap[i]
             if nowCnt[t][y] >= topicyFoldNum[t][y] and foldIndex[t][y] < n_fold - 1:
                 foldIndex[t][y] += 1
                 nowCnt[t][y] = 0 
             nowCnt[t][y] += 1
-            testFold.append(foldIndex[t][y])
+            testFold[i] = foldIndex[t][y]
         
         # making topicMapping for testing(validation) parts of instances
         foldTopicMap = [list() for i in range(0, n_fold)]
@@ -421,9 +413,10 @@ class DataTool:
     
 # The class for providing function to do machine learning procedure
 class ML:
-    def train(XTrain, yTrain, clfName, scorer):
+    def train(XTrain, yTrain, clfName, scorer, randSeed=1):
         # make cross validation iterator 
-        kfold = cross_validation.StratifiedKFold(yTrain, n_folds=3)
+        kfold = cross_validation.StratifiedKFold(yTrain, n_folds=3, 
+                shuffle=True, random_state=randSeed)
 
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
@@ -434,28 +427,35 @@ class ML:
         
         # refit the data by the best parameters
         clfGS.fit(XTrain, yTrain)
+
+        # get validation score
+        bestValScore = clfGS.best_score_
+
         # testing on training data
         yPredict = clfGS.predict(XTrain)
         
-        return (clfGS.best_estimator_, clfGS.best_params_, yPredict)
+        return (clfGS.best_estimator_, clfGS.best_params_, bestValScore, yPredict)
 
-    def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap):
+    def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap, randSeed=1):
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
 
-        bestParams = ML.topicGridSearchCV(clf, parameters, scorerName, XTrain, yTrain, trainMap, n_fold=3, n_jobs=-1)
+        (bestValScore, bestParams) = ML.topicGridSearchCV(clf, parameters, 
+                scorerName, XTrain, yTrain, trainMap, n_fold=3, 
+                randSeed=randSeed, n_jobs=-1)
         
         # refit the data by the best parameters
         clf.set_params(**bestParams)
         clf.fit(XTrain, yTrain)
-                
+        
         # testing on training data
         yPredict = clf.predict(XTrain)
         
-        return (clf, bestParams, yPredict)
+        return (clf, bestParams, bestValScore, yPredict)
 
 
-    def topicGridSearchCV(clf, parameters, scorerName, XTrain, yTrain, trainMap, n_fold, randSeed=1, n_jobs=1):
+    def topicGridSearchCV(clf, parameters, scorerName, XTrain, yTrain, 
+            trainMap, n_fold, randSeed=1, n_jobs=1):
         # get topic stratified K-fold and its topicMapping
         (kfold, foldTopicMap) = DataTool.topicStratifiedKFold(yTrain, 
                 trainMap, n_fold, randSeed=randSeed) 
@@ -480,7 +480,7 @@ class ML:
                 bestScore = avgScore
                 bestParams = out[grid_start]['params']
         
-        return bestParams
+        return (bestScore, bestParams)
         '''
         for params in paramsGrid:
             avgScore = 0.0
@@ -644,25 +644,27 @@ class ResultPrinter:
     def printFirstLine(outfile=sys.stdout):
         print('topicId, feature, model settings, columnSource,'
           ' statementCol, experimental settings, classifier,'
-          'parameters, scorer, accuracy, MacroF1, MacroR, modelPath(pickle)', file=outfile)
+          'parameters, scorer, valScore, accuracy, MacroF1,'
+          'MacroR, modelPath(pickle)', file=outfile)
 
     def getDataType():
         return ('str', 'str', 'str', 'str', 'str', 'str', 'str', 
-                'str', 'str', 'float', 'float', 'float', 'str')
+                'str', 'str', 'float', 'float', 'float', 'float', 'str')
 
     def print(prefix, clfName, params, scorerName, result, filename, outfile):
         paramStr = toStr("%s" % params)
-        print(prefix, clfName, paramStr, scorerName,  result['Accuracy'], 
-                result['MacroF1'], result['MacroR'], filename, sep=',', 
-                file=outfile)
+        print(prefix, clfName, paramStr, scorerName, result['valScore'], 
+                result['Accuracy'], result['MacroF1'], result['MacroR'], 
+                filename, sep=',', file=outfile)
 
 def keepBestResult(nowBestR, nextRs, scorerName, largerIsBetter=True):
+    if nextRs == None:
+        return nowBestR
     if nowBestR == None:
         for r in nextRs:
             return r
     
     nowS = nowBestR['result'][scorerName]
-    
     for r in nextRs: 
         nextS = r['result'][scorerName]
         if largerIsBetter:

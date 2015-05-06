@@ -15,19 +15,24 @@ from misc import *
 
 '''
 This is the improved version of WordModel
-TODO: remove < 1 dimension, pos tagger removing,  
+ 1.remove < 1 dimension (DONE)
+ 2.allowed some of pos taggers (DONE)
+ 3.merge words
+ 4.highest tfidf
+
 Author: Wei-Ming Chen
 Date: 2015/05/04
 
 '''
 
 class WordModel:
-    def __init__(self, labelNewsList, newsCols=['content'], statCol=False, feature='tf', volc=None):
+    def __init__(self, labelNewsList, newsCols=['content'], statCol=False, feature='tf', volc=None, allowedPOS=None):
         self.ln = labelNewsList
         self.newsCols = newsCols
         self.statCol = statCol
         self.feature = feature
         self.volc = volc
+        self.allowedPOS = allowedPOS
 
     def getVolc(self):
         return self.volc
@@ -39,23 +44,27 @@ class WordModel:
             volc = dict() # vocabulary
         for labelNews in labelNewsList:
             if column == 'content':
-                text = labelNews['news']['content_seg']
+                text = labelNews['news']['content_pos']
             elif column == 'title':
-                text = labelNews['news']['title_seg']
+                text = labelNews['news']['title_pos']
             elif column == 'statement':
-                text = labelNews['statement']['seg']
+                text = labelNews['statement']['pos']
             vectorList.append(WordModel.text2TFIDF(text, IDF, volc, zeroOne))
         return (vectorList, volc)
 
     
     # convert text to TF-IDF features (dict)
-    def text2TFIDF(text, IDF=None, volc=None, zeroOne=False, sentSep=",", wordSep=" "):
+    def text2TFIDF(text, IDF=None, volc=None, zeroOne=False, 
+            sentSep=",", wordSep=" ", wordTagSep='/'):
         f = dict()
         if volc == None:
             volc = dict()
         # term frequency 
         for sent in text.split(sentSep):
-            for word in sent.split(wordSep):
+            for wt in sent.split(wordSep):
+                (word, tag) = wt.split(wordTagSep)
+                if allowedPOS != None and tag not in allowedPOS:
+                    continue
                 if word not in volc:
                     volc[word] = len(volc)
                 if volc[word] not in f:
@@ -87,9 +96,9 @@ class WordModel:
             wordSet = set()
             for col in newsCols:
                 if col == 'title':
-                    text = labelNews['news']['title_seg']
+                    text = labelNews['news']['title_pos']
                 elif col == 'content':
-                    text = labelNews['news']['content_seg']
+                    text = labelNews['news']['content_pos']
                 for sent in text.split(sentSep):
                     for word in sent.split(wordSep):
                         if word not in volc: # building volcabulary
@@ -304,12 +313,13 @@ if __name__ == '__main__':
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
     threshold = { "0/1": 1, 'tf': 1, 'tfidf': 1 }
     paramIter = ParameterGrid(params)
+    allowedPOS = set(['VA', 'NN', 'NR', 'AD', 'JJ', 'FW'])
     
-
     # all topic are mixed to train and predict/ leave-one-test
     for p in paramIter:
         wm = WordModel(labelNewsList, newsCols=p['col'], 
-                statCol=p['stat'], feature=p['feature'])
+                statCol=p['stat'], feature=p['feature'], 
+                allowedPOS=allowedPOS)
         (X, y) = wm.genXY(threshold[p['feature']])
         
         prefix = 'all, %s, %s, %s, %s' % (p['feature'], '"None"', toStr(p['col']), p['stat'])
@@ -325,7 +335,8 @@ if __name__ == '__main__':
     for topicId, labelNewsList in labelNewsInTopic.items():
         for p in paramIter:
             wm = WordModel(labelNewsList, newsCols=p['col'], 
-                    statCol=p['stat'], feature=p['feature'])
+                    statCol=p['stat'], feature=p['feature'],
+                    allowedPOS=allowedPOS)
             (X, y) = wm.genXY(threshold[p['feature']])
                 
             prefix = "%d, %s, %s, %s, %s" % (topicId, p['feature'], '"None"', toStr(p['col']), p['stat'])

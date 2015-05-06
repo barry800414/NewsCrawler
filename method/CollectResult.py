@@ -56,6 +56,34 @@ def allowData(data, colNameMap, filterColumn, allow, type='string'):
     return newData
 
 
+# merge the rows with the same setting, average the results
+# keyPrefixNum: the number of columns to be merged as key
+def mergeRows(data, colNameMap, keyPrefixNum):
+    keyData = dict()
+    print(len(data[0]))
+    for d in data:
+        key = tuple(d[0:keyPrefixNum])
+        if key not in keyData:
+            keyData[key] = list()
+        keyData[key].append(d)
+    
+    newData = list()
+    for key, dList in keyData.items():
+        #print('key:', key)
+        #print('num:', len(dList))
+        avgD = [0.0 for i in range(0, len(colNameMap) - keyPrefixNum)]
+        for d in dList:
+            for i, e in enumerate(d[keyPrefixNum:len(colNameMap)]):
+                if type(e) == int or type(e) == float:
+                    avgD[i] += e
+        for i in range(0, len(colNameMap) - keyPrefixNum):
+            avgD[i] /= len(dList)
+        newRow = list(key)
+        newRow.extend(avgD)
+        #print(newRow)
+        newData.append(newRow)
+    return newData
+
 def floatEq(f1, f2):
     return fabs(f1 - f2) < 1e-10
 
@@ -118,8 +146,8 @@ def getParamFromRow(row, colNameMap, extractColType):
     return params
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage:', sys.argv[0], 'resultCSV outParamsFile', file=sys.stderr)
+    if len(sys.argv) < 3:
+        print('Usage:', sys.argv[0], 'resultCSV outParamsFile [mergeRowKeyPrefixNum]', file=sys.stderr)
         exit(-1)
     resultCSV = sys.argv[1]
     outParamsFile = sys.argv[2]
@@ -128,6 +156,11 @@ if __name__ == '__main__':
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
+    if len(sys.argv) == 4:
+        keyPrefixNum = int(sys.argv[3])
+        data = mergeRows(data, colNameMap, keyPrefixNum)
+    
+    print(data)
 
     topicList = [2, 3, 4, 5, 6, 13, 16]
     firstN = 3
@@ -137,6 +170,7 @@ if __name__ == '__main__':
     f1TopicRows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'topicId', allow='%d' % t, type='string')
+        print(newData)
         sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f1Rows[t] = newData[0]
         f1TopicRows[t] = list()

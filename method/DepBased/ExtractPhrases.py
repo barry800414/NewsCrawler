@@ -150,7 +150,7 @@ if __name__ == '__main__':
         reRankPhrasesList(pList, lm, minCnt=1, minLength=1, outfile=f)
     topicPList['all'] = filterPhrase(pList, minCnt, minLength)
     
-    '''
+    
     ###### extracting phrase for each topic ######
     topicNewsDict = dataTool.divideNewsByTopic(newsDict)
     for topicId, tNewsDict in topicNewsDict.items():
@@ -172,5 +172,5 @@ if __name__ == '__main__':
 
     with open(outPhraseJsonFile, 'w') as f:
         json.dump(topicPList, f, ensure_ascii=False, indent = 2)
-    '''
+    
     

@@ -70,11 +70,14 @@ class TreePattern():
                                 tMatchedNodes, pEdgeStack, mapping, results)
                         # restore 
                         pEdgeStack.append(nextPEdge)
-                    else:
+                    elif len(mapping) == pTree.p.number_of_nodes():
                         # match success
-                        assert len(mapping) == pTree.p.number_of_nodes()
                         results.append(TreePattern.getMatchResult(tTree, pTree, 
                             mapping, returnMapping))
+                    else:
+                        if len(mapping) != pTree.p.number_of_nodes():
+                            print('mapping:', mapping)
+                            print('#nodes:', pTree.p.number_of_nodes())
 
                     # restore to original state
                     tMatchedNodes.remove(t2)
@@ -142,11 +145,11 @@ if __name__ == '__main__':
             'name': 'holder-opinion-target'
     }
 
-    pTree = TreePattern(pTreeDict['nodes'], pTreeDict['edges'])
+    pTree = TreePattern(pTreeDict['name'], pTreeDict['nodes'], pTreeDict['edges'])
 
     print(pTree.match(depTree))
 
-
+    '''
     from NLPToolRequests import *
     sList = ['I hate this product',
              'Although I hate this product, Amy likes the product']
@@ -155,4 +158,4 @@ if __name__ == '__main__':
         #print(tdList)
         depTree = DepTree.DepTree(tdList)
         print(pTree.match(depTree))
-
+    '''

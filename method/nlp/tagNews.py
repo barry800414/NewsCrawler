@@ -54,10 +54,14 @@ def tagText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
             print('')
             '''
             # tag the sentence, return a string with tags
+            response = sendTagRequest(cleanSent, seg=False)
+            if response == None:
+                print('tagging error', file=sys.stderr)
+                continue
             if len(result) == 0:
-                result = sendTagRequest(cleanSent)
+                result = response
             else:
-                result = result + new_sep + sendTagRequest(cleanSent)
+                result = result + new_sep + response
     return result
 
 if __name__ == '__main__':
@@ -83,7 +87,7 @@ if __name__ == '__main__':
         removeRegexStr = TO_REMOVE
 
     cnt = 0
-    for newsId, news in newsDict.items():
+    for newsId, news in sorted(newsDict.items(), key=lambda x:x[0]):
         tagNews(news, sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
         cnt += 1
         if cnt % 10 == 0:

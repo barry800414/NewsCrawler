@@ -98,7 +98,7 @@ def sendConstParseRequest(sentence, seg=False, returnTokenizedSent=False):
 #print(sendConstParseRequest("這是一個測試用的句子"))
 #print(sendConstParseRequest("台灣應廢除死刑"))
 
-def sendTagRequest(sentence, seg=True):
+def sendTagRequest(sentence, seg=False):
     api_url = 'http://localhost:8000/pos'
     if seg == False:
         payload = { 's': sentence }
