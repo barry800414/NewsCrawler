@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class NLPToolServer {
     public static FullNNDepParser fdp;
     public static FullPCFGParser fpp;
 
-    private static final String imgFolder = "/utmp/weiming/deptree_img/";
+    private static final String imgFolder = "";
     
     public static void main(String[] args) {
 
@@ -69,6 +70,7 @@ public class NLPToolServer {
             System.out.println("The server is running");
         }
         catch(Exception e){
+            e.printStackTrace(System.out);
             e.printStackTrace();
         }
     }
@@ -78,67 +80,78 @@ public class NLPToolServer {
         public void handle(HttpExchange httpExchange) throws IOException {
             String response = "/segmenter?s=sentence\n/pos?s=sentence\n/nndep?s=sentence";
             NLPToolServer.writeResponse(httpExchange, response.toString());
+            //NLPToolServer.writeFailResponse(httpExchange);
         }
     }
 
     // Stanford Segmenter handler
     // http://localhost:port/segmenter?s=sentence
     static class SegHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String text = parms.get("s");
-            
-            //segement the string
-            String output = seg.mergeStr(seg.segmentStrZht(text), " ");
-            response.append(output);
+        public void handle(HttpExchange httpExchange){
+            try {
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                String text = parms.get("s");
+                
+                //segement the string
+                String output = seg.mergeStr(seg.segmentStrZht(text), " ");
+                response.append(output);
 
-            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + output);
-            
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + output);
+                
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
 
     // http://localhost:port/pos?s=sentence
     // http://localhost:port/pos?seg_s=sentence
     static class POSHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            
-            // default: segemented sentence (word delimiter is space)
-            boolean seg = false;
-            String text = parms.get("seg_s");
-            if(text == null || text.length() == 0){
-                text = parms.get("s");
+        public void handle(HttpExchange httpExchange) {
+            try{
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                
+                // default: segemented sentence (word delimiter is space)
+                boolean seg = false;
+                String text = parms.get("seg_s");
                 if(text == null || text.length() == 0){
-                    return ;
+                    text = parms.get("s");
+                    if(text == null || text.length() == 0){
+                        return ;
+                    }
                 }
-            }
-            else{
-                seg = true;
-            }
-            
-            List<TaggedWord> tagged;
-            if(seg){
-                tagged = tagger.tagTokenizedSent(text, Lang.ZHT, Lang.ZHT);
-            }
-            else{
-                tagged = tagger.tagUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
-            }
+                else{
+                    seg = true;
+                }
+                
+                List<TaggedWord> tagged;
+                if(seg) { tagged = tagger.tagTokenizedSent(text, Lang.ZHT, Lang.ZHT); }
+                else{ tagged = tagger.tagUntokenizedSent(text, Lang.ZHT, Lang.ZHT); }
 
-            String output = Sentence.listToString(tagged, false);
-            response.append(output);
+                String output = Sentence.listToString(tagged, false);
+                response.append(output);
+                
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + output);
             
-            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + output);
-            
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
     
@@ -172,102 +185,117 @@ public class NLPToolServer {
     // Stanford PCFG Dependency Parser handler (output: stanford dependencies)
     //http://localhost:port/pcfg_dep?s=sentence?f_name=ooo?f_folder=xxx
     static class PCFGDepParserHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            String imgPath = null;
+        public void handle(HttpExchange httpExchange){
+            try{ 
+                String imgPath = null;
 
-            //retrieve sentence
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            
-            boolean seg = false;
-            String text = parms.get("seg_s");
-            if(text == null || text.length() == 0){
-                text = parms.get("s");
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                
+                boolean seg = false;
+                String text = parms.get("seg_s");
                 if(text == null || text.length() == 0){
-                    return ;
-                }
-            }
-            else{
-                seg = true;
-            }
-
-            //Check drawing dependency tree or not
-            String drawFlag = parms.get("draw");
-            if(drawFlag != null){
-                if(drawFlag.toLowerCase().compareTo("true") == 0){
-                    String fileFolder = parms.get("f_folder");
-                    String fileName = parms.get("f_name");
-                    if(fileFolder == null || fileName == null || 
-                       fileFolder.length() == 0 || fileName.length()==0){
-                        fileFolder = ".";
-                        fileName = text;
+                    text = parms.get("s");
+                    if(text == null || text.length() == 0){
+                        return ;
                     }
-                    imgPath = NLPToolServer.imgFolder + fileFolder + "/" + fileName;
                 }
-            }
+                else{
+                    seg = true;
+                }
 
-            //dependency parsing by pcfg parser
-            List<TypedDependency> tdList;
-            if(seg){
-                tdList = fpp.depParseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT, imgPath);
-            }
-            else{
-                tdList = fpp.depParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
-            }
-            String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
-            response.append(tokenizedSent + "\n");
-            String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
-            response.append(depStr);
+                //Check drawing dependency tree or not
+                String drawFlag = parms.get("draw");
+                if(drawFlag != null){
+                    if(drawFlag.toLowerCase().compareTo("true") == 0){
+                        String fileFolder = parms.get("f_folder");
+                        String fileName = parms.get("f_name");
+                        if(fileFolder == null || fileName == null || 
+                           fileFolder.length() == 0 || fileName.length()==0){
+                            fileFolder = ".";
+                            fileName = text;
+                        }
+                        imgPath = NLPToolServer.imgFolder + fileFolder + "/" + fileName;
+                    }
+                }
+   
+                //dependency parsing by pcfg parser
+                List<TypedDependency> tdList;
+                if(seg){
+                    tdList = fpp.depParseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT, imgPath);
+                }
+                else{
+                    tdList = fpp.depParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
+                }
+                String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
+                response.append(tokenizedSent + "\n");
+                String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
+                response.append(depStr);
 
-            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + tokenizedSent + "\n" + depStr);
- 
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + tokenizedSent + "\n" + depStr);
+     
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
 
 	// Stanford PCFG Constituent Parser handler (output: stanford parsing tree as a list of nodes and edges)
     //http://localhost:port/pcfg?s=sentence
     static class PCFGConstParserHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            //retrieve sentence
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            
-            boolean seg = false;
-            String text = parms.get("seg_s");
-            if(text == null || text.length() == 0){
-                text = parms.get("s");
+        public void handle(HttpExchange httpExchange){
+            try {    
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                
+                boolean seg = false;
+                String text = parms.get("seg_s");
                 if(text == null || text.length() == 0){
-                    return ;
+                    text = parms.get("s");
+                    if(text == null || text.length() == 0){
+                        return ;
+                    }
                 }
-            }
-            else{
-                seg = true;
-            }
+                else{
+                    seg = true;
+                }
 
-            System.out.println(text);
-            //constituent parsing by pcfg parser
-            Tree tree;
-            if(seg){
-                tree = fpp.parseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT);
-            }
-            else{
-                tree = fpp.parseUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
-            }
-            String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
-            response.append(tokenizedSent + "\n");
-            String treeStr = TreePrinter.treeToString(tree); //get string of tree
-            response.append(treeStr);
+                System.out.println(text);
+                //constituent parsing by pcfg parser
+                Tree tree;
+                if(seg){
+                    tree = fpp.parseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT);
+                }
+                else{
+                    tree = fpp.parseUntokenizedSent(text, Lang.ZHT, Lang.ZHT);
+                }
+                String tokenizedSent = fpp.getTokenizedSentBuffer(); //get tokenized text
+                response.append(tokenizedSent + "\n");
+                
+                String treeStr = TreePrinter.treeToString(tree); //get string of tree
+                response.append(treeStr);
 
-            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            //System.out.println("Response:" + tokenizedSent + "\n" + treeStr);
- 
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                //System.out.println("Response:" + tokenizedSent + "\n" + treeStr);
+     
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
 	
@@ -281,6 +309,16 @@ public class NLPToolServer {
         os.close();
     }
 
+    public static void writeFailResponse(HttpExchange httpExchange){
+        try{
+            httpExchange.sendResponseHeaders(500, 0);
+            httpExchange.getResponseBody().close();
+        }
+        catch(Exception e){
+            e.printStackTrace(System.out);
+            e.printStackTrace();
+        }
+    }
 
     /**
      * returns the url parameters in a map
