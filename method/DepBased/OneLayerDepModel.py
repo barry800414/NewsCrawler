@@ -14,9 +14,15 @@ import dataTool
 '''
 This codes implements the OneLayerDepModel for stance classification.
 DepTree.py, WFDict.py and Word->frequency mapping are required.
+
+Improved version of OneLayerDepModel
+ 1.remove < 1 dimension (DONE)
+ 2.word clustering  
+ 3.highest frequency?
+ 4.allowed word config
+
 Author: Wei-Ming Chen
-Date: 2015/03/08
-Last Updated: 2015/03/08
+Date: 2015/05/08
 '''
 
 class OneLayerDepModel():
@@ -35,7 +41,10 @@ class OneLayerDepModel():
         self.init()
         
     def init(self):
-        self.corpusDGList = list()
+        self.setModelFlag = False
+        # the list to store the dependency trees of each doc
+        # self.corpusDTList[i]: (topicId of doc i, the dep tree list of doc i)
+        self.corpusDTList = list()
         for labelNews in self.pln:
             topicId = labelNews['statement_id'] # FIXME
             contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
@@ -45,11 +54,12 @@ class OneLayerDepModel():
                 dg = self.getDepTree(depList['tdList'], topicId)
                 if dg != None:
                     newsDGList.append(dg)
-            self.corpusDGList.append((topicId, newsDGList))
+            self.corpusDTList.append((topicId, newsDGList))
 
     def getVolc(self):
         return self.volc
 
+    # generate dependency tree from typed dependencies
     def getDepTree(self, tdList, topicId):
         dt = DepTree(tdList)
         if td.isValid():
@@ -59,19 +69,26 @@ class OneLayerDepModel():
 
     def setModel(self, allowedSeedWord, allowedSeedWordType, 
             allowedFirstLayerWord, allowedFirstLayerWordType, 
-            allowedRel, debugLevel=0, debugFile=sys.stderr):
+            allowedRel, threhold=0, debugLevel=0, 
+            debugFile=sys.stderr):
         self.asw = allowedSeedWord
         self.aswType = allowedSeedWordType
         self.aflw = allowedFirstLayerWord
         self.aflwType = allowedFirstLayerWordType
         self.ar = allowedRel
+        self.threshold = threshold
         self.debugLevel = debugLevel
         self.debugFile = debugFile
+        self.setModelFlag = True
 
-    # generate X, y. You must call setModel in advance 
+    # generate X, y. Must call setModel in advance 
     def genXY(self):
+        if self.setModelFlag == False:
+            return 
+
+        # all retrieved edges in whole corpus
         corpusEdgeList = list()
-        for topicId, newsDGList in self.corpusDGList:
+        for topicId, newsDGList in self.corpusDTList:
             newsEdgeList = list()
             for dg in newsDGList:
                 dg.reset()
@@ -79,7 +96,6 @@ class OneLayerDepModel():
                 dg.setAllowedGovWord(self.aflw[topicId], type=self.aflwType)
                 dg.setAllowedRel(self.ar[topicId])
                 dg.setNowWord(self.asw[topicId], self.aswType)
-                #print(dg)
                 # go one step for searching dependencies (edges) which matches the rule
                 edgeList = dg.searchOneStep()
                 
@@ -91,11 +107,21 @@ class OneLayerDepModel():
 
         # build the dictionary
         volc = dict()
+        docF = defaultdict(int) # doc frequency for each pair
         for newsEdgeList in corpusEdgeList:
+            docPairSet = set()
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
                     if (sW, eW) not in volc:
                         volc[(sW,eW)] = len(volc)
+                    docPairSet.add((sW, eW))
+            for key in docPairSet:
+                docF[key] += 1        
+
+        # if the doc frequency of that pair is less than or equal 
+        # to threshold, then discard it
+        if self.threshold != None:
+            volc = shrinkVolcByDocF(volc, docF, self.threshold)
 
         if self.debugLevel > 0:
             print('# distinct pairs: ', len(volc), file=sys.stderr)
@@ -109,7 +135,8 @@ class OneLayerDepModel():
         for i, newsEdgeList in enumerate(corpusEdgeList):
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    XFeature[i][volc[(sW, eW)]] += 1
+                    if (sW, eW) in volc:
+                        XFeature[i][volc[(sW, eW)]] += 1
         
         rows = list()
         cols = list()
@@ -129,6 +156,16 @@ class OneLayerDepModel():
         self.volc = volc
         return (X, y)
 
+def shrinkVolcByDocF(volc, docF, threshold):
+    if threshold <= 0:
+        return volc
+    newVolc = dict()
+    for w in volc.keys():
+        if docF[w] <= threshold:
+            continue
+        newVolc[w] = len(newVolc)
+    return newVolc
+
 
 # get labels from the list of label-news
 def getLabels(labelNewsList):
@@ -145,9 +182,9 @@ def addWordSetToVolc(wordSet, volc):
     for w in wordSet:
         if w not in volc:
             volc[w] = len(volc)
+        
 
-
-# TODO: calculate frequency from dependencies
+# temporally deprecated
 if __name__ == '__main__':
     if len(sys.argv) != 3:
         print('Usage:', sys.argv[0], 'parsedLabelNewsJson wordFrequencyMappingJson', file=sys.stderr)

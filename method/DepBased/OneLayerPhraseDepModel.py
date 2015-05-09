@@ -56,16 +56,15 @@ def initAllowedSet(topicSet, config, dictionary=None):
     return allowedSet
 
 
-def runSingleTask(labelNewsList, taskType, olpdm, topicSet, 
-        sentiDict, params, clfList, topicMap=None, topicId=None, 
-        randSeed=1):
+def runSingleTask(taskType, olpdm, topicSet, sentiDict, params, 
+        clfList, topicMap=None, topicId=None, randSeed=1):
     p = params
     allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
     allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
     allowedRel = { t: None for t in topicSet }
     olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], 
             allowedFirstLayerWord, p['firstLayerType']['type'], 
-            allowedRel)
+            allowedRel, p['threshold'])
     (X, y) = olpdm.genXY()
     volc = olpdm.getVolc()
     #print('Size of volc2:', len(volc2), file=sys.stderr)
@@ -90,7 +89,8 @@ def runSingleTask(labelNewsList, taskType, olpdm, topicSet,
                 toStr(list(params.keys())), toStr(params), 
                 '"None"', 'False')
         rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
-                'MacroF1', randSeed=randSeed, testSize=0.2, prefix=prefix)
+                'MacroF1', randSeed=randSeed, testSize=0.2, 
+                prefix=prefix)
         if rs == None:
             return None
         for r in rs:
@@ -117,47 +117,55 @@ def runSingleTask(labelNewsList, taskType, olpdm, topicSet,
     return rs
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage:', sys.argv[0], 'depParsedLabelNewsJson phraseFile sentiDictFile', file=sys.stderr)
+    if len(sys.argv) < 3:
+        print('Usage:', sys.argv[0], 'depParsedLabelNewsJson sentiDictFile [phraseFile]', file=sys.stderr)
         exit(-1)
 
     parsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
-    phrasesJsonFile = sys.argv[2]
-    sentiDictFile = sys.argv[3]
+    sentiDictFile = sys.argv[2]
 
     # load label-news
     with open(parsedLabelNewsJsonFile, 'r') as f:
         labelNewsList = json.load(f)
 
     # load phrases
-    topicPhraseList = loadPhraseFile(phrasesJsonFile)
+    if len(sys.argv) == 4:
+        phrasesJsonFile = sys.argv[3]
+        topicPhraseList = loadPhraseFile(phrasesJsonFile)
+    else:
+        topicPhraseList = None
 
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
 
     # get the set of all possible topic
-    topicSet = set()
-    for labelNews in labelNewsList:
-        topicSet.add(labelNews['statement_id'])
+    topicSet = set([ln['statement_id'] for ln in labelNewsList])
 
     # model parameters #FIXME: allowed relation
-    params = { 'seedWordType': [
-                    {'type': 'tag', 'allow': ('NP',)},
-                    {'type': 'tag', 'allow': ('NP','NR')},
+    if topicPhraseList != None:
+        params = { 'seedWordType': [
                     {'type': 'tag', 'allow': ('NP','NR','NN')}
                 ],
                'firstLayerType': [ 
                     {'type': 'word', 'allow': 'NTUSD_core'}, 
-                    {'type': 'tag', 'allow': ('VV',)},
-                    {'type': 'tag', 'allow': ('JJ',)},
-                    {'type': 'tag', 'allow': ('VA',)},
-                    {'type': 'tag', 'allow': ('VV','JJ')},
-                    {'type': 'tag', 'allow': ('VV','VA')},
-                    {'type': 'tag', 'allow': ('JJ','VA')},
                     {'type': 'tag', 'allow': ('VV','JJ','VA')} 
                 ],
-               'randSeed': [1, 2, 3, 4, 5]
+               'randSeed': [1, 2, 3, 4, 5],
+               'threshold': [1, 5, 10]
             }
+        modelName = 'OLPDM'
+    else:
+        params = { 'seedWordType': [
+                    {'type': 'tag', 'allow': ('NR','NN')}
+                ],
+               'firstLayerType': [ 
+                    {'type': 'word', 'allow': 'NTUSD_core'}, 
+                    {'type': 'tag', 'allow': ('VV','JJ','VA')} 
+                ],
+                'randSeed': [1, 2, 3, 4, 5],
+                'threshold': [1, 5, 10]
+            }
+        modelName = 'OLDM'
 
     paramsIter = ParameterGrid(params)
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
@@ -169,33 +177,39 @@ if __name__ == '__main__':
 
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
-    olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList)
-    tolpdm = dict()
-    for topicId, labelNewsList in labelNewsInTopic.items():
-        tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
-                topicPhraseList)
+    if topicPhraseList != None: #OLPDM
+        olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList)
+        tolpdm = dict()
+        for topicId, labelNewsList in labelNewsInTopic.items():
+            tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
+                    topicPhraseList) 
+    else: #OLDM (no phrase)
+        olpdm = OneLayerPhraseDepModel(labelNewsList)
+        tolpdm = dict()
+        for topicId, labelNewsList in labelNewsInTopic.items():
+            tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList)
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
         bestR = None
         for p in paramsIter:
-            r = runSingleTask(labelNewsInTopic[t], 'SelfTrainTest', 
-                    tolpdm[t], topicSet, sentiDict, p, clfList, topicId=t, 
+            r = runSingleTask('SelfTrainTest', tolpdm[t], 
+                    topicSet, sentiDict, p, clfList, topicId=t, 
                     randSeed=p['randSeed'])
             bestR = keepBestResult(bestR, r, 'MacroF1')
-        with open('OLPDM_SelfTrainTest_topic%d.pickle' % t, 'w+b') as f:
+        with open('%s_SelfTrainTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
     # ============= Run for all-train-test ================
     print('All-Train-Test...', file=sys.stderr)
     bestR = None
     for p in paramsIter:
-        r = runSingleTask(labelNewsList, 'AllTrainTest', olpdm, 
-                topicSet, sentiDict, p, clfList, topicMap=topicMap, 
+        r = runSingleTask('AllTrainTest', olpdm, topicSet, 
+                sentiDict, p, clfList, topicMap=topicMap, 
                 randSeed=p['randSeed'])
         bestR = keepBestResult(bestR, r, 'MacroF1')
-    with open('OLPDM_AllTrainTest.pickle', 'w+b') as f:
+    with open('%s_AllTrainTest.pickle' %(modelName), 'w+b') as f:
         pickle.dump(bestR, f)
 
 
@@ -204,11 +218,12 @@ if __name__ == '__main__':
     for t in topicSet:
         bestR = None
         for p in paramsIter:
-            r = runSingleTask(labelNewsList, 'LeaveOneTest', olpdm, 
-                    topicSet, sentiDict, p, clfList, topicMap=topicMap, 
+            r = runSingleTask('LeaveOneTest', olpdm, topicSet, 
+                    sentiDict, p, clfList, topicMap=topicMap, 
                     topicId=t, randSeed=p['randSeed'])
-            bestR = keepBestResult(bestR, r[t], 'MacroF1')
-        with open('OLPDM_LeaveOneTest_topic%d.pickle' % t, 'w+b') as f:
+            if r != None:
+                bestR = keepBestResult(bestR, r[t], 'MacroF1')
+        with open('%s_LeaveOneTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
     '''
