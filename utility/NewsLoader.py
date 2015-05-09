@@ -134,7 +134,28 @@ class NewsLoader():
         except Exception as e:
             print traceback.format_exc()
             return None
-
+    
+    # get one piece of news from given table
+    def getAllNewsInCorpus(self, corpusTable, newsColumns = ['title', 'content'], limitNum=-1):
+        sql = 'SELECT id, %s FROM %s' % (self.convertToSql(newsColumns), corpusTable)
+        if limitNum != -1:
+            sql = sql + ' LIMIT 0, %s' % (limitNum)
+        try:
+            self.cursor.execute(sql)
+            newsDict = dict()
+            while True:
+                tmp = self.cursor.fetchone()
+                if tmp == None: break
+                else:
+                    news = dict()
+                    for i, c in enumerate(newsColumns):
+                        news[c] = tmp[i+1]
+                    newsId = tmp[0]
+                    newsDict[newsId] = news
+            return newsDict
+        except Exception as e:
+            print traceback.format_exc()
+            return None
 
     def getTopic(self, newsId, limitTopics):
         sql = "SELECT topic_id FROM %s WHERE news_id='%s'" % (
@@ -208,7 +229,10 @@ if __name__ == '__main__':
         newsDict = dict()
         for newsId in newsIdList:
             newsDict[newsId] = loader.getNews(newsId, corpusTable)
-    
+    elif newsLoaderConfig['query_type'] == 'all_in_corpus':
+        corpusTable = newsLoaderConfig['corpus_table']
+        newsDict = loader.getAllNewsInCorpus(corpusTable)
+
     if newsLoaderConfig['get_topic']:
         for newsId, news in newsDict.items():
             news['topic'] = loader.getTopic(newsId, topicIdList)

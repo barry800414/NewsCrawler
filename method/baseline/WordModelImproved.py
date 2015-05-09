@@ -17,7 +17,7 @@ from misc import *
 This is the improved version of WordModel
  1.remove < 1 dimension (DONE)
  2.allowed some of pos taggers (DONE)
- 3.merge words
+ 3.word clustering 
  4.highest tfidf
 
 Author: Wei-Ming Chen
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     # parameters:
     params = {
         'feature': ['0/1', 'tf', 'tfidf'],
-        'col': [['content'], ['title'], ['title', 'content']],
+        'col': [['content'], ['title', 'content']],
         'stat': [False, True],
     }
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]

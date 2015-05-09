@@ -41,7 +41,7 @@ server_compile:
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/NLPToolServer.java
 
 server: server_compile
-	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" NLPToolServer
+	$(JAVA_PATH)/java -cp "$(PACKAGE):./bin:./lib" NLPToolServer $(port)
 
 eng_server_compile: 
 	$(JAVA_PATH)/javac -cp "$(PACKAGE):./bin:./src:./lib" -d ./bin ./src/EngNLPToolServer.java

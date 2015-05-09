@@ -69,7 +69,7 @@ class OneLayerDepModel():
 
     def setModel(self, allowedSeedWord, allowedSeedWordType, 
             allowedFirstLayerWord, allowedFirstLayerWordType, 
-            allowedRel, threhold=0, debugLevel=0, 
+            allowedRel, threshold=0, debugLevel=0, 
             debugFile=sys.stderr):
         self.asw = allowedSeedWord
         self.aswType = allowedSeedWordType

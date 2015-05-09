@@ -21,6 +21,14 @@ OneLayerPhraseDepModel
     python3 ./DepBased/OneLayerPhraseDepModel.py OLPDM_labelNews.json ./DepBased/phrase.json ./res/NTUSD_core.csv
 
 
+
+
+
+LDA
+==================
+    python3 LDA_Model.py ../zhtNewsData/taggedNews.json topWords TW_Matrix volc.txt
+
+
 tmp
 ==================
 python3 ./DepBased/ExtractPhrases.py ./zhtNewsData/constParsedNews20150419_new.json ./DepBased/phrase.json

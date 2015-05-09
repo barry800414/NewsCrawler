@@ -6,7 +6,7 @@ import json
 import numpy as np
 import lda
 from scipy.sparse import csr_matrix
-
+from sklearn.grid_search import ParameterGrid
 
 # converting news to doc-word matrix (CSRMatrix)
 # w2i: word -> index (dict)
@@ -46,7 +46,7 @@ def toDocWordMatrix(taggedNewsList, w2i=None, allowedPOS=None,
     return (W, w2i, i2w)
 
 # vocab is a list (index -> word mapping)
-def runLDA(W, vocab, nTopics=10, nIter=10, nTopicWords = 100, randomState=1):
+def runLDA(W, vocab, nTopics=10, nIter=10, nTopicWords = 100, randomState=1, outfile=sys.stdout):
     model = lda.LDA(n_topics=nTopics, n_iter=nIter, random_state=randomState)
     model.fit(W)
     topicWord = model.topic_word_
@@ -54,7 +54,7 @@ def runLDA(W, vocab, nTopics=10, nIter=10, nTopicWords = 100, randomState=1):
     for i, topicDist in enumerate(topicWord):
         topicWords = list(np.array(vocab)[np.argsort(topicDist)][:-nTopicWords:-1])
         topicWordList.append(topicWords)
-        print('Topic {}: {}'.format(i, ' '.join(topicWords)))
+        print('Topic {}: {}'.format(i, ' '.join(topicWords)), file=outfile)
     
     return (model, topicWordList)
 
@@ -72,20 +72,20 @@ def saveVolc(filename, volc):
     if type(volc) == dict:
         with open(filename, 'w') as f:
             for w, i in sorted(volc.items(), key=lambda x:x[1]):
-                print(w, file=f)
+                print(w, i, file=f)
     elif type(volc) == list:
         with open(filename, 'w') as f:
-            for w in volc:
-                print(w, file=f)
+            for i, w in enumerate(volc):
+                print(w, i, file=f)
 
 if __name__ == '__main__':
     if len(sys.argv) != 5:
-        print('Usage:', sys.argv[0], 'TaggedNewsJsonFile TopTopicWordFile TopicWordMatrixPrefix Volcabulary', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'TaggedNewsJsonFile TopTopicWordFile WordTopicMatrixPrefix Volcabulary', file=sys.stderr)
         exit(-1)
 
     taggedNewsJsonFile = sys.argv[1]
-    topTopicWordFile = sys.argv[2]
-    topicWordMatrixFile = sys.argv[3]
+    topTWFilePrefix = sys.argv[2]
+    TWMatrixFilePrefix = sys.argv[3]
     volcFile = sys.argv[4]
 
     # read in tagged news json file
@@ -99,21 +99,29 @@ if __name__ == '__main__':
 
     # convert the news to doc-word count matrix
     (W, w2i, i2w) = toDocWordMatrix(taggedNewsList, allowedPOS=allowedPOS)
-    
-    paramIter = [1]
+ 
+    params = {
+            "nTopics": [10, 50, 100, 500],
+        }
+
+    paramIter = ParameterGrid(params)
+    maxIter = 100
 
     for p in paramIter:
-        (model, topicWordList) = runLDA(W, i2w)
+        suffix = '_nT%d_nI%d' % (p['nTopics'], maxIter)
+        with open(topTWFilePrefix + suffix + '.txt', 'w') as f:
+            (model, topTopicWordList) = runLDA(W, i2w, 
+                    nTopics=p['nTopics'], nIter=100, outfile=f)
+       
+        # save topic-word matrix
+        np.save(TWMatrixFilePrefix + suffix, model.topic_word_.transpose())
     
         #with open('TopicWordMatrix.txt', 'wb') as f:
         #    printTWMatrix(model, i2w, outfile=f)
-    
-        # save topic-word matrix
-        np.save(topicWordMatrixFile, model.topic_word_)
-        
+
     # save volcabulary file
     saveVolc(volcFile, i2w)
 
-    with open(topicWordFile, 'w') as f:
-        json.dump(topicWordList, f, ensure_ascii=False, indent=2)
+    #with open(topTopicWordFile, 'w') as f:
+    #    json.dump(topTopicWordList, f, ensure_ascii=False, indent=2)
 

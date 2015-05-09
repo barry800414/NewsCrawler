@@ -30,7 +30,10 @@ public class NLPToolServer {
     private static final String imgFolder = "";
     
     public static void main(String[] args) {
-
+        int port = 8000;
+        if(args.length == 1){
+            port = Integer.parseInt(args[0]);
+        }
         //Initialize the converter
         System.out.println(">>>>>> Initializing Converter ... ");
         convertor = new ZhtZhsConvertor("./jopencc");
@@ -57,7 +60,7 @@ public class NLPToolServer {
 
         //Initialize the server
         try{
-            HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+            HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/info", new InfoHandler());
             server.createContext("/segmenter", new SegHandler());
             server.createContext("/pos", new POSHandler());
@@ -67,7 +70,7 @@ public class NLPToolServer {
 
             server.setExecutor(null); // creates a default executor
             server.start();
-            System.out.println("The server is running");
+            System.out.println("The server is running, port: " + port);
         }
         catch(Exception e){
             e.printStackTrace(System.out);

@@ -255,7 +255,7 @@ if __name__ == '__main__':
     # parameters:
     params = {
         'feature': ['0/1', 'tf', 'tfidf'],
-        'col': [['content'], ['title'], ['title', 'content']],
+        'col': [['content'], ['title', 'content']],
         'stat': [False, True],
         'randSeed': [1, 2, 3, 4, 5]
     }

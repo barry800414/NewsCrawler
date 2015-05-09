@@ -179,8 +179,8 @@ class RunExp:
                 ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, 
                         scorerName, result, filename, outfile=outfile)
                 returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
-                    'param': bestParam, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                        'XTest': XTest, 'yTest': yTest }  } )
+                    'param': bestParam, 'result': result, 'data':{'XTrain': XTrain, 
+                        'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
 
         return returnObj
     
