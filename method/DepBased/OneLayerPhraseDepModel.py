@@ -184,10 +184,10 @@ if __name__ == '__main__':
             tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
                     topicPhraseList) 
     else: #OLDM (no phrase)
-        olpdm = OneLayerPhraseDepModel(labelNewsList)
+        olpdm = OneLayerDepModel(labelNewsList)
         tolpdm = dict()
         for topicId, labelNewsList in labelNewsInTopic.items():
-            tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList)
+            tolpdm[topicId] = OneLayerDepModel(labelNewsList)
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)

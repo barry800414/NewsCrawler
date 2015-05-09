@@ -62,7 +62,7 @@ class OneLayerDepModel():
     # generate dependency tree from typed dependencies
     def getDepTree(self, tdList, topicId):
         dt = DepTree(tdList)
-        if td.isValid():
+        if dt.isValid():
             return dt
         else:
             return None
