@@ -85,27 +85,33 @@ class Volc:
     # DF: document frequency  word index -> #doc contain that word
     def shrinkVolcByDocF(self, DF, minCnt=0):
         if minCnt < 0:
-            return
+            return DF
 
-        # old word index to new word index
+        # generate old word index to new word index mapping
+        # and new document frequency list
         newMapping = dict()
+        newDF = list()
         for wi in range(0, len(self.rVolc)):
             if DF[wi] > minCnt:
                 newMapping[wi] = len(newMapping)
+                newDF.append(DF[wi])
 
+        # generate new volc
         newVolc = dict()
         for w, wi in self.volc.items():
             if wi in newMapping:
                 newVolc[w] = newMapping[wi]
         
-        print(Volc.checkVolc(newVolc))
-        
+        # generate new inverse-volc
         newRVolc = [None for i in range(0, len(newMapping))]
         for oldWi, newWi in newMapping.items():
             newRVolc[newWi] = self.rVolc[oldWi]
 
+        # set to the object variable
         self.volc = newVolc
         self.rVolc = newRVolc
+
+        return newDF
 
 if __name__ == '__main__':
     v = Volc()
@@ -126,7 +132,7 @@ if __name__ == '__main__':
     docF[2] = 1
     docF[3] = 3
     
-    v.shrinkVolcByDocF(docF, 2)
+    print(v.shrinkVolcByDocF(docF, -1))
     
     print(v.volc)
     print(v.rVolc)

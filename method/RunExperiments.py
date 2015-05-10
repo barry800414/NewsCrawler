@@ -67,8 +67,8 @@ class RunExp:
                 filename = None
 
             # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', clfName, bestParam, 
-                    scorerName, result, filename, outfile=outfile)
+            ResultPrinter.print(prefix + ', selfTrainTest', toStr(X.shape), clfName, 
+                    bestParam, scorerName, randSeed, result, filename, outfile=outfile)
 
             returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
                 'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
@@ -125,8 +125,9 @@ class RunExp:
                 filename = None
 
             # printing out results
-            ResultPrinter.print(prefix + ", allMixed", clfName, bestParam, 
-                    scorerName, avgR, filename, outfile=outfile)
+            ResultPrinter.print(prefix + ", allMixed", toStr(X.shape), 
+                    clfName, bestParam, scorerName, randSeed, avgR, 
+                    filename, outfile=outfile)
             
             returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
                 'result': avgR, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
@@ -176,8 +177,8 @@ class RunExp:
                     filename = None
 
                 # printing out results
-                ResultPrinter.print(prefix + ", Test on %d " % topic, clfName, bestParam, 
-                        scorerName, result, filename, outfile=outfile)
+                ResultPrinter.print(prefix + ", Test on %d " % topic, toStr(X.shape), clfName, 
+                        bestParam, scorerName, randSeed, result, filename, outfile=outfile)
                 returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
                     'param': bestParam, 'result': result, 'data':{'XTrain': XTrain, 
                         'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
@@ -642,20 +643,26 @@ class Evaluator:
 
 class ResultPrinter:
     def printFirstLine(outfile=sys.stdout):
-        print('topicId, feature, model settings, columnSource,'
-          ' statementCol, experimental settings, classifier,'
-          'parameters, scorer, valScore, accuracy, MacroF1,'
-          'MacroR, modelPath(pickle)', file=outfile)
+        #print('topicId, feature, model settings, columnSource,'
+        #  ' statementCol, experimental settings, classifier,'
+        #  'parameters, scorer, valScore, accuracy, MacroF1,'
+        #  'MacroR, modelPath(pickle)', file=outfile)
+        print('topicId, model settings, column source,'
+          ' experimental settings, dimension, classifier, parameters,'
+          ' scorer, randSeed, valScore, accuracy, MacroF1, MacroR,'
+          ' modelPath(pickle)', file=outfile)
+
 
     def getDataType():
         return ('str', 'str', 'str', 'str', 'str', 'str', 'str', 
-                'str', 'str', 'float', 'float', 'float', 'float', 'str')
+                'str', 'int', 'float', 'float', 'float', 'float', 'str')
 
-    def print(prefix, clfName, params, scorerName, result, filename, outfile):
+    def print(prefix, Xshape, clfName, params, scorerName, randSeed, 
+            result, filename, outfile):
         paramStr = toStr("%s" % params)
-        print(prefix, clfName, paramStr, scorerName, result['valScore'], 
-                result['Accuracy'], result['MacroF1'], result['MacroR'], 
-                filename, sep=',', file=outfile)
+        print(prefix, Xshape, clfName, paramStr, scorerName, randSeed, 
+                result['valScore'], result['Accuracy'], result['MacroF1'], 
+                result['MacroR'], filename, sep=',', file=outfile)
 
 def keepBestResult(nowBestR, nextRs, scorerName, largerIsBetter=True):
     if nextRs == None:

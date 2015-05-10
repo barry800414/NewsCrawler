@@ -11,7 +11,7 @@ from sklearn.grid_search import ParameterGrid
 
 from RunExperiments import *
 from misc import *
-
+from Volc import Volc
 
 '''
 This is the improved version of WordModel
@@ -38,10 +38,8 @@ class WordModel:
         return self.volc
 
     # convert the corpus of news to tf/tf-idf (a list of dict)
-    def corpusToTFIDF(labelNewsList, column='content', IDF=None, volc=None, zeroOne=False):
+    def corpusToTFIDF(labelNewsList, volc, column='content', IDF=None, zeroOne=False):
         vectorList = list() # a list of dict()
-        if volc == None:
-            volc = dict() # vocabulary
         for labelNews in labelNewsList:
             if column == 'content':
                 text = labelNews['news']['content_pos']
@@ -49,24 +47,23 @@ class WordModel:
                 text = labelNews['news']['title_pos']
             elif column == 'statement':
                 text = labelNews['statement']['pos']
-            vectorList.append(WordModel.text2TFIDF(text, IDF, volc, zeroOne))
+            vectorList.append(WordModel.text2TFIDF(text, volc, IDF, zeroOne))
         return (vectorList, volc)
 
     
     # convert text to TF-IDF features (dict)
-    def text2TFIDF(text, IDF=None, volc=None, zeroOne=False, 
-            sentSep=",", wordSep=" ", wordTagSep='/'):
+    def text2TFIDF(text, volc, IDF=None, zeroOne=False, 
+            sentSep=",", wordSep=" ", tagSep='/'):
         f = dict()
-        if volc == None:
-            volc = dict()
         # term frequency 
         for sent in text.split(sentSep):
             for wt in sent.split(wordSep):
-                (word, tag) = wt.split(wordTagSep)
+                (word, tag) = wt.split(tagSep)
                 if allowedPOS != None and tag not in allowedPOS:
                     continue
                 if word not in volc:
-                    volc[word] = len(volc)
+                    continue
+
                 if volc[word] not in f:
                     f[volc[word]] = 1
                 else:
@@ -84,15 +81,15 @@ class WordModel:
 
         return f
 
-    # calculate inverse document frequency
-    def calcIDF(labelNewsList, newsCols=['content'], sentSep=",", 
-            wordSep=" ", volc=None):
+    # calculate document frequency
+    def calcDF(labelNewsList, newsCols=['content'], sentSep=",", 
+            wordSep=" ", tagSep='/', volc=None):
         if volc == None:
-            volc = dict()
+            volc = Volc()
 
         # calculating docuemnt frequency
         docF = defaultdict(int)
-        for labelNews in labelNewsList:  
+        for labelNews in labelNewsList:
             wordSet = set()
             for col in newsCols:
                 if col == 'title':
@@ -100,34 +97,44 @@ class WordModel:
                 elif col == 'content':
                     text = labelNews['news']['content_pos']
                 for sent in text.split(sentSep):
-                    for word in sent.split(wordSep):
+                    for wt in sent.split(wordSep):
+                        (word, tag) = wt.split(tagSep)
                         if word not in volc: # building volcabulary
                             volc[word] = len(volc) 
                         wordSet.add(volc[word])
             for word in wordSet:
                 docF[word] += 1
+        return (docF, volc)
 
+    # convert document frequency to inverse document frequency
+    def DF2IDF(DF, docNum):
         # calculate IDF (log(N/(nd+1)))
-        docNum = len(labelNewsList)
         IDF = dict()
-        for key, value in docF.items():
+        for key, value in DF.items():
             IDF[key] = math.log(float(docNum+1) / (value + 1))
         IDF['default'] = math.log(float(docNum+1))
-        return (IDF, volc)
+        return IDF
 
     def genXY(self, threshold=None):
         #initialization
         volc = self.volc
         if volc == None:
-            volc = dict()
+            volc = Volc()
         IDF = None
         zeroOne = False
         if self.feature == '0/1' or self.feature == '01':
             zeroOne = True
 
-        # calculate IDF 
+        # calculate document frequency & generate volcabulary in advance
+        (DF, volc) = WordModel.calcDF(self.ln, newsCols=self.newsCols, volc=volc)
+        
+        # remove the words whose document frequency <= threshold
+        if threshold != None:
+            DF = volc.shrinkVolcByDocF(DF, threshold)
+
+        # calcualte IDF if necessary
         if self.feature == 'tfidf' or self.feature == 'tf-idf':
-            (IDF, volc) = WordModel.calcIDF(self.ln, newsCols=self.newsCols, volc=volc)
+            (IDF, volc) = WordModel.DF2IDF(DF, len(self.ln))
 
         # calculate TF/TF-IDF (content / title)
         titleTFIDF = None # a list of dictionary, each dictionary is tf vector of one content
@@ -141,12 +148,13 @@ class WordModel:
                         column='content', IDF=IDF, volc=volc, zeroOne=zeroOne)
         newsTFIDF = listOfDictAdd(titleTFIDF, contentTFIDF)
         
+        '''
         # calculate TF/TF-IDF (statement)
         statTFIDF = None
         if self.statCol:
             (statTFIDF, volc) = WordModel.corpusToTFIDF(self.ln, 
                     column='statement', IDF=IDF, volc=volc, zeroOne=zeroOne)
-        
+
         # generate final matrix
         if threshold == None:
             # convert to CSR sparse matrix format directly 
@@ -163,6 +171,7 @@ class WordModel:
             # dimension reduction
             # convert to CSC sparse matrix format for better efficiency
             X = toMatrix(newsTFIDF, volc, matrixType='csc')
+            
             if self.statCol:
                 X2 = toMatrix(statTFIDF, volc, matrixType='csc')
                 X = csc_matrix(hstack((X, X2)))
@@ -173,6 +182,9 @@ class WordModel:
                     volc[v + '_stat'] = i + offset
             (X, volc) = reduceDim(X, volc, threshold)
             X = csr_matrix(X)
+        '''
+        # generate X
+        X = toMatrix(newsTFIDF, volc, matrixType='csr')
 
         # get y
         y = np.array(getLabels(self.ln))
@@ -290,8 +302,8 @@ def divideLabel(labelNewsList):
     return labelNewsInTopic
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage:', sys.argv[0], 'taggedLabelNewsJson', file=sys.stderr)
+    if len(sys.argv) < 2:
+        print('Usage:', sys.argv[0], 'taggedLabelNewsJson [volcFile]', file=sys.stderr)
         exit(-1)
     
     # arguments
@@ -301,6 +313,11 @@ if __name__ == '__main__':
     with open(segLabelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
 
+    volc = None
+    if len(sys.argv) == 3:
+        volc = Volc()
+        volc.load(sys.argv[2])
+
     # print first line of results
     ResultPrinter.printFirstLine()
 
@@ -308,7 +325,8 @@ if __name__ == '__main__':
     params = {
         'feature': ['0/1', 'tf', 'tfidf'],
         'col': [['content'], ['title', 'content']],
-        'stat': [False, True],
+        #'stat': [False, True],
+        'stat': [False]
     }
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
     threshold = { "0/1": 1, 'tf': 1, 'tfidf': 1 }
@@ -319,10 +337,9 @@ if __name__ == '__main__':
     for p in paramIter:
         wm = WordModel(labelNewsList, newsCols=p['col'], 
                 statCol=p['stat'], feature=p['feature'], 
-                allowedPOS=allowedPOS)
+                allowedPOS=allowedPOS, volc=volc)
         (X, y) = wm.genXY(threshold[p['feature']])
-        
-        prefix = 'all, %s, %s, %s, %s' % (p['feature'], '"None"', toStr(p['col']), p['stat'])
+        prefix = 'all, %s, %s' % (toStr(p), toStr(p['col']))
         topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
         
         # all train and test
@@ -336,9 +353,9 @@ if __name__ == '__main__':
         for p in paramIter:
             wm = WordModel(labelNewsList, newsCols=p['col'], 
                     statCol=p['stat'], feature=p['feature'],
-                    allowedPOS=allowedPOS)
+                    allowedPOS=allowedPOS, volc=volc)
             (X, y) = wm.genXY(threshold[p['feature']])
                 
-            prefix = "%d, %s, %s, %s, %s" % (topicId, p['feature'], '"None"', toStr(p['col']), p['stat'])
+            prefix = "%d, %s, %s" % (topicId, toStr(p), toStr(p['col']))
             RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
     

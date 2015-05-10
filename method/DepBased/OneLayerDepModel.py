@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix
 import WFMapping
 from DepTree import DepTree
 import dataTool
+from Volc import Volc
 
 '''
 This codes implements the OneLayerDepModel for stance classification.
@@ -106,7 +107,7 @@ class OneLayerDepModel():
             corpusEdgeList.append(newsEdgeList)
 
         # build the dictionary
-        volc = dict()
+        volc = Volc()
         docF = defaultdict(int) # doc frequency for each pair
         for newsEdgeList in corpusEdgeList:
             docPairSet = set()
@@ -114,14 +115,14 @@ class OneLayerDepModel():
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
                     if (sW, eW) not in volc:
                         volc[(sW,eW)] = len(volc)
-                    docPairSet.add((sW, eW))
+                    docPairSet.add(volc[(sW, eW)])
             for key in docPairSet:
                 docF[key] += 1        
 
         # if the doc frequency of that pair is less than or equal 
         # to threshold, then discard it
         if self.threshold != None:
-            volc = shrinkVolcByDocF(volc, docF, self.threshold)
+            docF = volc.shrinkVolcByDocF(docF, self.threshold)
 
         if self.debugLevel > 0:
             print('# distinct pairs: ', len(volc), file=sys.stderr)
@@ -155,17 +156,6 @@ class OneLayerDepModel():
         # update volc
         self.volc = volc
         return (X, y)
-
-def shrinkVolcByDocF(volc, docF, threshold):
-    if threshold <= 0:
-        return volc
-    newVolc = dict()
-    for w in volc.keys():
-        if docF[w] <= threshold:
-            continue
-        newVolc[w] = len(newVolc)
-    return newVolc
-
 
 # get labels from the list of label-news
 def getLabels(labelNewsList):

@@ -71,9 +71,7 @@ def runSingleTask(taskType, olpdm, topicSet, sentiDict, params,
     print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
     
     if taskType == 'SelfTrainTest':
-        prefix = "%s, %s, %s, %s, %s" % (topicId, 
-                toStr(list(params.keys())), toStr(params), 
-                '"None"', 'False')
+        prefix = "%s, %s, %s" % (topicId, toStr(params), '["content"]')
         rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
                 randSeed=randSeed, testSize=0.2, prefix=prefix)
         if rs == None:
@@ -85,9 +83,7 @@ def runSingleTask(taskType, olpdm, topicSet, sentiDict, params,
             r['params'] = params
 
     elif taskType == 'AllTrainTest': 
-        prefix = "%s, %s, %s, %s, %s" % ('all', 
-                toStr(list(params.keys())), toStr(params), 
-                '"None"', 'False')
+        prefix = "%s, %s, %s" % ('all', toStr(params), '["content"]')
         rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
                 'MacroF1', randSeed=randSeed, testSize=0.2, 
                 prefix=prefix)
@@ -100,9 +96,7 @@ def runSingleTask(taskType, olpdm, topicSet, sentiDict, params,
             r['params'] = params
 
     elif taskType == 'LeaveOneTest':
-        prefix = "%s, %s, %s, %s, %s" % (topicId, 
-                toStr(list(params.keys())), toStr(params), 
-                '"None"', 'False')
+        prefix = "%s, %s, %s" % (topicId, toStr(params), '["content"]')
         rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
                 "MacroF1", randSeed=randSeed, testTopic=[topicId], 
                 prefix=prefix)
@@ -118,7 +112,7 @@ def runSingleTask(taskType, olpdm, topicSet, sentiDict, params,
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
-        print('Usage:', sys.argv[0], 'depParsedLabelNewsJson sentiDictFile [phraseFile]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'depParsedLabelNewsJson sentiDictFile [-p phraseFile] [-v volcFile]', file=sys.stderr)
         exit(-1)
 
     parsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
@@ -128,12 +122,21 @@ if __name__ == '__main__':
     with open(parsedLabelNewsJsonFile, 'r') as f:
         labelNewsList = json.load(f)
 
-    # load phrases
-    if len(sys.argv) == 4:
-        phrasesJsonFile = sys.argv[3]
-        topicPhraseList = loadPhraseFile(phrasesJsonFile)
-    else:
-        topicPhraseList = None
+    
+    topicPhraseList = None
+    volc = None
+    for i in range(3, len(sys.argv)):
+        if sys.argv[i] == '-p' and len(sys.argv) > i:
+            # load phrase file
+            phrasesJsonFile = sys.argv[i+1]
+            topicPhraseList = loadPhraseFile(phrasesJsonFile)
+            i = i + 1
+        elif sys.argv[i] == '-v' and len(sys.argv) > i:
+            # load volcabulary file
+            volcFile = sys.argv[i+1]
+            volc = Volc()
+            volc.load(volcFile)
+            i = i + 1
 
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
