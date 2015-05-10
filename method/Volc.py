@@ -13,8 +13,8 @@ rVolc: index -> word string
 '''
 class Volc:
     def __init__(self):
-        self.volc = None
-        self.rVolc = None
+        self.volc = dict()
+        self.rVolc = list()
 
     def load(self, filename):
         volc = dict()
@@ -50,26 +50,84 @@ class Volc:
             print('Invalid Volcabulary', file=sys.stderr)
 
     def __genInverseVolc(self):
-        if self.volc == None:
-            return
         self.rVolc = [list() for i in range(0, len(self.volc))]
         for w, i in self.volc.items():
             self.rVolc[i].append(w)
-        
-        for i in range(0, len(self.rVolc)):
-            wStr = ''
-            for j, w in enumerate(self.rVolc[i]):
-                if j != len(self.rVolc[i]) - 1:
-                    wStr = wStr + w + ';'
-                else:
-                    wStr = wStr + w
-            self.rVolc[i] = wStr
 
     def __getitem__(self, index):
         return self.volc[index]
 
+    def __setitem__(self, index, value):
+        if value > len(self.rVolc) - 1:
+            rList = [list() for i in range(0, value - len(self.rVolc) + 1)]
+            self.rVolc.extend(rList)
+        self.rVolc[value].append(index)
+        self.volc[index] = value
+
+    def __contains__(self, index):
+        return (index in self.volc)
+
+    def __len__(self):
+        return len(self.volc)
+
     def getWord(self, index):
+        wStr = ''
+        for i, w in enumerate(self.rVolc[index]):
+            if i != len(self.rVolc[index]) - 1:
+                wStr = wStr + w + ';'
+            else:
+                wStr = wStr + w
+        return wStr
+
+    def getWordList(self, index):
         return self.rVolc[index]
 
+    # DF: document frequency  word index -> #doc contain that word
+    def shrinkVolcByDocF(self, DF, minCnt=0):
+        if minCnt < 0:
+            return
+
+        # old word index to new word index
+        newMapping = dict()
+        for wi in range(0, len(self.rVolc)):
+            if DF[wi] > minCnt:
+                newMapping[wi] = len(newMapping)
+
+        newVolc = dict()
+        for w, wi in self.volc.items():
+            if wi in newMapping:
+                newVolc[w] = newMapping[wi]
+        
+        print(Volc.checkVolc(newVolc))
+        
+        newRVolc = [None for i in range(0, len(newMapping))]
+        for oldWi, newWi in newMapping.items():
+            newRVolc[newWi] = self.rVolc[oldWi]
+
+        self.volc = newVolc
+        self.rVolc = newRVolc
+
+if __name__ == '__main__':
+    v = Volc()
     
+    v['aaa'] = 0
+    v['bbb'] = 1
+    v['ccc'] = 1
+    v['ddd'] = 2
+    v['eee'] = 2
+    v['fff'] = 3
+    
+    print(v.getWord(0), v.getWord(1), v.getWord(2))
+    print(len(v))
+    
+    docF = [0 for i in range(0, 4)]
+    docF[0] = 0
+    docF[1] = 2
+    docF[2] = 1
+    docF[3] = 3
+    
+    v.shrinkVolcByDocF(docF, 2)
+    
+    print(v.volc)
+    print(v.rVolc)
 
