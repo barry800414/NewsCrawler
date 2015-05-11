@@ -9,3 +9,5 @@
 *.json
 *.npy
 *.pickle
+*.bin
+*.vector
