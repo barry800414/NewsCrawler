@@ -10,6 +10,7 @@ Please first edit mergeConfig.json to select the field you want. The use the com
 Word Model
 ==================
     python3 ./baseline/WordModel.py WM_labelNews.json
+    python3 ./baseline/WordModelImproved.py taggedLabelNews.json [volcFile]
 
 OneLayerDepModel
 ==================
@@ -32,4 +33,4 @@ LDA
 tmp
 ==================
 python3 ./DepBased/ExtractPhrases.py ./zhtNewsData/constParsedNews20150419_new.json ./DepBased/phrase.json
-python3 ./DepBased/OneLayerPhraseDepModel.py ./OLPDM_labelNews_20150504.json ./DepBased/phrase.json ./res/NTUSD_core.csv
+python3 ./DepBased/OneLayerPhraseDepModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./res/NTUSD_core.csv -p ./DepBased/phrase.json

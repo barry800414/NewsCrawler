@@ -56,59 +56,65 @@ def initAllowedSet(topicSet, config, dictionary=None):
     return allowedSet
 
 
-def runSingleTask(taskType, olpdm, topicSet, sentiDict, params, 
-        clfList, topicMap=None, topicId=None, randSeed=1):
+def genXY(olpdm, topicSet, sentiDict, params):
     p = params
     allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
     allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
     allowedRel = { t: None for t in topicSet }
     olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], 
             allowedFirstLayerWord, p['firstLayerType']['type'], 
-            allowedRel, p['threshold'])
+            allowedRel, p['minCnt'])
     (X, y) = olpdm.genXY()
     volc = olpdm.getVolc()
-    #print('Size of volc2:', len(volc2), file=sys.stderr)
+    return (X, y, volc)
+
+
+def runTask(X, y, volc, taskType, params, clfList, topicMap=None, 
+        topicId=None, randSeedList=[1]):
     print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
     
-    if taskType == 'SelfTrainTest':
-        prefix = "%s, %s, %s" % (topicId, toStr(params), '["content"]')
-        rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
-                randSeed=randSeed, testSize=0.2, prefix=prefix)
-        if rs == None:
-            return None
-        for r in rs:
-            r['volc'] = volc
-            r['X'] = X
-            r['y'] = y
-            r['params'] = params
+    rsList = list()
+    for randSeed in randSeedList:
+        if taskType == 'SelfTrainTest':
+            prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
+            rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
+                    randSeed=randSeed, testSize=0.2, prefix=prefix)
+            if rs == None:
+                return None
+            for r in rs:
+                r['volc'] = volc
+                r['X'] = X
+                r['y'] = y
+                r['params'] = params
 
-    elif taskType == 'AllTrainTest': 
-        prefix = "%s, %s, %s" % ('all', toStr(params), '["content"]')
-        rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
-                'MacroF1', randSeed=randSeed, testSize=0.2, 
-                prefix=prefix)
-        if rs == None:
-            return None
-        for r in rs:
-            r['volc'] = volc
-            r['X'] = X
-            r['y'] = y
-            r['params'] = params
+        elif taskType == 'AllTrainTest': 
+            prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
+            rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
+                    'MacroF1', randSeed=randSeed, testSize=0.2, 
+                    prefix=prefix)
+            if rs == None:
+                return None
+            for r in rs:
+                r['volc'] = volc
+                r['X'] = X
+                r['y'] = y
+                r['params'] = params
 
-    elif taskType == 'LeaveOneTest':
-        prefix = "%s, %s, %s" % (topicId, toStr(params), '["content"]')
-        rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
-                "MacroF1", randSeed=randSeed, testTopic=[topicId], 
-                prefix=prefix)
-        if rs == None:
-            return None
-        for r in rs[topicId]:
-            r['volc'] = volc
-            r['X'] = X
-            r['y'] = y
-            r['params'] = params
-     
-    return rs
+        elif taskType == 'LeaveOneTest':
+            prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
+            rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
+                    "MacroF1", randSeed=randSeed, testTopic=[topicId], 
+                    prefix=prefix)
+            if rs == None:
+                return None
+            for r in rs[topicId]:
+                r['volc'] = volc
+                r['X'] = X
+                r['y'] = y
+                r['params'] = params
+        rsList.append(rs)
+
+    return rsList
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -136,6 +142,7 @@ if __name__ == '__main__':
             volcFile = sys.argv[i+1]
             volc = Volc()
             volc.load(volcFile)
+            volc.lock() # lock the volcabulary, all new words are viewed as OOV
             i = i + 1
 
     # load sentiment dictionary
@@ -153,8 +160,7 @@ if __name__ == '__main__':
                     {'type': 'word', 'allow': 'NTUSD_core'}, 
                     {'type': 'tag', 'allow': ('VV','JJ','VA')} 
                 ],
-               'randSeed': [1, 2, 3, 4, 5],
-               'threshold': [1, 5, 10]
+               'minCnt': [2]
             }
         modelName = 'OLPDM'
     else:
@@ -165,11 +171,11 @@ if __name__ == '__main__':
                     {'type': 'word', 'allow': 'NTUSD_core'}, 
                     {'type': 'tag', 'allow': ('VV','JJ','VA')} 
                 ],
-                'randSeed': [1, 2, 3, 4, 5],
-                'threshold': [1, 5, 10]
+                'minCnt': [2]
             }
         modelName = 'OLDM'
-
+    
+    randSeedList = [1, 2, 3, 4, 5]
     paramsIter = ParameterGrid(params)
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
@@ -197,10 +203,12 @@ if __name__ == '__main__':
     for t in topicSet:
         bestR = None
         for p in paramsIter:
-            r = runSingleTask('SelfTrainTest', tolpdm[t], 
-                    topicSet, sentiDict, p, clfList, topicId=t, 
-                    randSeed=p['randSeed'])
-            bestR = keepBestResult(bestR, r, 'MacroF1')
+            (X, y, volc) = genXY(tolpdm[t], topicSet, sentiDict, p)
+            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
+                    p, clfList, topicId=t, randSeedList=randSeedList)
+            for rs in rsList:
+                if rs != None:
+                    bestR = keepBestResult(bestR, rs, 'MacroF1')
         with open('%s_SelfTrainTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
@@ -208,10 +216,12 @@ if __name__ == '__main__':
     print('All-Train-Test...', file=sys.stderr)
     bestR = None
     for p in paramsIter:
-        r = runSingleTask('AllTrainTest', olpdm, topicSet, 
-                sentiDict, p, clfList, topicMap=topicMap, 
-                randSeed=p['randSeed'])
-        bestR = keepBestResult(bestR, r, 'MacroF1')
+        (X, y, volc) = genXY(olpdm, topicSet, sentiDict, p)
+        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, topicMap=topicMap, 
+                randSeedList=randSeedList)
+        for rs in rsList:
+            if rs != None:
+                bestR = keepBestResult(bestR, rs, 'MacroF1')
     with open('%s_AllTrainTest.pickle' %(modelName), 'w+b') as f:
         pickle.dump(bestR, f)
 
@@ -221,11 +231,12 @@ if __name__ == '__main__':
     for t in topicSet:
         bestR = None
         for p in paramsIter:
-            r = runSingleTask('LeaveOneTest', olpdm, topicSet, 
-                    sentiDict, p, clfList, topicMap=topicMap, 
-                    topicId=t, randSeed=p['randSeed'])
-            if r != None:
-                bestR = keepBestResult(bestR, r[t], 'MacroF1')
+            (X, y, volc) = genXY(olpdm, topicSet, sentiDict, p)
+            rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+                    topicMap=topicMap, topicId=t, randSeedList=randSeedList)
+            for rs in rsList:
+                if rs != None:
+                    bestR = keepBestResult(bestR, rs[t], 'MacroF1')
         with open('%s_LeaveOneTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
             pickle.dump(bestR, f)
 

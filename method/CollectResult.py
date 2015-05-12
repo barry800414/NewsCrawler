@@ -60,7 +60,7 @@ def allowData(data, colNameMap, filterColumn, allow, type='string'):
 # keyPrefixNum: the number of columns to be merged as key
 def mergeRows(data, colNameMap, keyPrefixNum):
     keyData = dict()
-    print(len(data[0]))
+    #print(len(data[0]))
     for d in data:
         key = tuple(d[0:keyPrefixNum])
         if key not in keyData:
@@ -73,11 +73,13 @@ def mergeRows(data, colNameMap, keyPrefixNum):
         #print('num:', len(dList))
         avgD = [0.0 for i in range(0, len(colNameMap) - keyPrefixNum)]
         for d in dList:
+            #print(d[keyPrefixNum:len(colNameMap)])
             for i, e in enumerate(d[keyPrefixNum:len(colNameMap)]):
                 if type(e) == int or type(e) == float:
                     avgD[i] += e
         for i in range(0, len(colNameMap) - keyPrefixNum):
             avgD[i] /= len(dList)
+        #print('Average score:', avgD)
         newRow = list(key)
         newRow.extend(avgD)
         #print(newRow)
@@ -160,8 +162,9 @@ if __name__ == '__main__':
         keyPrefixNum = int(sys.argv[3])
         data = mergeRows(data, colNameMap, keyPrefixNum)
     
-    print(data)
-
+    #for d in data:
+    #    print(d)
+    
     topicList = [2, 3, 4, 5, 6, 13, 16]
     firstN = 3
     # find the rows with best MacroF1 
@@ -170,7 +173,6 @@ if __name__ == '__main__':
     f1TopicRows = dict()
     for t in topicList:
         newData = allowData(data, colNameMap, 'topicId', allow='%d' % t, type='string')
-        print(newData)
         sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
         f1Rows[t] = newData[0]
         f1TopicRows[t] = list()
@@ -203,13 +205,14 @@ if __name__ == '__main__':
     printBestRows(topicList, f1Rows, f2Row, f3Rows)
     printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, 'MacroF1')
     extractColType = { 
-        'feature': 'str', 
+        #'feature': 'str', 
         'model settings': 'dict', 
-        'columnSource': 'list',
-        'statementCol': 'bool'
+        'column source': 'list'
+        #'statementCol': 'bool'
     }
     
     # get best N params of given model
+    
     (f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)
     result = dict()
     result['SelfTrainTest'] = f1Params
@@ -218,3 +221,4 @@ if __name__ == '__main__':
 
     with open(outParamsFile, 'w') as f:
         json.dump(result, f, indent=2)
+    

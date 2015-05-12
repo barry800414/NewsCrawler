@@ -25,11 +25,11 @@ def wordClustering(X, method, n_clusters, params):
         est = MiniBatchKMeans(n_clusters=n_clusters, **params)
 
     labels = est.fit_predict(X)
-    print(len(labels))
+    #print(len(labels))
     return labels
 
 
-def getWordCluster(labels, rVolc):
+def getWordCluster(labels, volc):
     clusters = dict()
     for i, label in enumerate(labels):
         if label not in clusters:
@@ -50,19 +50,24 @@ def printWordClusterAsVolc(clusters, outfile=sys.stdout):
 
 def filterByWord(X, volc, wordSet):
     # some of words in wordSet may not be in volc(because less 5 times words 
-    # are removed
+    # are removed)
     indexList = sorted(list(set([volc[w] for w in wordSet if w in volc])))
     newX = X[indexList]
+    
     oldNewMapping = { oldI:newI for newI, oldI in enumerate(indexList) }
     newVolc = Volc()
     for w in wordSet:
         if w in volc:
             newVolc[w] = oldNewMapping[volc[w]]
+            #if not np.array_equal(newX[oldNewMapping[volc[w]]],X[volc[w]]):
+            #    print('fail')
+
+    #print(newX.shape, len(newVolc))
     return (newX, newVolc)
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print('Usage:', sys.argv[0], 'WordVector volcFile nCluster outWordCluster [WordTagFile]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'WordVector volcFile nCluster outWordClusterPrefix [WordTagFile]', file=sys.stderr)
         exit(-1)
 
     wordVectorFile = sys.argv[1]
@@ -84,28 +89,32 @@ if __name__ == '__main__':
         wordTagFile = sys.argv[5]
         with open(wordTagFile, 'r') as f:
             (wordTag, tagWord) = WordTag.loadWordTag(f)
+        allowedPOS = set(['NN', 'NR', 'VV', 'VA', 'AD', 'JJ'])
 
     if tagWord == None:
         print('K-means clustering ...', file=sys.stderr)
         labels = wordClustering(WX, 'KMeans', nCluster, {})
     
         clusters = getWordCluster(labels, volc)
-        with open(wordClusterFile, 'w') as f:
-            #printWordClusterAsVolc(clusters, outfile=f)
-
+        with open(wordClusterFile + '.volc', 'w') as f, open(wordClusterFile + '.txt', 'w') as f2:
+            printWordClusterAsVolc(clusters, outfile=f)
+            printWordCluster(clusters, outfile=f2)
     else:
         print('K-means clustering ...', file=sys.stderr)
-        nWords = sum([len(wordSet) for wordSet in tagWord.values()])
-        nClusterEachTag = { tag: math.ceil(len(tagWord[tag])*nCluster/nWords) for tag in tagWord.keys() }
+        nWords = sum([len(wordSet) for tag, wordSet in tagWord.items() if tag in allowedPOS])
+        nClusterEachTag = { tag: math.ceil(len(tagWord[tag])*nCluster/nWords) for tag in tagWord.keys() if tag in allowedPOS }
         print(nClusterEachTag)
-        with open(wordClusterFile, 'w') as f:
+        with open(wordClusterFile + '.volc', 'w') as f, open(wordClusterFile + '.txt', 'w') as f2:
             for tag, wordSet in tagWord.items():
-                print('clustering for tag %s words ...' % tag, file=sys.stderr)
+                if tag not in allowedPOS:
+                    continue
+                print('clustering for tag %s words (%d words to %d clusters)... ' % (
+                    tag, len(wordSet), nClusterEachTag[tag]), file=sys.stderr)
                 (newX, newVolc) = filterByWord(WX, volc, wordSet)
                 if newX.shape[0] == 0:
                     continue
                 labels = wordClustering(newX, 'KMeans', nClusterEachTag[tag], {})
                 clusters = getWordCluster(labels, newVolc)
-                print('Tag: %s' % (tag), file=f)
-                printWordCluster(clusters, outfile=f)
-
+                printWordClusterAsVolc(clusters, outfile=f)
+                print('Tag: %s' % (tag), file=f2)
+                printWordCluster(clusters, outfile=f2)

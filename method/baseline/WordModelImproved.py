@@ -26,7 +26,8 @@ Date: 2015/05/04
 '''
 
 class WordModel:
-    def __init__(self, labelNewsList, newsCols=['content'], statCol=False, feature='tf', volc=None, allowedPOS=None):
+    def __init__(self, labelNewsList, newsCols=['content'], 
+            statCol=False, feature='tf', volc=None, allowedPOS=None):
         self.ln = labelNewsList
         self.newsCols = newsCols
         self.statCol = statCol
@@ -38,7 +39,8 @@ class WordModel:
         return self.volc
 
     # convert the corpus of news to tf/tf-idf (a list of dict)
-    def corpusToTFIDF(labelNewsList, volc, column='content', IDF=None, zeroOne=False):
+    def corpusToTFIDF(labelNewsList, volc, column='content', 
+            IDF=None, zeroOne=False):
         vectorList = list() # a list of dict()
         for labelNews in labelNewsList:
             if column == 'content':
@@ -90,7 +92,7 @@ class WordModel:
         # calculating docuemnt frequency
         docF = defaultdict(int)
         for labelNews in labelNewsList:
-            wordSet = set()
+            wordIdSet = set()
             for col in newsCols:
                 if col == 'title':
                     text = labelNews['news']['title_pos']
@@ -100,9 +102,10 @@ class WordModel:
                     for wt in sent.split(wordSep):
                         (word, tag) = wt.split(tagSep)
                         if word not in volc: # building volcabulary
-                            volc[word] = len(volc) 
-                        wordSet.add(volc[word])
-            for word in wordSet:
+                            volc.addWord(word)
+                            #volc[word] = len(volc) 
+                        wordIdSet.add(volc[word])
+            for word in wordIdSet:
                 docF[word] += 1
         return (docF, volc)
 
@@ -131,10 +134,10 @@ class WordModel:
         # remove the words whose document frequency <= threshold
         if threshold != None:
             DF = volc.shrinkVolcByDocF(DF, threshold)
-
+        
         # calcualte IDF if necessary
         if self.feature == 'tfidf' or self.feature == 'tf-idf':
-            (IDF, volc) = WordModel.DF2IDF(DF, len(self.ln))
+            IDF = WordModel.DF2IDF(DF, len(self.ln))
 
         # calculate TF/TF-IDF (content / title)
         titleTFIDF = None # a list of dictionary, each dictionary is tf vector of one content
@@ -317,6 +320,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 3:
         volc = Volc()
         volc.load(sys.argv[2])
+        volc.lock() # lock the volcabulary, new words are OOV
 
     # print first line of results
     ResultPrinter.printFirstLine()
@@ -324,28 +328,33 @@ if __name__ == '__main__':
     # parameters:
     params = {
         'feature': ['0/1', 'tf', 'tfidf'],
+        #'feature': ['tfidf'],
         'col': [['content'], ['title', 'content']],
         #'stat': [False, True],
-        'stat': [False]
+        'stat': [False],
+        'minCnt': [2]
     }
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
-    threshold = { "0/1": 1, 'tf': 1, 'tfidf': 1 }
     paramIter = ParameterGrid(params)
-    allowedPOS = set(['VA', 'NN', 'NR', 'AD', 'JJ', 'FW'])
-    
+    allowedPOS = set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
+    randSeedList = [1, 2, 3, 4, 5]
+
     # all topic are mixed to train and predict/ leave-one-test
     for p in paramIter:
         wm = WordModel(labelNewsList, newsCols=p['col'], 
                 statCol=p['stat'], feature=p['feature'], 
                 allowedPOS=allowedPOS, volc=volc)
-        (X, y) = wm.genXY(threshold[p['feature']])
+        (X, y) = wm.genXY(p['minCnt'])
         prefix = 'all, %s, %s' % (toStr(p), toStr(p['col']))
         topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
         
-        # all train and test
-        RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", testSize=0.2, prefix=prefix)
-        # leave one test
-        RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", prefix=prefix)
+        for randSeed in randSeedList:
+            # all train and test
+            RunExp.allTrainTest(X, y, topicMap, clfList, "MacroF1", 
+                    testSize=0.2, prefix=prefix, randSeed=randSeed)
+            # leave one test
+            RunExp.leaveOneTest(X, y, topicMap, clfList, "MacroF1", 
+                    prefix=prefix, randSeed=randSeed)
     
     # divide the news into different topic, each of them are trained and test by itself
     labelNewsInTopic = divideLabel(labelNewsList)
@@ -354,8 +363,10 @@ if __name__ == '__main__':
             wm = WordModel(labelNewsList, newsCols=p['col'], 
                     statCol=p['stat'], feature=p['feature'],
                     allowedPOS=allowedPOS, volc=volc)
-            (X, y) = wm.genXY(threshold[p['feature']])
+            (X, y) = wm.genXY(p['minCnt'])
                 
             prefix = "%d, %s, %s" % (topicId, toStr(p), toStr(p['col']))
-            RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
+            for randSeed in randSeedList:
+                RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, 
+                        prefix=prefix, randSeed=randSeed)
     

@@ -67,63 +67,38 @@ def mainProcedure(labelNewsList, paramsIter, clfList, allowedFirstLayerWord,
             RunExp.allTrainTest(X, y1, topicMap, clfList, "MacroF1", testSize=0.2, prefix=prefix)
             RunExp.leaveOneTest(X, y1, topicMap, clfList, "MacroF1", prefix=prefix)
 
-
-def runSingleTask(labelNewsList, taskType, olpdm, topicSet, sentiDict, params, clfList, topicMap=None, topicId=None):
-    # generate word features
+# generate word model features and dependency model features, then merge them
+def genXY(labelNewsList, olpdm, topicSet, sentiDict, params):
+    # generate WM features
     print('generating word features...', file=sys.stderr)
-    p = params['tfidf']
-    wm = WM.WordModel(labelNewsList, newsCols=p['columnSource'], 
-                       statCol=p['statementCol'], feature=p['feature'])
-    (X1, y1) = wm.genXY()
-    volc1 = wm.getVolc()
-    #print('Size of volc1:', len(volc1), file=sys.stderr)
+    p = params['WM']['model settings']
+    wm = WordModel(labelNewsList, newsCols=p['col'], statCol=p['stat'], 
+            feature=p['feature'], allowedPOS=allowedPOS, volc=volc)
+    (X1, y1) = wm.genXY(p['minCnt'])
+    volc1 = WM.getVolc()
     print('X1: (%d, %d)' % (X1.shape[0], X1.shape[1]), file=sys.stderr)
-    
+
     # generate OLPDM features
+    print('generating OLPDM features...', file=sys.stderr)
     p = params['OLPDM']['model settings']
-    allowedSeedWord = OLPDM.initAllowedSet(topicSet, p['seedWordType'])
-    allowedFirstLayerWord = OLPDM.initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
+    allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
+    allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
     allowedRel = { t: None for t in topicSet }
-    olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], allowedFirstLayerWord, 
-                p['firstLayerType']['type'], allowedRel)
+    olpdm.setModel(allowedSeedWord, p['seedWordType']['type'], 
+            allowedFirstLayerWord, p['firstLayerType']['type'], 
+            allowedRel, p['minCnt'])
     (X2, y2) = olpdm.genXY()
     volc2 = olpdm.getVolc()
-    #print('Size of volc2:', len(volc2), file=sys.stderr)
     print('X2: (%d, %d)' % (X2.shape[0], X2.shape[1]), file=sys.stderr)
     
-    for i, y in enumerate(y1):
-        assert y == y2[i]
+    assert np.array_equal(y1, y2)    
 
     # merge (horozontally align) two matrix
     X = DataTool.hstack(X1, X2)
     volc3 = mergeVolc(volc1, volc2)
-    #print('Size of merged volc:', len(volc3), file=sys.stderr)
-    print('X: %d %d' % (X.shape[0], X.shape[1]), file=sys.stderr)
+    print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
 
-    # run #TODO: feature meaning 
-    if taskType == 'SelfTrainTest':
-        prefix = "%s, %s, %s, %s, %s" % (topicId, toStr(list(params.keys())), toStr(params), '"None"', 'False')
-        rs = RunExp.selfTrainTest(X, y1, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
-        for r in rs:
-            r['volc'] = volc3
-            r['params'] = params
-
-    elif taskType == 'AllTrainTest': 
-        prefix = "%s, %s, %s, %s, %s" % ('all', toStr(list(params.keys())), toStr(params), '"None"', 'False')
-        rs = RunExp.allTrainTest(X, y1, topicMap, clfList, 'MacroF1', testSize=0.2, prefix=prefix)
-        for r in rs:
-            r['volc'] = volc3
-            r['params'] = params
-
-    elif taskType == 'LeaveOneTest':
-        prefix = "%s, %s, %s, %s, %s" % (topicId, toStr(list(params.keys())), toStr(params), '"None"', 'False')
-        rs = RunExp.leaveOneTest(X, y1, topicMap, clfList, "MacroF1", testTopic=[topicId], prefix=prefix)
-        for r in rs[topicId]:
-            r['volc'] = volc3
-            r['params'] = params
-
-            
-    return rs
+    return (X, y1, volc3)
 
 if __name__ == '__main__':
     if len(sys.argv) != 6:
@@ -154,7 +129,8 @@ if __name__ == '__main__':
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
 
     # ====== initalizing parameters ======
-    clfList = ['NaiveBayes', 'MaxEnt']
+    clfList = ['NaiveBayes', 'MaxEnt', 'SVM']
+    randSeedList = [1, 2, 3, 4, 5]
     # print result of first Line
     ResultPrinter.printFirstLine()
 
@@ -172,14 +148,16 @@ if __name__ == '__main__':
     for t in topicSet:
         bestR = None
         olpdm = OLPDM.OneLayerPhraseDepModel(labelNewsInTopic[t], topicPhraseList)
-        paramsIter = Parameter.getParamsIter(WMParams['SelfTrainTest'][t], 'tfidf',
+        paramsIter = Parameter.getParamsIter(WMParams['SelfTrainTest'][t], 'WM',
                 OLPDMParams['SelfTrainTest'][t], 'OLPDM')
         for p in paramsIter:
-            r = runSingleTask(labelNewsInTopic[t], 'SelfTrainTest', olpdm, topicSet, 
-                    sentiDict, p, clfList, topicId=t)
-            bestR = keepBestResult(bestR, r, 'MacroF1')
-        #print(bestR)
-        with open('SelfTrainTest_topic%d.pickle' % t, 'w+b') as f:
+            (X, y, volc) = genXY(labelNewsInTopic[t], olpdm, topicSet, sentiDict, p)
+            rsList = runTask(X, y, volc, 'SelfTrainTest', p, 
+                    clfList, topicId=t, randSeedList=randSeedList)
+            for rs in rsList:
+                if rs != None:
+                    bestR = keepBestResult(bestR, rs, 'MacroF1')
+        with open('WM_OLPDM_SelfTrainTest_topic%d.pickle' % t, 'w+b') as f:
             pickle.dump(bestR, f)
     
 
@@ -187,15 +165,19 @@ if __name__ == '__main__':
     
     # ============= Run for all-train-test ================
     print('All-Train-Test...', file=sys.stderr)
-    paramsIter = Parameter.getParamsIter(WMParams['AllTrainTest'], 'tfidf', 
+    paramsIter = Parameter.getParamsIter(WMParams['AllTrainTest'], 'WM', 
             OLPDMParams['AllTrainTest'], 'OLPDM')
     bestR = None
     for p in paramsIter:
-        r = runSingleTask(labelNewsList, 'AllTrainTest', olpdm, topicSet, sentiDict, 
-                p, clfList, topicMap=topicMap)
-        bestR = keepBestResult(bestR, r, 'MacroF1')
-    #print(bestR)
-    with open('AllTrainTest.pickle', 'w+b') as f:
+        (X, y, volc) = genXY(labelNewsList, olpdm, topicSet, 
+                sentiDict, p)
+        rsList = runTask(X, y, volc, 'AllTrainTest', p, clfList, 
+                topicMap=topicMap, randSeedList=randSeedList)
+        for rs in rsList:
+            if rs != None:
+                bestR = keepBestResult(bestR, rs, 'MacroF1')
+
+    with open('WM_OLPDM_AllTrainTest.pickle', 'w+b') as f:
         pickle.dump(bestR, f)
     
     # ============= Run for leave-one-test ================
@@ -205,11 +187,13 @@ if __name__ == '__main__':
         paramsIter = Parameter.getParamsIter(WMParams['LeaveOneTest'][t], 'tfidf', 
             OLPDMParams['LeaveOneTest'][t], 'OLPDM')
         for p in paramsIter:
-            r = runSingleTask(labelNewsList, 'LeaveOneTest', olpdm, topicSet, sentiDict, 
-                p, clfList, topicMap=topicMap, topicId=t)
-            bestR = keepBestResult(bestR, r[t], 'MacroF1')
-        #print(bestR)
-        with open('LeaveOneTest_topic%d.pickle' % t, 'w+b') as f:
+            (X, y, volc) = genXY(labelNewsList, olpdm, topicSet, sentiDict, p)
+            rsList = runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+                    topicMap=topicMap, topicId=t, randSeedList=randSeedList)
+            for rs in rsList:
+                if rs != None:
+                    bestR = keepBestResult(bestR, rs[t], 'MacroF1')
+        with open('WM_OLPDM_LeaveOneTest_topic%d.pickle' % t, 'w+b') as f:
             pickle.dump(bestR, f)
 
     '''

@@ -182,9 +182,58 @@ class RunExp:
                 returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
                     'param': bestParam, 'result': result, 'data':{'XTrain': XTrain, 
                         'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
-
         return returnObj
     
+    # higher layer function for running task
+    # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
+    def runTask(X, y, volc, taskType, params, clfList, topicMap=None, 
+        topicId=None, randSeedList=[1]):
+        print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
+        
+        rsList = list()
+        for randSeed in randSeedList:
+            if taskType == 'SelfTrainTest':
+                prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
+                rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
+                        randSeed=randSeed, testSize=0.2, prefix=prefix)
+                if rs == None:
+                    return None
+                for r in rs:
+                    r['volc'] = volc
+                    r['X'] = X
+                    r['y'] = y
+                    r['params'] = params
+
+            elif taskType == 'AllTrainTest': 
+                prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
+                rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
+                        'MacroF1', randSeed=randSeed, testSize=0.2, 
+                        prefix=prefix)
+                if rs == None:
+                    return None
+                for r in rs:
+                    r['volc'] = volc
+                    r['X'] = X
+                    r['y'] = y
+                    r['params'] = params
+
+            elif taskType == 'LeaveOneTest':
+                prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
+                rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
+                        "MacroF1", randSeed=randSeed, testTopic=[topicId], 
+                        prefix=prefix)
+                if rs == None:
+                    return None
+                for r in rs[topicId]:
+                    r['volc'] = volc
+                    r['X'] = X
+                    r['y'] = y
+                    r['params'] = params
+            rsList.append(rs)
+
+        return rsList
+
+
 def dumpModel(dir, clf):
     tmpF = tempfile.NamedTemporaryFile(mode='w+b', dir=dir, prefix='clf', delete=False)
     with tmpF.file as f:
@@ -648,8 +697,8 @@ class ResultPrinter:
         #  'parameters, scorer, valScore, accuracy, MacroF1,'
         #  'MacroR, modelPath(pickle)', file=outfile)
         print('topicId, model settings, column source,'
-          ' experimental settings, dimension, classifier, parameters,'
-          ' scorer, randSeed, valScore, accuracy, MacroF1, MacroR,'
+          ' experimental settings, dimension, classifier, scorer,'
+          ' parameters, randSeed, valScore, accuracy, MacroF1, MacroR,'
           ' modelPath(pickle)', file=outfile)
 
 
@@ -660,7 +709,7 @@ class ResultPrinter:
     def print(prefix, Xshape, clfName, params, scorerName, randSeed, 
             result, filename, outfile):
         paramStr = toStr("%s" % params)
-        print(prefix, Xshape, clfName, paramStr, scorerName, randSeed, 
+        print(prefix, Xshape, clfName, scorerName, paramStr, randSeed, 
                 result['valScore'], result['Accuracy'], result['MacroF1'], 
                 result['MacroR'], filename, sep=',', file=outfile)
 

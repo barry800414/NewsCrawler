@@ -114,7 +114,8 @@ class OneLayerDepModel():
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
                     if (sW, eW) not in volc:
-                        volc[(sW,eW)] = len(volc)
+                        volc.addWord((sW, eW))
+                        #volc[(sW,eW)] = len(volc)
                     docPairSet.add(volc[(sW, eW)])
             for key in docPairSet:
                 docF[key] += 1        
@@ -171,7 +172,8 @@ def getLabels(labelNewsList):
 def addWordSetToVolc(wordSet, volc):
     for w in wordSet:
         if w not in volc:
-            volc[w] = len(volc)
+            volc.addWord(w)
+            #volc[w] = len(volc)
         
 
 # temporally deprecated
