@@ -17,9 +17,9 @@ from collections import defaultdict
 
 class Volc:
     def __init__(self):
-        self.volc = dict()
-        self.rVolc = list()
-        self.lock = False
+        self.volc = dict() # word -> index (many-to-one)
+        self.rVolc = list() # index words (one-to-many)
+        self.lockVolc = False
         self.OOVDim = -1
 
     def load(self, filename):
@@ -72,10 +72,11 @@ class Volc:
         self.volc[index] = value
 
     def addWord(self, word):
-        if self.lock:
+        if self.lockVolc:
             self.__setitem__(word, self.OOVDim)
         else:
-            self.__setitem__(word, self.__len__())
+            if word not in self.volc:
+                self.__setitem__(word, self.__len__())
 
     def __contains__(self, index):
         return (index in self.volc)
@@ -99,10 +100,10 @@ class Volc:
     def lock(self):
         if self.OOVDim == -1:
             self.OOVDim = len(self.rVolc)
-        self.lock = True
+        self.lockVolc = True
 
     def unlock(self):
-        self.lock = False
+        self.lockVolc = False
 
     # DF: document frequency  word index -> #doc contain that word (defaultdict(int))
     # remove all words whose count less than minCnt

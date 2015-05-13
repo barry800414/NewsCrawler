@@ -9,7 +9,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, hstack
 from sklearn.grid_search import ParameterGrid
 
-import WordModel as WM
+import WordModelImproved as WM
 import OneLayerPhraseDepModel as OLPDM
 from PhraseDepTree import loadPhraseFile
 from sentiDictSum import readSentiDict
@@ -68,11 +68,12 @@ def mainProcedure(labelNewsList, paramsIter, clfList, allowedFirstLayerWord,
             RunExp.leaveOneTest(X, y1, topicMap, clfList, "MacroF1", prefix=prefix)
 
 # generate word model features and dependency model features, then merge them
-def genXY(labelNewsList, olpdm, topicSet, sentiDict, params):
+def genXY(labelNewsList, olpdm, topicSet, sentiDict, params, volc):
     # generate WM features
     print('generating word features...', file=sys.stderr)
     p = params['WM']['model settings']
-    wm = WordModel(labelNewsList, newsCols=p['col'], statCol=p['stat'], 
+    allowedPOS = set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
+    wm = WM.WordModel(labelNewsList, newsCols=p['col'], statCol=p['stat'], 
             feature=p['feature'], allowedPOS=allowedPOS, volc=volc)
     (X1, y1) = wm.genXY(p['minCnt'])
     volc1 = WM.getVolc()
@@ -102,7 +103,7 @@ def genXY(labelNewsList, olpdm, topicSet, sentiDict, params):
 
 if __name__ == '__main__':
     if len(sys.argv) != 6:
-        print('Usage:', sys.argv[0], 'SegAndDepLabelNewsJson phraseJson sentiDict WMParamsJson OLPDMParamsJson', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'TagAndDepLabelNewsJson phraseJson sentiDict WMParamsJson OLPDMParamsJson', file=sys.stderr)
         exit(-1)
     
     # arguments
@@ -152,7 +153,7 @@ if __name__ == '__main__':
                 OLPDMParams['SelfTrainTest'][t], 'OLPDM')
         for p in paramsIter:
             (X, y, volc) = genXY(labelNewsInTopic[t], olpdm, topicSet, sentiDict, p)
-            rsList = runTask(X, y, volc, 'SelfTrainTest', p, 
+            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, 
                     clfList, topicId=t, randSeedList=randSeedList)
             for rs in rsList:
                 if rs != None:
@@ -171,7 +172,7 @@ if __name__ == '__main__':
     for p in paramsIter:
         (X, y, volc) = genXY(labelNewsList, olpdm, topicSet, 
                 sentiDict, p)
-        rsList = runTask(X, y, volc, 'AllTrainTest', p, clfList, 
+        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
                 topicMap=topicMap, randSeedList=randSeedList)
         for rs in rsList:
             if rs != None:
@@ -188,7 +189,7 @@ if __name__ == '__main__':
             OLPDMParams['LeaveOneTest'][t], 'OLPDM')
         for p in paramsIter:
             (X, y, volc) = genXY(labelNewsList, olpdm, topicSet, sentiDict, p)
-            rsList = runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+            rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                     topicMap=topicMap, topicId=t, randSeedList=randSeedList)
             for rs in rsList:
                 if rs != None:

@@ -35,9 +35,9 @@ class OneLayerPhraseDepModel(OneLayerDepModel):
     # allowedFirstLayerWord is similar to allowedSeedWord
     # allowedRel[T][P]
 
-    def __init__(self, parsedLabelNews, topicPhraseList):
+    def __init__(self, parsedLabelNews, topicPhraseList, wVolc=None):
         self.topicPhraseList = topicPhraseList
-        super(OneLayerPhraseDepModel, self).__init__(parsedLabelNews)
+        super(OneLayerPhraseDepModel, self).__init__(parsedLabelNews, wVolc=wVolc)
 
     # override
     def getDepTree(self, tdList, topicId):
@@ -69,53 +69,6 @@ def genXY(olpdm, topicSet, sentiDict, params):
     return (X, y, volc)
 
 
-def runTask(X, y, volc, taskType, params, clfList, topicMap=None, 
-        topicId=None, randSeedList=[1]):
-    print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
-    
-    rsList = list()
-    for randSeed in randSeedList:
-        if taskType == 'SelfTrainTest':
-            prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
-            rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
-                    randSeed=randSeed, testSize=0.2, prefix=prefix)
-            if rs == None:
-                return None
-            for r in rs:
-                r['volc'] = volc
-                r['X'] = X
-                r['y'] = y
-                r['params'] = params
-
-        elif taskType == 'AllTrainTest': 
-            prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
-            rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
-                    'MacroF1', randSeed=randSeed, testSize=0.2, 
-                    prefix=prefix)
-            if rs == None:
-                return None
-            for r in rs:
-                r['volc'] = volc
-                r['X'] = X
-                r['y'] = y
-                r['params'] = params
-
-        elif taskType == 'LeaveOneTest':
-            prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
-            rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
-                    "MacroF1", randSeed=randSeed, testTopic=[topicId], 
-                    prefix=prefix)
-            if rs == None:
-                return None
-            for r in rs[topicId]:
-                r['volc'] = volc
-                r['X'] = X
-                r['y'] = y
-                r['params'] = params
-        rsList.append(rs)
-
-    return rsList
-
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print('Usage:', sys.argv[0], 'depParsedLabelNewsJson sentiDictFile [-p phraseFile] [-v volcFile]', file=sys.stderr)
@@ -130,7 +83,7 @@ if __name__ == '__main__':
 
     
     topicPhraseList = None
-    volc = None
+    wVolc = None
     for i in range(3, len(sys.argv)):
         if sys.argv[i] == '-p' and len(sys.argv) > i:
             # load phrase file
@@ -138,11 +91,11 @@ if __name__ == '__main__':
             topicPhraseList = loadPhraseFile(phrasesJsonFile)
             i = i + 1
         elif sys.argv[i] == '-v' and len(sys.argv) > i:
-            # load volcabulary file
-            volcFile = sys.argv[i+1]
-            volc = Volc()
-            volc.load(volcFile)
-            volc.lock() # lock the volcabulary, all new words are viewed as OOV
+            # load word volcabulary file
+            wordVolcFile = sys.argv[i+1]
+            wVolc = Volc()
+            wVolc.load(wordVolcFile)
+            wVolc.lock() # lock the volcabulary, all new words are viewed as OOV
             i = i + 1
 
     # load sentiment dictionary
@@ -187,16 +140,17 @@ if __name__ == '__main__':
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
     if topicPhraseList != None: #OLPDM
-        olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList)
+        olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList, 
+                wVolc=wVolc)
         tolpdm = dict()
         for topicId, labelNewsList in labelNewsInTopic.items():
             tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
-                    topicPhraseList) 
+                    topicPhraseList, wVolc=wVolc) 
     else: #OLDM (no phrase)
-        olpdm = OneLayerDepModel(labelNewsList)
+        olpdm = OneLayerDepModel(labelNewsList, wVolc=wVolc)
         tolpdm = dict()
         for topicId, labelNewsList in labelNewsInTopic.items():
-            tolpdm[topicId] = OneLayerDepModel(labelNewsList)
+            tolpdm[topicId] = OneLayerDepModel(labelNewsList, wVolc=wVolc)
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)

@@ -34,11 +34,14 @@ class OneLayerDepModel():
     #   allowedSeedWord[T]: a set of allowed words (without considering POS tag)
     # elif allowedSeedWordType = 'tag':
     #   allowedSeedWord[T]: a set of allowe POS tag (without considering word)
-    # 
+    #
     # allowedFirstLayerWord is similar to allowedSeedWord
-    # allowedRel[T][P]
-    def __init__(self, parsedLabelNews):
+    #
+    # wVolc: word vocabulary
+    def __init__(self, parsedLabelNews, wVolc=None):
         self.pln = parsedLabelNews
+        self.wVolc = wVolc # word vocabulary
+        self.volc = None # pair vocabulary
         self.init()
         
     def init(self):
@@ -57,8 +60,13 @@ class OneLayerDepModel():
                     newsDGList.append(dg)
             self.corpusDTList.append((topicId, newsDGList))
 
+    # the pair volcabulary 
     def getVolc(self):
         return self.volc
+    
+    # the word volc
+    def getWordVolc(self):
+        return self.wVolc
 
     # generate dependency tree from typed dependencies
     def getDepTree(self, tdList, topicId):
@@ -106,17 +114,22 @@ class OneLayerDepModel():
             # corpusEdgeList[newsIndex][depGraphIndex][edgeIndex]
             corpusEdgeList.append(newsEdgeList)
 
-        # build the dictionary
-        volc = Volc()
+        # build the volcabulary for pair
+        volc = self.volc if self.volc != None else Volc()
+        wVolc = self.wVolc if self.wVolc != None else Volc()
+
         docF = defaultdict(int) # doc frequency for each pair
         for newsEdgeList in corpusEdgeList:
             docPairSet = set()
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    if (sW, eW) not in volc:
-                        volc.addWord((sW, eW))
+                    wVolc.addWord(sW)
+                    wVolc.addWord(eW)
+                    pair = (wVolc[sW], wVolc[eW])
+                    if pair not in volc:
+                        volc.addWord(pair)
                         #volc[(sW,eW)] = len(volc)
-                    docPairSet.add(volc[(sW, eW)])
+                    docPairSet.add(volc[pair])
             for key in docPairSet:
                 docF[key] += 1        
 
@@ -124,7 +137,8 @@ class OneLayerDepModel():
         # to threshold, then discard it
         if self.threshold != None:
             docF = volc.shrinkVolcByDocF(docF, self.threshold)
-
+        
+        # FIXME
         if self.debugLevel > 0:
             print('# distinct pairs: ', len(volc), file=sys.stderr)
             for (sW, eW), index in volc.items():
@@ -137,8 +151,9 @@ class OneLayerDepModel():
         for i, newsEdgeList in enumerate(corpusEdgeList):
             for edgeList in newsEdgeList:
                 for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    if (sW, eW) in volc:
-                        XFeature[i][volc[(sW, eW)]] += 1
+                    pair = (wVolc[sW], wVolc[eW])
+                    if pair in volc:
+                        XFeature[i][volc[pair]] += 1
         
         rows = list()
         cols = list()
@@ -154,8 +169,10 @@ class OneLayerDepModel():
             numCol), dtype=np.float64)
         y = np.array(getLabels(self.pln))
 
-        # update volc
+        # update volcabulary
+        self.wVolc = wVolc
         self.volc = volc
+
         return (X, y)
 
 # get labels from the list of label-news

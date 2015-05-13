@@ -1,0 +1,15 @@
+[
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"holder"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 0, "to": 1, "rel": ["nsubj"] }, 
+            {"from": 0, "to": 2, "rel": ["dobj"] }
+        ],
+        "name": "holder-opinion-target"
+    }
+]
+

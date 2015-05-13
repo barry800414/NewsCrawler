@@ -39,8 +39,8 @@ class WordModel:
         return self.volc
 
     # convert the corpus of news to tf/tf-idf (a list of dict)
-    def corpusToTFIDF(labelNewsList, volc, column='content', 
-            IDF=None, zeroOne=False):
+    def corpusToTFIDF(labelNewsList, volc, allowedPOS=None, 
+            column='content', IDF=None, zeroOne=False):
         vectorList = list() # a list of dict()
         for labelNews in labelNewsList:
             if column == 'content':
@@ -49,12 +49,13 @@ class WordModel:
                 text = labelNews['news']['title_pos']
             elif column == 'statement':
                 text = labelNews['statement']['pos']
-            vectorList.append(WordModel.text2TFIDF(text, volc, IDF, zeroOne))
+            vectorList.append(WordModel.text2TFIDF(text, allowedPOS, 
+                volc, IDF, zeroOne))
         return (vectorList, volc)
 
     
     # convert text to TF-IDF features (dict)
-    def text2TFIDF(text, volc, IDF=None, zeroOne=False, 
+    def text2TFIDF(text, volc, allowedPOS=None, IDF=None, zeroOne=False, 
             sentSep=",", wordSep=" ", tagSep='/'):
         f = dict()
         # term frequency 
@@ -145,10 +146,12 @@ class WordModel:
         for col in self.newsCols:
             if col == 'title':
                 (titleTFIDF, volc) = WordModel.corpusToTFIDF(self.ln, 
-                        column='title', IDF=IDF, volc=volc, zeroOne=zeroOne)
+                        allowedPOS=self.allowedPOS, column='title', 
+                        IDF=IDF, volc=volc, zeroOne=zeroOne)
             elif col == 'content':
                 (contentTFIDF, volc) = WordModel.corpusToTFIDF(self.ln, 
-                        column='content', IDF=IDF, volc=volc, zeroOne=zeroOne)
+                        allowedPOS=self.allowedPOS, column='content', 
+                        IDF=IDF, volc=volc, zeroOne=zeroOne)
         newsTFIDF = listOfDictAdd(titleTFIDF, contentTFIDF)
         
         '''
@@ -332,18 +335,18 @@ if __name__ == '__main__':
         'col': [['content'], ['title', 'content']],
         #'stat': [False, True],
         'stat': [False],
-        'minCnt': [2]
+        'minCnt': [2],
+        'allowedPOS': set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
     }
     clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
     paramIter = ParameterGrid(params)
-    allowedPOS = set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
     randSeedList = [1, 2, 3, 4, 5]
 
     # all topic are mixed to train and predict/ leave-one-test
     for p in paramIter:
         wm = WordModel(labelNewsList, newsCols=p['col'], 
                 statCol=p['stat'], feature=p['feature'], 
-                allowedPOS=allowedPOS, volc=volc)
+                allowedPOS=p['allowedPOS'], volc=volc)
         (X, y) = wm.genXY(p['minCnt'])
         prefix = 'all, %s, %s' % (toStr(p), toStr(p['col']))
         topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
@@ -362,7 +365,7 @@ if __name__ == '__main__':
         for p in paramIter:
             wm = WordModel(labelNewsList, newsCols=p['col'], 
                     statCol=p['stat'], feature=p['feature'],
-                    allowedPOS=allowedPOS, volc=volc)
+                    allowedPOS=['allowedPOS'], volc=volc)
             (X, y) = wm.genXY(p['minCnt'])
                 
             prefix = "%d, %s, %s" % (topicId, toStr(p), toStr(p['col']))

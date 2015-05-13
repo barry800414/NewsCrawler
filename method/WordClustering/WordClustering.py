@@ -43,10 +43,10 @@ def printWordCluster(clusters, outfile=sys.stdout):
             print(w, end=',', file=outfile)
         print('', file=outfile)
 
-def printWordClusterAsVolc(clusters, outfile=sys.stdout):
+def printWordClusterAsVolc(clusters, offset=0, outfile=sys.stdout):
     for key, words in sorted(clusters.items(), key=lambda x:x[0]):
         for w in words:
-            print(w, key, sep=':', file=outfile)
+            print(w, key+offset, sep=':', file=outfile)
 
 def filterByWord(X, volc, wordSet):
     # some of words in wordSet may not be in volc(because less 5 times words 
@@ -105,6 +105,7 @@ if __name__ == '__main__':
         nClusterEachTag = { tag: math.ceil(len(tagWord[tag])*nCluster/nWords) for tag in tagWord.keys() if tag in allowedPOS }
         print(nClusterEachTag)
         with open(wordClusterFile + '.volc', 'w') as f, open(wordClusterFile + '.txt', 'w') as f2:
+            offset = 0
             for tag, wordSet in tagWord.items():
                 if tag not in allowedPOS:
                     continue
@@ -115,6 +116,7 @@ if __name__ == '__main__':
                     continue
                 labels = wordClustering(newX, 'KMeans', nClusterEachTag[tag], {})
                 clusters = getWordCluster(labels, newVolc)
-                printWordClusterAsVolc(clusters, outfile=f)
+                printWordClusterAsVolc(clusters, offset=offset, outfile=f)
                 print('Tag: %s' % (tag), file=f2)
                 printWordCluster(clusters, outfile=f2)
+                offset += nClusterEachTag[tag]
