@@ -37,3 +37,23 @@ def mergeVolc(volc1, volc2):
     for key, value in volc2.items():
         volc3[key] = value + offset
     return volc3
+
+def getFileNamePrefix(path):
+    s = path.rfind('/')
+    e = path.rfind('.')
+    if s != -1:
+        if e != -1 and e != 0:
+            name = path[s+1:e]
+        else:
+            name = path[s+1:]
+    else:
+        if e != -1 and e != 0:
+            name = path[:e]
+        else:
+            name = path
+    return name
+
+#print(getFileNamePrefix('./word/123.an'))
+#print(getFileNamePrefix('123.an'))
+#print(getFileNamePrefix('./word/123'))
+#print(getFileNamePrefix('123'))

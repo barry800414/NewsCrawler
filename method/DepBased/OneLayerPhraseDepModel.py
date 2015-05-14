@@ -84,6 +84,7 @@ if __name__ == '__main__':
     
     topicPhraseList = None
     wVolc = None
+    wVolcPrefix = ''
     for i in range(3, len(sys.argv)):
         if sys.argv[i] == '-p' and len(sys.argv) > i:
             # load phrase file
@@ -93,6 +94,7 @@ if __name__ == '__main__':
         elif sys.argv[i] == '-v' and len(sys.argv) > i:
             # load word volcabulary file
             wordVolcFile = sys.argv[i+1]
+            wVolcPrefix = getFileNamePrefix(wordVolcFile)
             wVolc = Volc()
             wVolc.load(wordVolcFile)
             wVolc.lock() # lock the volcabulary, all new words are viewed as OOV
@@ -144,17 +146,23 @@ if __name__ == '__main__':
                 wVolc=wVolc)
         tolpdm = dict()
         for topicId, labelNewsList in labelNewsInTopic.items():
+            #if topicId != 2:
+            #    continue
             tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
                     topicPhraseList, wVolc=wVolc) 
     else: #OLDM (no phrase)
         olpdm = OneLayerDepModel(labelNewsList, wVolc=wVolc)
         tolpdm = dict()
         for topicId, labelNewsList in labelNewsInTopic.items():
+            #if topicId != 2:
+            #    continue
             tolpdm[topicId] = OneLayerDepModel(labelNewsList, wVolc=wVolc)
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
+        #if t != 2:
+        #    continue
         bestR = None
         for p in paramsIter:
             (X, y, volc) = genXY(tolpdm[t], topicSet, sentiDict, p)
@@ -163,7 +171,7 @@ if __name__ == '__main__':
             for rs in rsList:
                 if rs != None:
                     bestR = keepBestResult(bestR, rs, 'MacroF1')
-        with open('%s_SelfTrainTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
+        with open('%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
     # ============= Run for all-train-test ================
@@ -176,7 +184,7 @@ if __name__ == '__main__':
         for rs in rsList:
             if rs != None:
                 bestR = keepBestResult(bestR, rs, 'MacroF1')
-    with open('%s_AllTrainTest.pickle' %(modelName), 'w+b') as f:
+    with open('%s_%s_AllTrainTest.pickle' %(modelName, wVolcPrefix), 'w+b') as f:
         pickle.dump(bestR, f)
 
 
@@ -191,7 +199,7 @@ if __name__ == '__main__':
             for rs in rsList:
                 if rs != None:
                     bestR = keepBestResult(bestR, rs[t], 'MacroF1')
-        with open('%s_LeaveOneTest_topic%d.pickle' % (modelName, t), 'w+b') as f:
+        with open('%s_%s_LeaveOneTest_topic%d.pickle' % (modelName, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
     '''

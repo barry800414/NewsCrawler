@@ -49,8 +49,8 @@ class WordModel:
                 text = labelNews['news']['title_pos']
             elif column == 'statement':
                 text = labelNews['statement']['pos']
-            vectorList.append(WordModel.text2TFIDF(text, allowedPOS, 
-                volc, IDF, zeroOne))
+            vectorList.append(WordModel.text2TFIDF(text, volc, 
+                allowedPOS, IDF, zeroOne))
         return (vectorList, volc)
 
     

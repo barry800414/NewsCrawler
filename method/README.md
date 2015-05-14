@@ -35,7 +35,7 @@ tmp
 python3 ./DepBased/ExtractPhrases.py ./zhtNewsData/constParsedNews20150419_new.json ./DepBased/phrase.json
 
 python3 ./baseline/WordModelImproved.py ./zhtNewsData/taggedLabelNews20150504.json ./WordClustering/cluster7852_tag100.volc
-python3 ./DepBased/OneLayerPhraseDepModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./res/NTUSD_core.csv -p ./DepBased/phrase.json
+ python3 ./DepBased/OneLayerPhraseDepModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./res/NTUSD_core.csv -p ./DepBased/phrase.json -v ./WordClustering/cluster7852_tag100.volc
 python3 ./DepBased/WM_OLPDM.py ./zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./DepBased/phrase.json ./res/NTUSD_core.csv WM_20150504_params.json OLPDM_20150504_params.json
 
 python3 CollectResult.py WM20150504_results.csv WM_20150504_params.json 7

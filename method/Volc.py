@@ -45,19 +45,19 @@ class Volc:
                 print(w, i, sep=':', file=f)
 
     # index must be from 0 to n-1
-    def checkVolc(volc):
-        maxIndex = max(volc.values())
-        return maxIndex == len(volc) - 1
+    #def checkVolc(volc):
+    #    maxIndex = max(volc.values())
+    #    return maxIndex == len(volc) - 1
 
     def setVolc(self, volc):
-        if Volc.checkVolc(volc):
-            self.volc = volc
-            self.__genInverseVolc()
-        else:
-            print('Invalid Volcabulary', file=sys.stderr)
+        #if Volc.checkVolc(volc):
+        self.volc = volc
+        self.__genInverseVolc()
+        #else:
+        #    print('Invalid Volcabulary', file=sys.stderr)
 
     def __genInverseVolc(self):
-        self.rVolc = [list() for i in range(0, len(self.volc))]
+        self.rVolc = [list() for i in range(0, max(self.volc.values())+1)]
         for w, i in self.volc.items():
             self.rVolc[i].append(w)
 
@@ -72,10 +72,10 @@ class Volc:
         self.volc[index] = value
 
     def addWord(self, word):
-        if self.lockVolc:
-            self.__setitem__(word, self.OOVDim)
-        else:
-            if word not in self.volc:
+        if word not in self.volc:
+            if self.lockVolc:
+                self.__setitem__(word, self.OOVDim)
+            else:
                 self.__setitem__(word, self.__len__())
 
     def __contains__(self, index):
@@ -174,3 +174,5 @@ if __name__ == '__main__':
     volc.load(volcFile)
 
     print(len(volc))
+    for i in range(0, len(volc)):
+        print(volc.getWord(i))

@@ -126,6 +126,7 @@ class OneLayerDepModel():
                     wVolc.addWord(sW)
                     wVolc.addWord(eW)
                     pair = (wVolc[sW], wVolc[eW])
+                    #print('Pair:', pair, sW, eW)
                     if pair not in volc:
                         volc.addWord(pair)
                         #volc[(sW,eW)] = len(volc)
@@ -135,9 +136,10 @@ class OneLayerDepModel():
 
         # if the doc frequency of that pair is less than or equal 
         # to threshold, then discard it
+        print('before: pair volc size:', len(volc), file=sys.stderr)
         if self.threshold != None:
             docF = volc.shrinkVolcByDocF(docF, self.threshold)
-        
+        print('after: pair volc size:', len(volc), file=sys.stderr)
         # FIXME
         if self.debugLevel > 0:
             print('# distinct pairs: ', len(volc), file=sys.stderr)

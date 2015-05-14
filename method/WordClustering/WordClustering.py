@@ -7,7 +7,8 @@ from sklearn.cluster import KMeans, MiniBatchKMeans, AgglomerativeClustering
 
 from misc import *
 from Volc import Volc
-import WordTag 
+import WordTag
+import ConvertWordVector as CWV
 
 '''
 This module implements the function for word clustering.
@@ -37,33 +38,18 @@ def getWordCluster(labels, volc):
         clusters[label].append(volc.getWord(i))
     return clusters
 
+# print word clusters for human reading
 def printWordCluster(clusters, outfile=sys.stdout):
     for key, words in sorted(clusters.items(), key=lambda x:x[0]):
         for w in words:
             print(w, end=',', file=outfile)
         print('', file=outfile)
 
+# print word clusters as volcabulary file
 def printWordClusterAsVolc(clusters, offset=0, outfile=sys.stdout):
     for key, words in sorted(clusters.items(), key=lambda x:x[0]):
         for w in words:
             print(w, key+offset, sep=':', file=outfile)
-
-def filterByWord(X, volc, wordSet):
-    # some of words in wordSet may not be in volc(because less 5 times words 
-    # are removed)
-    indexList = sorted(list(set([volc[w] for w in wordSet if w in volc])))
-    newX = X[indexList]
-    
-    oldNewMapping = { oldI:newI for newI, oldI in enumerate(indexList) }
-    newVolc = Volc()
-    for w in wordSet:
-        if w in volc:
-            newVolc[w] = oldNewMapping[volc[w]]
-            #if not np.array_equal(newX[oldNewMapping[volc[w]]],X[volc[w]]):
-            #    print('fail')
-
-    #print(newX.shape, len(newVolc))
-    return (newX, newVolc)
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
@@ -92,6 +78,7 @@ if __name__ == '__main__':
         allowedPOS = set(['NN', 'NR', 'VV', 'VA', 'AD', 'JJ'])
 
     if tagWord == None:
+        # cluster all words into N cluster
         print('K-means clustering ...', file=sys.stderr)
         labels = wordClustering(WX, 'KMeans', nCluster, {})
     
@@ -100,6 +87,7 @@ if __name__ == '__main__':
             printWordClusterAsVolc(clusters, outfile=f)
             printWordCluster(clusters, outfile=f2)
     else:
+        # for each words with certain tag, cluster them
         print('K-means clustering ...', file=sys.stderr)
         nWords = sum([len(wordSet) for tag, wordSet in tagWord.items() if tag in allowedPOS])
         nClusterEachTag = { tag: math.ceil(len(tagWord[tag])*nCluster/nWords) for tag in tagWord.keys() if tag in allowedPOS }
@@ -111,7 +99,7 @@ if __name__ == '__main__':
                     continue
                 print('clustering for tag %s words (%d words to %d clusters)... ' % (
                     tag, len(wordSet), nClusterEachTag[tag]), file=sys.stderr)
-                (newX, newVolc) = filterByWord(WX, volc, wordSet)
+                (newX, newVolc) = CWV.filterByWord(WX, volc, wordSet)
                 if newX.shape[0] == 0:
                     continue
                 labels = wordClustering(newX, 'KMeans', nClusterEachTag[tag], {})
