@@ -2,29 +2,10 @@
 
 import sys
 import json
-import math
-from collections import defaultdict
+import random
 
 import numpy as np
-from scipy.sparse import csr_matrix, csc_matrix, hstack
-from sklearn.grid_search import ParameterGrid
-
-from RunExperiments import *
-from misc import *
-from Volc import Volc
-
-'''
-This is the improved version of WordModel
- 1.remove < 1 dimension (DONE)
- 2.allowed some of pos taggers (DONE)
- 3.word clustering 
- 4.highest tfidf
-
-Author: Wei-Ming Chen
-Date: 2015/05/04
-
-'''
-
+from RunRandomExp import *
 
 def getLabels(labelNewsList):
     mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
@@ -45,24 +26,60 @@ def divideLabel(labelNewsList):
     return labelNewsInTopic
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print('Usage:', sys.argv[0], 'labelNewsJson', file=sys.stderr)
+    if len(sys.argv) != 3:
+        print('Usage:', sys.argv[0], 'labelNewsJson trialNum', file=sys.stderr)
         exit(-1)
     
     # arguments
     labelNewsJson = sys.argv[1]
+    trialNum = int(sys.argv[2])
 
     # load labels and news 
     with open(labelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
-    
+
     labelNewsInTopic = divideLabel(labelNewsList)
 
     # SelfTrainTest
-    
-    
+    print('SelfTrainTest ...')
+    for topicId, ln in sorted(labelNewsInTopic.items(), key=lambda x:x[0]):
+        y = np.array(getLabels(ln))
+        avg = 0.0
+        for i in range(0, trialNum):
+            r = RunExp.selfTrainTest(y, 'MacroF1', testSize=0.2, randSeed=i)
+            avg += r['MacroF1']
+            if (i+1) % 10 == 0:
+                print('%c%d/%d' % (13, i+1, trialNum), end='')
+        avg /= trialNum
+        print('%cTopic %d, %f' % (13, topicId, avg))
+
     # AllTrainTest
+    print('AllTrainTest ...')
+    y = np.array(getLabels(labelNewsList))
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+
+    avg = 0.0
+    for i in range(0, trialNum):
+        r = RunExp.allTrainTest(y, topicMap, "MacroF1", testSize=0.2, randSeed=i)
+        avg += r['MacroF1']
+        if (i+1) % 10 == 0:
+            print('%c%d/%d' % (13, i+1, trialNum), end='')
+
+    avg /= trialNum
+    print('%cAll, %f' % (13,avg))
+
     # LeaveOneTest
-    
+    print('LeaveOneTest ...')
+    for topicId in sorted(labelNewsInTopic.keys()):
+        avg = 0.0
+        for i in range(0, trialNum):
+            r = RunExp.leaveOneTest(y, topicMap, "MacroF1", randSeed=i, testTopic=topicId)
+            avg += r['MacroF1']
+            if (i+1) % 10 == 0:
+                print('%c%d/%d' % (13, i+1, trialNum), end='')
+
+        avg /= trialNum
+        print('%cTopic %d, %f' % (13, topicId, avg))
+
 
     
