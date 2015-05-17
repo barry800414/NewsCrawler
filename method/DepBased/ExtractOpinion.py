@@ -8,80 +8,94 @@ import dataTool
 import TreePattern as TP
 import DepTree as DT
 import NegPattern as NP
+from Opinion import *
+from sentiDictSum import readSentiDict
 
+# depParsedNews: dependency parsed news 
+# pTreeList: pattern tree list
+# negPList: negation pattern list
+#
+# return: a dictionary (opinion-type-name -> list of opinions)
 def extractOpinions(depParsedNews, pTreeList, negPList=None):
-    opinions = dict()
+    opnDict = dict()
     contentDep = depParsedNews['content_dep']
+    
+    # for each dependency tree
     for depObj in contentDep:
         tdList = depObj['tdList']
         depTree = DT.DepTree(tdList)
+        # for each pattern tree
         for pTree in pTreeList:
-            if pTree.name not in opinions:
-                opinions[pTree.name] = list()
-            results = pTree.match(depTree)
+            if pTree.name not in opnDict:
+                opnDict[pTree.name] = list()
+            results = pTree.match(depTree) # a list of opinions (dict)
             if negPList != None:
+                # find negation pattern
                 for r in results:
                     negCntDict = NP.checkAllNegPattern(negPList,
                             depTree, pTree, r['mapping'])
                     if len(negCntDict) > 0:
                         r['neg'] = negCntDict
                     del r['mapping']
-            opinions[pTree.name].extend(results)
-    return opinions
+                
+                # convert to Opinion objects
+                for i in range(0, len(results)):
+                    results[i] = Opinion.genOpnFromDict(results[i])
+            opnDict[pTree.name].extend(results)
+    return opnDict
 
-# opinons: opinion-type-name -> list of opinions
-# output: opinion-type-name -> a dict to count occurence of each opinions
-def countOpinions(opinions, opnCnts, opnColName):
+
+# opinons: a dictionary (opinion-type-name -> list of opinions)
+# opnCnt: a dictionary (opinion-type-name -> a dictionary (opnKey -> count))
+# keyType: 'HOT', 'HT', 'OT', 'HO', 'T', 'H'
+# return: opinion-type-name -> a dict to count occurence of each opinions
+def countOpinions(opinions, opnCnts, keyTypeList=['HOT'], sentiDict=None, negSepList=[False]):
     for opnName, opns in opinions.items():
         if opnName not in opnCnts:
             opnCnts[opnName] = defaultdict(int)
-            if len(opns) != 0 and opnName not in opnColName:
-                opnColName[opnName] = __genColKey(opns[0])
+
         for opn in opns:
-            key = __genWordKey(opn)
-            opnCnts[opnName][key] += 1
+            for keyType in keyTypeList:
+                for negSep in negSepList:
+                    (key, value) = getOpnKeyValue(opn, keyType, sentiDict, negSep)
+                    opnCnts[opnName][key] += value
+    return opnCnts
 
-    return (opnCnts, opnColName)
-        
-def __genWordKey(opn):
-    kList = list()
-    sortItems = sorted(opn.items(), key=lambda x:x[0])
-    if 'neg' in opn:
-        for key, value in sortItems:
-            if key == 'neg':
-                continue
-            neg = opn['neg'][key] if key in opn['neg'] else 0
-            if neg != 0:
-                kList.append('%s_negCnt%d' % (value, neg))
-            else:
-                kList.append(value)
-    else:
-        for key, value in sortItems:
-            kList.append(value)
-    return tuple(kList)
 
-def __genColKey(opn):
-    return sorted([k for k in opn.keys() if k != 'neg'])
+def getOpnKeyValue(opn, keyType, sentiDict=None, negSep=False):
+    if keyType == 'HT' or keyType == 'T' or keyType == 'H':
+        assert sentiDict != None
+    
+    if keyType == 'HOT':
+        return opn.getKeyHOT(negSep)
+    elif keyType == 'HT':
+        return opn.getKeyHT(sentiDict, negSep)
+    elif keyType == 'H':
+        return opn.getKeyH(sentiDict, negSep)
+    elif keyType == 'HO':
+        return opn.getKeyHO(negSep)
+    elif keyType == 'OT':
+        return opn.getKeyOT(negSep)
+    elif keyType == 'T':
+        return opn.getKeyT(sentiDict, negSep)
 
-def printOpnCnt(opnCnts, opnColName, outfile=sys.stdout):
+def printOpnCnt(opnCnts, outfile=sys.stdout):
     for opnName, opnCnt in opnCnts.items():
         print(opnName, file=outfile)
-        if opnName in opnColName:
-            print(opnColName[opnName], file=outfile)
         for key, cnt in sorted(opnCnt.items(), key = lambda x:x[1], reverse=True):
             print(key, cnt, sep=',', file=outfile)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    if len(sys.argv) != 5:
         #print('Usage:', sys.argv[0], 'depParsedLabelNewsJson phraseFile sentiDictFile', file=sys.stderr)
-        print('Usage:', sys.argv[0], 'DepParsedLabelNews PatternFile NegPatternFile', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'DepParsedLabelNews PatternFile NegPatternFile SentiDictFile', file=sys.stderr)
         exit(-1)
 
     parsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
     patternFile = sys.argv[2]
     negPatternFile = sys.argv[3]
+    sentiDictFile = sys.argv[4]
     #phrasesJsonFile = sys.argv[4]
-    #sentiDictFile = sys.argv[5]
 
     # load label-news
     with open(parsedLabelNewsJsonFile, 'r') as f:
@@ -97,7 +111,7 @@ if __name__ == '__main__':
     #topicPhraseList = loadPhraseFile(phrasesJsonFile)
 
     # load sentiment dictionary
-    #sentiDict = readSentiDict(sentiDictFile)
+    sentiDict = readSentiDict(sentiDictFile)
 
     # get the set of all possible topic
     topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
@@ -106,12 +120,11 @@ if __name__ == '__main__':
     for t in topicSet:
         with open('opinions_topic%d.txt' % (t), 'w') as f:
             opnCnts = dict()
-            opnColName = dict()
             topicLabelNews = labelNewsInTopic[t]
             for i, labelNews in enumerate(topicLabelNews):
-                opinions = extractOpinions(labelNews['news'], pTreeList, negPList)
+                opnDict = extractOpinions(labelNews['news'], pTreeList, negPList)
                 if i % 10 == 0:
                     print('Progress(%d/%d)' % (i+1, len(topicLabelNews)), file=sys.stderr) 
-                countOpinions(opinions, opnCnts, opnColName)
-            printOpnCnt(opnCnts, opnColName, outfile=f)
+                countOpinions(opnDict, opnCnts, keyTypeList=['HOT', 'HT', 'OT', 'HO', 'H', 'T'], sentiDict=sentiDict)
+            printOpnCnt(opnCnts, outfile=f)
 
