@@ -84,6 +84,26 @@ public class PCFGParser{
         return depParseTokenizedSent(tokenizedSent, imgPath); 
     }
 
+    //return constituent parsing and dependency parsing
+    public Object[] CDParseTokenizedSent(String sent, String sep, String imgPath){
+        // constituent parsing
+		Tree parse = parseTokenizedSent(sent, sep);
+    
+        // convert to typed dependencies
+        List<TypedDependency> tdl = toTypedDependency(parse);
+
+        //drawing the dependency tree
+        if(imgPath != null){
+            drawDepTree(parse, tdl, imgPath, 3);
+        }
+        Object[] object = new Object[2];
+        object[0] = parse;
+        object[1] = tdl;
+		return object;
+    }
+
+
+
     // convert to dependency parsing 
     public List<TypedDependency> toTypedDependency(Tree parse){
         GrammaticalStructure gs = gsf.newGrammaticalStructure(parse);

@@ -42,12 +42,14 @@ public class EngNLPToolServer {
             server.createContext("/pos", new POSHandler());
             server.createContext("/pcfg", new PCFGConstParserHandler());
             server.createContext("/pcfg_dep", new PCFGDepParserHandler());
+            server.createContext("/pcfg_all", new PCFGParserHandler());
 
             server.setExecutor(null); // creates a default executor
             server.start();
             System.out.println("The server is running");
         }
         catch(Exception e){
+            e.printStackTrace(System.out);
             e.printStackTrace();
         }
     }
@@ -64,23 +66,28 @@ public class EngNLPToolServer {
     // http://localhost:port/pos?s=sentence
     // http://localhost:port/pos?seg_s=sentence
     static class POSHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            
-            // default: segemented sentence (word delimiter is space)
-            String input = parms.get("seg_s");
+        public void handle(HttpExchange httpExchange) {
+            try {
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                
+                // default: segemented sentence (word delimiter is space)
+                String input = parms.get("seg_s");
 
-            List<TaggedWord> tagged = tagger.tagTokenizedSent(input, Lang.ENG, Lang.ENG);
-            String output = Sentence.listToString(tagged, false);
-            response.append(output);
-            
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + input);
-            System.out.println("Response:" + output);
-            
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                List<TaggedWord> tagged = tagger.tagTokenizedSent(input, Lang.ENG, Lang.ENG);
+                String output = Sentence.listToString(tagged, false);
+                response.append(output);
+                
+                System.out.println("Reqeust:" + input);
+                System.out.println("Response:" + output);
+                
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
 
@@ -88,67 +95,136 @@ public class EngNLPToolServer {
     // Stanford PCFG Dependency Parser handler (output: stanford dependencies)
     //http://localhost:port/pcfg_dep?s=sentence?f_name=ooo?f_folder=xxx
     static class PCFGDepParserHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            String imgPath = null;
+        public void handle(HttpExchange httpExchange) {
+            try{ 
+                String imgPath = null;
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                String text = parms.get("seg_s");
 
-            //retrieve sentence
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String text = parms.get("seg_s");
-
-            //Check drawing dependency tree or not
-            String drawFlag = parms.get("draw");
-            if(drawFlag != null){
-                if(drawFlag.toLowerCase().compareTo("true") == 0){
-                    String fileFolder = parms.get("f_folder");
-                    String fileName = parms.get("f_name");
-                    if(fileFolder == null || fileName == null || 
-                       fileFolder.length() == 0 || fileName.length()==0){
-                        fileFolder = ".";
-                        fileName = text;
+                //Check drawing dependency tree or not
+                String drawFlag = parms.get("draw");
+                if(drawFlag != null){
+                    if(drawFlag.toLowerCase().compareTo("true") == 0){
+                        String fileFolder = parms.get("f_folder");
+                        String fileName = parms.get("f_name");
+                        if(fileFolder == null || fileName == null || 
+                           fileFolder.length() == 0 || fileName.length()==0){
+                            fileFolder = ".";
+                            fileName = text;
+                        }
+                        imgPath = EngNLPToolServer.imgFolder + fileFolder + "/" + fileName;
                     }
-                    imgPath = EngNLPToolServer.imgFolder + fileFolder + "/" + fileName;
                 }
-            }
-            System.out.println(imgPath);
-            //dependency parsing by pcfg parser
-            List<TypedDependency> tdList = fpp.depParseTokenizedSent(text, " ", imgPath);
-            String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
-            response.append(text + "\n");
-            response.append(depStr);
+                System.out.println(imgPath);
+                //dependency parsing by pcfg parser
+                List<TypedDependency> tdList = fpp.depParseTokenizedSent(text, " ", imgPath);
+                String depStr = DepPrinter.TDsToString(tdList); //get typed dependencies
+                response.append(text + "\n");
+                response.append(depStr);
 
-            //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + depStr);
-   
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                //System.out.println("Reqeust:" + input.substring(0, input.length() > 10 ? 10: input.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + depStr);
+       
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
 
 	// Stanford PCFG Constituent Parser handler (output: stanford parsing tree as a list of nodes and edges)
     //http://localhost:port/pcfg?s=sentence
     static class PCFGConstParserHandler implements HttpHandler {
-        public void handle(HttpExchange httpExchange) throws IOException {
-            //retrieve sentence
-            StringBuilder response = new StringBuilder();
-            Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
-            String text = parms.get("seg_s");
+        public void handle(HttpExchange httpExchange){
+            try{
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                String text = parms.get("seg_s");
 
-            //constituent parsing by pcfg parser
-            Tree tree = fpp.parseTokenizedSent(text, " ");
-            String treeStr = TreePrinter.treeToString(tree); //get string of tree
-            response.append(text + "\n");
-            response.append(treeStr);
+                //constituent parsing by pcfg parser
+                Tree tree = fpp.parseTokenizedSent(text, " ");
+                String treeStr = TreePrinter.treeToString(tree); //get string of tree
+                response.append(text + "\n");
+                response.append(treeStr);
 
-            //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
-            //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
-            System.out.println("Reqeust:" + text);
-            System.out.println("Response:" + treeStr);
- 
-            NLPToolServer.writeResponse(httpExchange, response.toString());
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + treeStr);
+     
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
         }
     }
+
+    //both constituent parsing and dependency parsing
+    static class PCFGParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange){
+            try{
+                String imgPath = null;
+
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                String text = parms.get("seg_s");
+
+                //Check drawing dependency tree or not
+                String drawFlag = parms.get("draw");
+                if(drawFlag != null){
+                    if(drawFlag.toLowerCase().compareTo("true") == 0){
+                        String fileFolder = parms.get("f_folder");
+                        String fileName = parms.get("f_name");
+                        if(fileFolder == null || fileName == null || 
+                           fileFolder.length() == 0 || fileName.length()==0){
+                            fileFolder = ".";
+                            fileName = text;
+                        }
+                        imgPath = EngNLPToolServer.imgFolder + fileFolder + "/" + fileName;
+                    }
+                }
+                System.out.println(imgPath);
+
+                //constituent parsing & dependency parsing by pcfg parser
+                Object[] object = fpp.CDParseTokenizedSent(text, " ", imgPath);
+                Tree tree = (Tree) object[0];
+                List<TypedDependency> tdList = (List<TypedDependency>) object[1];
+                String treeStr = TreePrinter.treeToString(tree); //get string of tree
+                String depStr = DepPrinter.TDsToString(tdList); //get string of typed dependencies
+                
+                int nLine1 = TreePrinter.getExpLineNum();
+                int nLine2 = DepPrinter.getExpLineNum(tdList);
+                response.append(nLine1 + " " + nLine2 + '\n');
+                response.append(treeStr);
+                response.append(depStr);
+
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + response.toString());
+     
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+                NLPToolServer.writeFailResponse(httpExchange);
+            }
+        }
+    }
+
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
         Headers header = httpExchange.getResponseHeaders();
@@ -157,6 +233,18 @@ public class EngNLPToolServer {
         OutputStream os = httpExchange.getResponseBody();
         os.write(response.getBytes());
         os.close();
+    }
+
+
+    public static void writeFailResponse(HttpExchange httpExchange){
+        try{
+            httpExchange.sendResponseHeaders(500, 0);
+            httpExchange.getResponseBody().close();
+        }
+        catch(Exception e){
+            e.printStackTrace(System.out);
+            e.printStackTrace();
+        }
     }
 
 

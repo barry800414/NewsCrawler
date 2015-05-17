@@ -41,6 +41,10 @@ public class DepPrinter{
         }
         return str;
     }
+    
+    public static int getExpLineNum(List<TypedDependency> tdList){
+        return tdList.size();
+    }
 
 }
 

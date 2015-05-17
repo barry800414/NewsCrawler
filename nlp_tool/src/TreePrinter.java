@@ -2,6 +2,8 @@ import java.util.ArrayList;
 import edu.stanford.nlp.trees.*;
 
 public class TreePrinter{
+    private static ArrayList<Node> nodes = null;
+    private static ArrayList<Edge> edges = null; 
     public static int getNodesEdges(Tree tree, int startIndex, ArrayList<Node> nodes, ArrayList<Edge> edges){
         if(tree.numChildren() == 0){ //leave node (word node)
             Node leaf = new Node(startIndex, Node.WORD_NODE, tree.label().toString());
@@ -45,8 +47,8 @@ public class TreePrinter{
 	//...
     public static String treeToString(Tree tree){
         String str;
-		ArrayList<Node> nodes = new ArrayList<Node>();
-        ArrayList<Edge> edges = new ArrayList<Edge>();
+		nodes = new ArrayList<Node>();
+        edges = new ArrayList<Edge>();
         //convert a tree to nodes and edges list
 		getNodesEdges(tree, 0, nodes, edges);
 		
@@ -59,6 +61,13 @@ public class TreePrinter{
         }
         return str;
     }
+
+    //get expected line number
+    //this function has concurrent problem
+    public static int getExpLineNum(){
+        return nodes.size() + edges.size() + 1;
+    }
+
 }
 
 //phrase: all nodes excluding: POS, word node
