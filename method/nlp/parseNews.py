@@ -39,7 +39,6 @@ def depParseNews(news, draw=False, fileFolder=None, sep=SEP,
 # segment all the sentences, dealing with punctuations
 # sep: the sentence separators of original contents(for regex)
 # new_sep: the new sentence separator
-# brackets: the brackets. the content in brackets will not be segemented
 def depParseText(text, draw=False, fileFolder=None, fileName='', 
         sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE, brackets=BRACKETS):
     result = list() 
@@ -76,7 +75,6 @@ def depParseText(text, draw=False, fileFolder=None, fileName='',
 # segment all the sentences, dealing with punctuations
 # sep: the sentence separators of original contents(for regex)
 # new_sep: the new sentence separator
-# brackets: the brackets. the content in brackets will not be segemented
 def constParseText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE, 
         brackets=BRACKETS):
     result = list() 

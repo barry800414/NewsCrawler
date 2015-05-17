@@ -22,7 +22,7 @@ def tagEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
 # brackets: the brackets. the content in brackets will not be segemented
 def tagEngText(text, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
     result = ''
-    print('\033[1;33moriginal:\033[0m|' + text + '|')
+    #print('\033[1;33moriginal:\033[0m|' + text + '|')
     # remove some punctuation first
     rmFirstRegex = Punctuation.set2RegexStr(rmFirstSet)
     cleanText = re.sub(rmFirstRegex, " ", text)
@@ -46,7 +46,7 @@ def tagEngText(text, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
             result = response
         else:
             result = result + new_sep + response
-    print('\033[0;32mTagging Result:\033[0m|' + result + '|\n')
+    #print('\033[0;32mTagging Result:\033[0m|' + result + '|\n')
     return result
 
 def removeSepStr(string, sepSet):

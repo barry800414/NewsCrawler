@@ -37,15 +37,21 @@ def sendDepParseRequest(sentence, seg=False, draw=False, fileFolder=None,
     r = requests.get(api_url, params = payload)
     if r.status_code == 200:
         lines = r.text.strip().split('\n')
-        tokenizedSent = lines[0]
-        typedDependencies = lines[1:]
-        if returnTokenizedSent:
+        if not seg:
+            tokenizedSent = lines[0]
+            typedDependencies = lines[1:]
+        else:
+            typedDependencies = lines
+
+        if returnTokenizedSent and not seg:
             return (tokenizedSent, typedDependencies)
         else:
             return typedDependencies
     else:
         return None
 
+#print(sendDepParseRequest("He has cars", seg=True))
+#print(sendDepParseRequest("It 's my fault , not your business .", seg=True))
 #print(sendDepParseRequest("我是一個人", draw = True, fileFolder='test'))
 #print(sendDepParseRequest("這是一個測試用的句子"))
 #print(sendDepParseRequest("台灣應廢除死刑"))	
@@ -70,33 +76,67 @@ def sendConstParseRequest(sentence, seg=False, returnTokenizedSent=False):
     r = requests.get(api_url, params = payload)
     if r.status_code == 200:
         lines = r.text.strip().split('\n')
-        tokenizedSent = lines[0]
-        entry = lines[1].strip().split(' ')
-        nodesNum = int(entry[0])
-        edgesNum = int(entry[1])
-        assert (nodesNum + edgesNum + 2) == len(lines)
-        nodeLines = lines[2:2+nodesNum]
-        edgeLines = lines[2+nodesNum:]
-        '''
-        nodes = list()
-        edges = list()
-        for line in lines[2:2+nodesNum]:
-            entry = line.strip().split(' ')
-            nodes.append((int(entry[0]), entry[1], entry[2]))
-        for line in lines[2+nodesNum:]:
-            entry = line.strip().split(' ')
-            edges.append((int(entry[0]),int(entry[1])))
-        '''
-        if returnTokenizedSent:
+        if not seg: 
+            tokenizedSent = lines[0]
+            (nodeLines, edgeLines) = lines2Const(lines[1:])
+        else:
+            (nodeLines, edgeLines) = lines2Const(lines[1:])
+
+        if returnTokenizedSent and not seg:
             return (tokenizedSent, nodeLines, edgeLines)
         else:
             return (nodeLines, edgeLines)
     else:
         return None
 
-#print(sendConstParseRequest("我是一個人", returnTokenizedSent=True))
-#print(sendConstParseRequest("這是一個測試用的句子"))
-#print(sendConstParseRequest("台灣應廢除死刑"))
+def lines2Const(lines):
+    entry = lines[0].strip().split(' ')
+    nodesNum = int(entry[0])
+    edgesNum = int(entry[1])
+    assert (nodesNum + edgesNum + 1) == len(lines)
+    nodeLines = lines[1:1+nodesNum]
+    edgeLines = lines[1+nodesNum:]
+    return (nodeLines, edgeLines)
+
+def sendParseRequest(sentence, seg=False, draw=False, fileFolder=None, 
+        fileName=None, returnTokenizedSent=False):
+    api_url = 'http://localhost:8000/pcfg_all'
+    
+    if seg == False:
+        payload = { 's': sentence }
+    else:
+        payload = { 'seg_s': sentence }
+
+    if draw == True and fileFolder != None and fileName != None:
+        payload['f_folder'] = fileFolder
+        payload['f_name'] = fileName
+        payload['draw'] = True
+        
+    r = requests.get(api_url, params = payload)
+    if r.status_code == 200:
+        lines = r.text.strip().split('\n')
+        entry = lines[0].split(' ')
+        constNum = int(entry[0])
+        depNum = int(entry[1])
+        if not seg:
+            assert len(lines) == constNum + depNum + 2
+            tokenizedSent = lines[1]
+            (nodeLines, edgeLines) = lines2Const(lines[2:2+constNum])
+            typedDependencies = lines[2+constNum:2+constNum+depNum]
+        else:
+            assert len(lines) == constNum + depNum + 1
+            (nodeLines, edgeLines) = lines2Const(lines[1:1+constNum])
+            typedDependencies = lines[1+constNum:1+constNum+depNum]
+                
+        if returnTokenizedSent and not seg:
+            return (tokenizedSent, (nodeLines, edgeLines), typedDependencies)
+        else:
+            return ((nodeLines, edgeLines), typedDependencies)
+    else:
+        return None
+
+#s = "I hate this product"
+#print(sendParseRequest(s, seg=True, draw=True, fileName=s, fileFolder='./'))
 
 def sendTagRequest(sentence, seg=False):
     api_url = 'http://localhost:8000/pos'
@@ -111,5 +151,7 @@ def sendTagRequest(sentence, seg=False):
     else:
         return None
 
-#print(sendTagRequest(sendSegmentRequest("我是一個人")))
+#print(sendTagRequest("He has cars", seg=True))
+#print(sendTagRequest("It 's my fault , ! ; ? not your business .", seg=True))
+#print(sendTaRequest(sendSegmentRequest("我是一個人")))
 

@@ -14,6 +14,9 @@ def readJsonFile(filename):
 # d: dictionary (word->hex string)
 def toRegexStr(d):
     pSet = set(d.keys())
+    return set2RegexStr(pSet)
+
+def set2RegexStr(pSet):
     rStr = '['
     for p in pSet:
         if p in reservedSet:
@@ -22,6 +25,7 @@ def toRegexStr(d):
             rStr += p
     rStr += ']'
     return rStr
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
