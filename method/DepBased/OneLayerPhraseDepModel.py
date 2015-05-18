@@ -8,7 +8,6 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.grid_search import ParameterGrid
 
-import dataTool
 from OneLayerDepModel import *
 from PhraseDepTree import *
 from sentiDictSum import readSentiDict
@@ -118,7 +117,7 @@ if __name__ == '__main__':
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-    labelNewsInTopic = dataTool.divideLabel(labelNewsList)
+    labelNewsInTopic = divideLabel(labelNewsList)
 
     debugFolder = './debug'
     ResultPrinter.printFirstLine()

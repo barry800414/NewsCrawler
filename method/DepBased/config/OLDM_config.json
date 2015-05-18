@@ -1,0 +1,18 @@
+{
+    "params":{ 
+        "seedWordType": [
+            {"type": "tag", "allow": ("NR","NN","NP")}
+        ],
+        "firstLayerType": [ 
+            {"type": "word", "allow": "NTUSD_core"}, 
+            {"type": "tag", "allow": ("VV","JJ","VA")} 
+        ],
+        "minCnt": [2]
+    },
+    "setting":{
+        "clfList": ["MaxEnt", "NaiveBayes", "SVM"],
+        "randSeedList": [1, 2, 3, 4, 5],
+        "modelName": "OLDM",
+        "dataset": "zhtNews"
+    }
+}

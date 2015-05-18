@@ -1,0 +1,14 @@
+{
+    "params":{ 
+        "keyTypeList": [["H"], ["T"], ["HT"], ["HOT"], ["OT"], ["HO"]],
+        "opnNameList": [None],
+        "negSepList": [[false]],
+        "minCnt": [2, 5, 10]
+    },
+    "setting":{
+        "clfList": ["MaxEnt", "LinearSVM"],
+        "randSeedList": [1, 2, 3, 4, 5],
+        "modelName": "OM_all",
+        "dataset": "zhtNews"
+    }
+}

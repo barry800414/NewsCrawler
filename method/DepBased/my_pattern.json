@@ -1,0 +1,105 @@
+[
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"holder"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 0, "to": 1, "rel": ["nsubj"] }, 
+            {"from": 0, "to": 2, "rel": ["dobj"] }
+        ],
+        "name": "HOT"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 0, "to": 1, "rel": ["dobj"] }
+        ],
+        "name": "OT_dobj"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 1, "to": 0, "rel": ["amod"] }
+        ],
+        "name": "OT_amod"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 1, "to": 0, "rel": ["assmod"] }
+        ],
+        "name": "OT_assmod"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"}
+        ],
+        "edges": [
+            {"from": 0, "to": 1, "rel": ["nsubj"] }
+        ],
+        "name": "OT_nsubj"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"},
+			{"word":["有"], "tag":null, "output_as":null}
+        ],
+        "edges": [
+            {"from": 2, "to": 1, "rel": ["dep"]},
+			{"from": 2, "to": 0, "rel": ["dobj"]}
+        ],
+        "name": "OT_has"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"},
+			{"word":["對"], "tag":null, "output_as":null}
+        ],
+        "edges": [
+            {"from": 1, "to": 2, "rel": ["case"]},
+			{"from": 0, "to": 1, "rel": ["prep"]}
+        ],
+        "name": "OT_to"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"},
+			{"word":["是"], "tag":null, "output_as":null}
+        ],
+        "edges": [
+            {"from": 2, "to": 1, "rel": ["nsubj"]},
+			{"from": 2, "to": 0, "rel": ["dep"]}
+        ],
+        "name": "OT_is"
+    },
+    { 
+        "nodes": [
+            {"word":null, "tag":null, "output_as":"opinion"},
+            {"word":null, "tag":null, "output_as":"target"},
+			{"word":["把","將"], "tag":["BA"], "output_as":null},
+			{"word":null, "tag":null, "output_as":null}
+        ],
+        "edges": [
+            {"from": 3, "to": 2, "rel": ["ba"]},
+            {"from": 3, "to": 1, "rel": ["nsubj"]},
+			{"from": 3, "to": 0, "rel": ["dobj"]}
+        ],
+        "name": "OT_ba"
+    }
+]
+

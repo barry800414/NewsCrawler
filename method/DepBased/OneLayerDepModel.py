@@ -52,13 +52,13 @@ class OneLayerDepModel():
         for labelNews in self.pln:
             topicId = labelNews['statement_id'] # FIXME
             contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
-            newsDGList = list()
+            newsDTList = list()
             for depList in contentDep:
                 # generate dependency graph for each dependency list
                 dg = self.getDepTree(depList['tdList'], topicId)
                 if dg != None:
-                    newsDGList.append(dg)
-            self.corpusDTList.append((topicId, newsDGList))
+                    newsDTList.append(dg)
+            self.corpusDTList.append((topicId, newsDTList))
 
     # the pair volcabulary 
     def getVolc(self):
@@ -97,9 +97,9 @@ class OneLayerDepModel():
 
         # all retrieved edges in whole corpus
         corpusEdgeList = list()
-        for topicId, newsDGList in self.corpusDTList:
+        for topicId, newsDTList in self.corpusDTList:
             newsEdgeList = list()
-            for dg in newsDGList:
+            for dg in newsDTList:
                 dg.reset()
                 dg.setAllowedDepWord(self.aflw[topicId], type=self.aflwType)
                 dg.setAllowedGovWord(self.aflw[topicId], type=self.aflwType)

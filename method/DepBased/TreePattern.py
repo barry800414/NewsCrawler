@@ -28,6 +28,8 @@ class TreePattern():
             if TreePattern.matchNode(depTree.t.node[tn], 
                     self.p.node[self.rootId]):
                 pEdgeStack = list(self.p.out_edges(self.rootId))
+                if len(pEdgeStack) == 0:
+                    continue
                 pEdge = pEdgeStack.pop()
                 tMatchedNodes = set([tn])
                 mapping = { self.rootId : tn }
@@ -76,8 +78,9 @@ class TreePattern():
                             mapping, returnMapping))
                     else:
                         if len(mapping) != pTree.p.number_of_nodes():
-                            print('mapping:', mapping)
-                            print('#nodes:', pTree.p.number_of_nodes())
+                            pass
+                            #print('mapping:', mapping)
+                            #print('#nodes:', pTree.p.number_of_nodes())
 
                     # restore to original state
                     tMatchedNodes.remove(t2)
