@@ -66,7 +66,7 @@ class WordModel:
                     continue
                 if word not in volc:
                     continue
-
+                
                 if volc[word] not in f:
                     f[volc[word]] = 1
                 else:
@@ -154,6 +154,7 @@ class WordModel:
                         IDF=IDF, volc=volc, zeroOne=zeroOne)
         newsTFIDF = listOfDictAdd(titleTFIDF, contentTFIDF)
         
+
         '''
         # calculate TF/TF-IDF (statement)
         statTFIDF = None
@@ -332,22 +333,29 @@ if __name__ == '__main__':
     params = {
         'feature': ['0/1', 'tf', 'tfidf'],
         #'feature': ['tfidf'],
-        'col': [['content'], ['title', 'content']],
+        #'col': [['content'], ['title', 'content']],
+        'col': [['title', 'content']],
         #'stat': [False, True],
         'stat': [False],
         'minCnt': [2],
         'allowedPOS': set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
     }
-    clfList = ['NaiveBayes', 'MaxEnt', 'SVM' ]
+    clfList = ['NaiveBayes', 'MaxEnt']
+    #clfList = ['SVM']
     paramIter = ParameterGrid(params)
     randSeedList = [1, 2, 3, 4, 5]
 
+    cnt = 0
+
     # all topic are mixed to train and predict/ leave-one-test
+    
     for p in paramIter:
         wm = WordModel(labelNewsList, newsCols=p['col'], 
                 statCol=p['stat'], feature=p['feature'], 
                 allowedPOS=p['allowedPOS'], volc=volc)
         (X, y) = wm.genXY(p['minCnt'])
+        
+
         prefix = 'all, %s, %s' % (toStr(p), toStr(p['col']))
         topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
         
@@ -365,9 +373,13 @@ if __name__ == '__main__':
         for p in paramIter:
             wm = WordModel(labelNewsList, newsCols=p['col'], 
                     statCol=p['stat'], feature=p['feature'],
-                    allowedPOS=['allowedPOS'], volc=volc)
+                    allowedPOS=p['allowedPOS'], volc=volc)
             (X, y) = wm.genXY(p['minCnt'])
-                
+            
+            #with open('XY%d.txt' % (cnt), 'w') as f:
+            #    DataTool.saveAsLibSVMFormat(X, y, outfile=f)
+            #cnt += 1
+
             prefix = "%d, %s, %s" % (topicId, toStr(p), toStr(p['col']))
             for randSeed in randSeedList:
                 RunExp.selfTrainTest(X, y, clfList, 'MacroF1', testSize=0.2, 

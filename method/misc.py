@@ -57,3 +57,12 @@ def getFileNamePrefix(path):
 #print(getFileNamePrefix('123.an'))
 #print(getFileNamePrefix('./word/123'))
 #print(getFileNamePrefix('123'))
+
+# get labels from the list of label-news
+def getLabels(labelNewsList):
+    mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
+    labelList = list()
+    for labelNews in labelNewsList:
+        if labelNews['label'] in mapping:
+            labelList.append(mapping[labelNews['label']])
+    return labelList

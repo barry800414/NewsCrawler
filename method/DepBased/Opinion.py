@@ -10,6 +10,11 @@
 class Opinion():
     def __init__(self, opinion=None, holder=None, target=None, negCnt=0, 
             wVolc=None):
+        # original word
+        self.opnW = opinion 
+        self.hdW = holder
+        self.tgW = target
+        # word(no sentiDict) or index(with sentiDict)
         self.opn = opinion
         self.hd = holder
         self.tg = target
@@ -29,12 +34,12 @@ class Opinion():
     def __convertUsingWVolc__(self):
         if self.wVolc == None:
             return
-        if self.opn != None:
-            self.opn = str(self.wVolc[self.opn]) if self.opn in self.wVolc else None
-        if self.hd != None:
-            self.hd = str(self.wVolc[self.hd]) if self.hd in self.wVolc else None
-        if self.tg != None:
-            self.tg = str(self.wVolc[self.tg]) if self.tg in self.wVolc else None
+        if self.opnW != None:
+            self.opn = str(self.wVolc[self.opnW]) if self.opnW in self.wVolc else None
+        if self.hdW != None:
+            self.hd = str(self.wVolc[self.hdW]) if self.hdW in self.wVolc else None
+        if self.tgW != None:
+            self.tg = str(self.wVolc[self.tgW]) if self.tgW in self.wVolc else None
 
     # negSep=True: divide opinion+/opinion- into to different tuple
     # |O|x|H|x|T|(x2)
@@ -113,7 +118,7 @@ class Opinion():
         if sentiDict == None:
             return self.sign # +1/-1
         else:
-            sign = self.sign * sentiDict[self.opn] if (self.opn in sentiDict) else 0
+            sign = self.sign * sentiDict[self.opnW] if (self.opnW in sentiDict) else 0
             sign = 1 if sign > 0 else (-1 if sign < 0 else 0) 
             return sign #+1/0/-1
 
