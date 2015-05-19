@@ -44,11 +44,19 @@ class Volc:
             for w, i in sorted(self.volc.items(), key=lambda x:x[1]):
                 print(w, i, sep=':', file=f)
 
+    # the vocabulary will not be locked
+    def copy(self):
+        newVolc = Volc()
+        newVolc.volc = dict(self.volc)
+        newVolc.rVolc = list(self.rVolc)
+        #newVolc.lockVolc = self.lockVolc
+        newVolc.OOVDim = self.OOVDim
+        return newVolc
+
     # index must be from 0 to n-1
     #def checkVolc(volc):
     #    maxIndex = max(volc.values())
     #    return maxIndex == len(volc) - 1
-
     def setVolc(self, volc):
         #if Volc.checkVolc(volc):
         self.volc = volc
@@ -136,6 +144,16 @@ class Volc:
         self.rVolc = newRVolc
 
         return newDF
+
+    #FIXME: dealing with OOV problem
+    def mergeVolc(volc1, volc2):
+        newVolc = volc1.copy()
+        offset = len(newVolc)
+        for key, index in volc2.volc.items():
+            if key not in newVolc.volc:
+                newVolc[key] = index + offset
+        return newVolc
+
 
 def testCase():
     v = Volc()

@@ -39,7 +39,7 @@ class WordModel:
         
         # remove the words whose document frequency <= threshold
         if minCnt != None:
-            DF = volc.shrinkVolcByDocF(DF, threshold)
+            DF = volc.shrinkVolcByDocF(DF, minCnt)
         
         # calcualte IDF if necessary
         if feature == 'tfidf' or feature == 'tf-idf':
@@ -55,7 +55,7 @@ class WordModel:
         X = toMatrix(newsTFIDF, volc, matrixType='csr')
 
         # get y
-        y = np.array(getLabels(self.ln))
+        y = np.array(getLabels(labelNewsList))
         
         # update volc
         self.volc = volc
@@ -164,7 +164,7 @@ def genXY(labelNewsList, wm, params, volc=None):
     p = params
     (X, y) = wm.genXY(labelNewsList, feature=p['feature'], 
                     volc=volc, allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
-    volc = WM.getVolc()
+    volc = wm.getVolc()
     return (X, y, volc)
 
 if __name__ == '__main__':

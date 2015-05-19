@@ -45,5 +45,9 @@ python3 ./DepBased/OpinionModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json .
 python3 ./DepBased/WM_OLPDM.py ./zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./DepBased/phrase.json ./res/NTUSD_core.csv WM_20150504_params.json OLPDM_20150504_params.json
 
 
+Merged Model
+------------------
+python3 MergedModel.py ../zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./config/OM_H_config.json ../res/NTUSD_core.csv -WM ../WM_cluster7852_300_params.json -OLDM ../OLDM_cluster7852_300_params.json -v ../WordClustering/cluster7852_300.volc -tp my_pattern.json -ng negPattern.json
+
 
 python3 CollectResult.py WM20150504_results.csv WM_20150504_params.json 7

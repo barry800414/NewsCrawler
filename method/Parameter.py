@@ -14,16 +14,20 @@ def loadFrameworkTopicParams(filename):
     return fTopicParams
 
 # paramsDict: a dict (name of model -> a list of parameters)
-def getParamsIter(paramsDict, newList=list(), goneSet=set(), finalP=dict()):
+def getParamsIter(paramsDict, framework, topicId=None, newList=list(), goneSet=set(), finalP=dict()):
     toGo = set(paramsDict.keys()) - goneSet
     if len(toGo) == 0:
         newList.append(dict(finalP))
     else:
         name = sorted(list(toGo))[0]
         goneSet.add(name)
-        for p in paramsDict[name]:
+        if topicId != None:
+            pList = paramsDict[name][framework][topicId]
+        else:
+            pList = paramsDict[name][framework]
+        for p in pList:
             finalP[name] = p
-            getParamsIter(paramsDict, newList, goneSet, finalP)
+            getParamsIter(paramsDict, framework, topicId, newList, goneSet, finalP)
             del finalP[name]
         goneSet.remove(name)
         return newList

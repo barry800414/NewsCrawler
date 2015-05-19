@@ -229,7 +229,7 @@ if __name__ == '__main__':
     extractColType = { 
         #'feature': 'str', 
         'model settings': 'dict', 
-        'column source': 'list'
+        #'column source': 'list'
         #'statementCol': 'bool'
     }
     

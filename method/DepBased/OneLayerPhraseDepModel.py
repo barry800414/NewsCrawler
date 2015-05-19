@@ -75,7 +75,7 @@ def initOLDM(labelNewsList, topicPhraseList=None, wVolc=None):
                 wVolc=wVolc)
     else: #OLDM (no phrase)
         olpdm = OneLayerDepModel(labelNewsList, wVolc=wVolc)
-
+    return olpdm
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
