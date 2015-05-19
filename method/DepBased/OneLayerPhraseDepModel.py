@@ -55,7 +55,8 @@ def initAllowedSet(topicSet, config, dictionary=None):
     return allowedSet
 
 
-def genXY(olpdm, topicSet, sentiDict, params):
+def genXY(olpdm, params, topicSet, sentiDict):
+    print('generating one layer dependency features...', file=sys.stderr)
     p = params
     allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
     allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
@@ -66,6 +67,14 @@ def genXY(olpdm, topicSet, sentiDict, params):
     (X, y) = olpdm.genXY()
     volc = olpdm.getVolc()
     return (X, y, volc)
+
+
+def initOLDM(labelNewsList, topicPhraseList=None, wVolc=None):
+    if topicPhraseList != None: #OLPDM
+        olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList, 
+                wVolc=wVolc)
+    else: #OLDM (no phrase)
+        olpdm = OneLayerDepModel(labelNewsList, wVolc=wVolc)
 
 
 if __name__ == '__main__':
@@ -119,56 +128,42 @@ if __name__ == '__main__':
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
     labelNewsInTopic = divideLabel(labelNewsList)
 
-    debugFolder = './debug'
     ResultPrinter.printFirstLine()
 
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
-    if topicPhraseList != None: #OLPDM
-        olpdm = OneLayerPhraseDepModel(labelNewsList, topicPhraseList, 
-                wVolc=wVolc)
-        tolpdm = dict()
-        for topicId, labelNewsList in labelNewsInTopic.items():
-            tolpdm[topicId] = OneLayerPhraseDepModel(labelNewsList, 
-                    topicPhraseList, wVolc=wVolc) 
-    else: #OLDM (no phrase)
-        olpdm = OneLayerDepModel(labelNewsList, wVolc=wVolc)
-        tolpdm = dict()
-        for topicId, labelNewsList in labelNewsInTopic.items():
-            tolpdm[topicId] = OneLayerDepModel(labelNewsList, wVolc=wVolc)
+    olpdm = initOLDM(labelNewsList, topicPhraseList, wVolc)
+    tolpdm = { t: OLDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() }
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
         bestR = None
         for p in paramsIter:
-            (X, y, volc) = genXY(tolpdm[t], topicSet, sentiDict, p)
+            (X, y, volc) = genXY(tolpdm[t], p, topicSet, sentiDict)
             rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
                     p, clfList, topicId=t, randSeedList=randSeedList)
-            bestR = keepBestResult(bestR, rsList, 'MacroF1')
+            bestR = keepBestResult(bestR, rsList, targetScore)
         with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
-    # ============= Run for all-train-test ================
-    print('All-Train-Test...', file=sys.stderr)
-    bestR = None
+    # ============= Run for all-train-test & leave-one-test ================
+    print('All-Train-Test & Leave-One-Test...', file=sys.stderr)
+    bestR = None # for all-train-test
+    bestR2 = {t:None for t in topicSet}  # for leave-one-test
+
     for p in paramsIter:
-        (X, y, volc) = genXY(olpdm, topicSet, sentiDict, p)
+        (X, y, volc) = genXY(olpdm, p, topicSet, sentiDict)
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, topicMap=topicMap, 
                 randSeedList=randSeedList)
-        bestR = keepBestResult(bestR, rsList, 'MacroF1')
-    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
-        pickle.dump(bestR, f)
-
-
-    # ============= Run for leave-one-test ================
-    print('Leave-One-Test...', file=sys.stderr)
-    for t in topicSet:
-        bestR = None
-        for p in paramsIter:
-            (X, y, volc) = genXY(olpdm, topicSet, sentiDict, p)
+        bestR = keepBestResult(bestR, rsList, targetScore)
+        for t in topicSet:
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                     topicMap=topicMap, topicId=t, randSeedList=randSeedList)
-            bestR = keepBestResult(bestR, rsList, 'MacroF1', topicId=t)
-        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR, f)
+            bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
+
+    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        pickle.dump(bestR, f)
+    for t in topicSet:
+        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            pickle.dump(bestR2[t], f)

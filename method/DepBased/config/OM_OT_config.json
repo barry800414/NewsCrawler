@@ -6,6 +6,7 @@
         "minCnt": [2, 5, 10]
     },
     "setting":{
+        "targetScore": "MacroF1",
         "clfList": ["MaxEnt", "LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
         "modelName": "OM_OT",

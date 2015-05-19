@@ -49,18 +49,19 @@ class RunExp:
         returnObj = list()
         for clfName in clfList:
             # training using validation
-            print('In Cross Validation ...', file=sys.stderr)
+            print('In Cross Validation... ', end='', file=sys.stderr)
             (clf, bestParam, bestValScore, yTrainPredict) = ML.train(
                     XTrain, yTrain, clfName, scorer, randSeed=randSeed)
+            print('Done', file=sys.stderr)
 
             # testing 
+            print('In testing... ', end='', file=sys.stderr)
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
-            print('In testing ...', file=sys.stderr)
             result = Evaluator.evaluate(yTestPredict, yTest)
             result['valScore'] = bestValScore
-
+            print('Done', file=sys.stderr)
             if modelDir != None:
                 filename = dumpModel(modelDir, clf)
             else:
@@ -106,18 +107,20 @@ class RunExp:
         returnObj = list()
         # training using validation
         for clfName in clfList:
-            print('In Cross Validation ...', file=sys.stderr)
+            print('In Cross Validation... ', end='', file=sys.stderr)
             (clf, bestParam, bestValScore, yTrainPredict) = ML.topicTrain(XTrain, 
                     yTrain, clfName, scorerName, trainMap, randSeed=randSeed)
+            print('Done', file=sys.stderr)
 
             # testing 
             scorer = Evaluator.makeScorer(scorerName, testMap)
+            print('In testing... ', end='', file=sys.stderr)
             yTestPredict = ML.test(XTest, clf)
 
             # evaluation
-            print('In testing ...', file=sys.stderr)
             (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
             avgR['valScore'] = bestValScore
+            print('Done', file=sys.stderr)
 
             if modelDir != None:
                 filename = dumpModel(modelDir, clf)
@@ -160,16 +163,19 @@ class RunExp:
 
             for clfName in clfList:
                 # training using validation
-                print('In Cross Validation ...', file=sys.stderr)
+                print('In Cross Validation... ', end='', file=sys.stderr)
                 (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
                         yTrain, clfName, scorer, randSeed=randSeed)
+                print('Done', file=sys.stderr)
+
                 # testing 
+                print('In testing... ', end='', file=sys.stderr)
                 yTestPredict = ML.test(XTest, clf)
 
                 # evaluation
-                print('In testing ...', file=sys.stderr)
                 result = Evaluator.evaluate(yTestPredict, yTest)
                 result['valScore'] = bestValScore
+                print('Done', file=sys.stderr)
 
                 if modelDir != None:
                     filename = dumpModel(modelDir, clf)
@@ -187,14 +193,14 @@ class RunExp:
     # higher layer function for running task
     # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
     def runTask(X, y, volc, taskType, params, clfList, topicMap=None, 
-        topicId=None, randSeedList=[1]):
+        topicId=None, randSeedList=[1], targetScore='MacroF1'):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
         
         rsList = list()
         for randSeed in randSeedList:
             if taskType == 'SelfTrainTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
-                rs = RunExp.selfTrainTest(X, y, clfList, 'MacroF1', 
+                rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
                         randSeed=randSeed, testSize=0.2, prefix=prefix)
                 if rs == None:
                     return None
@@ -207,7 +213,7 @@ class RunExp:
             elif taskType == 'AllTrainTest': 
                 prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
                 rs = RunExp.allTrainTest(X, y, topicMap, clfList, 
-                        'MacroF1', randSeed=randSeed, testSize=0.2, 
+                        targetScore, randSeed=randSeed, testSize=0.2, 
                         prefix=prefix)
                 if rs == None:
                     return None
@@ -220,7 +226,7 @@ class RunExp:
             elif taskType == 'LeaveOneTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 rs = RunExp.leaveOneTest(X, y, topicMap, clfList, 
-                        "MacroF1", randSeed=randSeed, testTopic=[topicId], 
+                        targetScore, randSeed=randSeed, testTopic=[topicId], 
                         prefix=prefix)
                 if rs == None:
                     return None
@@ -459,12 +465,30 @@ class DataTool:
             return False
         else:
             return True
-
+    
+    def saveAsLibSVMFormat(X, y, outfile=sys.stdout):
+        assert X.shape[0] == len(y)
+        if type(X) == csr_matrix:
+            (rowNum, colNum) = X.shape
+            colIndex = X.indices
+            rowPtr = X.indptr
+            data = X.data
+            nowPos = 0
+    
+            sumOfCol = [0.0 for i in range(0, colNum)]
+            for ri in range(0, rowNum):
+                print(y[ri], end='', file=outfile)
+                for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
+                    value = data[nowPos]
+                    print(' %d:%f' % (ci, value), end='', file=outfile)
+                    nowPos += 1
+                print('', file=outfile)
     
 # The class for providing function to do machine learning procedure
 class ML:
     def train(XTrain, yTrain, clfName, scorer, randSeed=1):
         # make cross validation iterator 
+        print(' kfold ', end='', file=sys.stderr) 
         kfold = cross_validation.StratifiedKFold(yTrain, n_folds=3, 
                 shuffle=True, random_state=randSeed)
 
@@ -472,10 +496,12 @@ class ML:
         (clf, parameters) = ML.__genClfAndParams(clfName)
             
         # get grid search classifier
+        print(' grid search ', end='', file=sys.stderr)
         clfGS = GridSearchCV(clf, parameters, scoring=scorer, 
                 refit=True, cv=kfold, n_jobs=-1)
         
         # refit the data by the best parameters
+        print(' refit ', end='', file=sys.stderr)
         clfGS.fit(XTrain, yTrain)
 
         # get validation score
@@ -489,13 +515,15 @@ class ML:
     def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap, randSeed=1):
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
-
+        
+        print(' topic grid search ', end='', file=sys.stderr)
         (bestValScore, bestParams) = ML.topicGridSearchCV(clf, parameters, 
                 scorerName, XTrain, yTrain, trainMap, n_fold=3, 
                 randSeed=randSeed, n_jobs=-1)
         
         # refit the data by the best parameters
         clf.set_params(**bestParams)
+        print(' topic refit ', end='', file=sys.stderr)
         clf.fit(XTrain, yTrain)
         
         # testing on training data
@@ -579,11 +607,17 @@ class ML:
             C = [math.pow(2, i) for i in range(-1,11,2)]
             gamma = [math.pow(2, i) for i in range(-11,-1,2)]
             parameters = {
-                    'kernel': ('rbf', 'linear'), 
+                    'kernel': ('rbf'), 
                     'C': C, 
                     'gamma': gamma
                 }
             clf = svm.SVC()
+        elif clfName == 'LinearSVM' or clfName == 'LinearSVC':
+            C = [math.pow(2, i) for i in range(-3,13,2)]
+            parameters = {
+                    'C': C        
+                }
+            clf = svm.LinearSVC()
         elif clfName == 'RandomForest': #depricated: RF does not support sparse matrix
             estNum = [5, 10, 15, 20]
             minSampleSplit = [1, 2]
@@ -713,24 +747,30 @@ class ResultPrinter:
                 result['valScore'], result['Accuracy'], result['MacroF1'], 
                 result['MacroR'], filename, sep=',', file=outfile)
 
-def keepBestResult(nowBestR, nextRs, scorerName, largerIsBetter=True):
-    if nextRs == None:
+# nowBestR: now best result
+def keepBestResult(nowBestR, nextRSList, scorerName, largerIsBetter=True, topicId=None):
+    if nextRSList == None:
         return nowBestR
-    if nowBestR == None:
-        for r in nextRs:
-            return r
     
-    nowS = nowBestR['result'][scorerName]
-    for r in nextRs: 
-        nextS = r['result'][scorerName]
-        if largerIsBetter:
-            if nextS > nowS:
-                return r
-            else:
-                return nowBestR
+    if nowBestR == None:
+        nowScore = -1.0
+    else:
+        nowScore = nowBestR['result'][scorerName]
+    for rs1 in nextRSList: 
+        if rs1 == None:
+            continue
+        if topicId != None:
+            rs = rs1[topicId]
         else:
-            if nextS < nowS:
-                return r
+            rs = rs1
+        for r in rs:
+            nextScore = r['result'][scorerName]
+            if largerIsBetter:
+                if nextScore > nowScore:
+                    nowScore = nextScore
+                    nowBestR = r
             else:
-                return nowBestR
-
+                if nextScore < nowScore:
+                    nowScore = nextScore
+                    nowBestR = r
+    return nowBestR

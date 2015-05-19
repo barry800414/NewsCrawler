@@ -1,11 +1,12 @@
 {
     "params":{ 
-        "keyTypeList": [["H"], ["T"], ["HT"]],
-        "opnNameList": [None],
+        "keyTypeList": [["H", "T", "HT"]],
+        "opnNameList": [null],
         "negSepList": [[false]],
         "minCnt": [2, 5, 10]
     },
     "setting":{
+        "targetScore": "MacroF1",
         "clfList": ["MaxEnt", "LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
         "modelName": "OM_H_T_HT",

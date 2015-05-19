@@ -1,11 +1,12 @@
 {
     "params":{ 
-        "keyTypeList": [["H"], ["T"], ["HT"], ["HOT"], ["OT"], ["HO"]],
-        "opnNameList": [None],
+        "keyTypeList": [["H", "T", "HT", "HOT", "OT", "HO"]],
+        "opnNameList": [null],
         "negSepList": [[false]],
         "minCnt": [2, 5, 10]
     },
     "setting":{
+        "targetScore": "MacroF1",
         "clfList": ["MaxEnt", "LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
         "modelName": "OM_all",

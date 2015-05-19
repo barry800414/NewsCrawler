@@ -13,9 +13,49 @@ def loadFrameworkTopicParams(filename):
                 topicParams[int(topicId)] = topicParams.pop(topicId)
     return fTopicParams
 
+# paramsDict: a dict (name of model -> a list of parameters)
+def getParamsIter(paramsDict, newList=list(), goneSet=set(), finalP=dict()):
+    toGo = set(paramsDict.keys()) - goneSet
+    if len(toGo) == 0:
+        newList.append(dict(finalP))
+    else:
+        name = sorted(list(toGo))[0]
+        goneSet.add(name)
+        for p in paramsDict[name]:
+            finalP[name] = p
+            getParamsIter(paramsDict, newList, goneSet, finalP)
+            del finalP[name]
+        goneSet.remove(name)
+        return newList
+
+'''
 def getParamsIter(pList1, p1Name, pList2, p2Name):
     newList = list()
     for p1 in pList1:
         for p2 in pList2:
             newList.append( { p1Name: p1, p2Name:p2 } )
     return newList
+'''
+
+if __name__ == '__main__':
+    # test case
+    paramsDict = {
+        "WM": [
+                {"allowedPOS": ["NN", "NT"]},
+                {"allowedPOS": ["NN", "NR"]}
+            ],
+        "OLDM": [
+                {"firstLayer": ["VA", "VV"]},
+                {"firstLayer": ["AD", "JJ"]}
+            ],
+        "OM": [
+                {"keyTypeList": [["H", "T", "HT"]]},
+                {"keyTypeList": [["HOT", "OT", "HO"]]}
+            ]
+    }
+
+    paramsIter = getParamsIter(paramsDict)
+
+    for p in paramsIter:
+        print(p)
+

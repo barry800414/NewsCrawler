@@ -9,7 +9,6 @@ from scipy.sparse import csr_matrix
 
 import WFMapping
 from DepTree import DepTree
-import dataTool
 from Volc import Volc
 
 '''
@@ -207,7 +206,6 @@ if __name__ == '__main__':
     # load label-news
     with open(parsedLabelNewsJsonFile, 'r') as f:
         parsedLabelNews = json.load(f)
-    parsedLabelNews = dataTool.data_cleaning(parsedLabelNews)
 
     WFDict = WFMapping.loadWFDict(wordFrequencyMappingJsonFile)
 
@@ -247,7 +245,7 @@ if __name__ == '__main__':
             prefix='Threshold=%f' % (threshold))
     '''
     # news are divided into different topic to train and test
-    labelNewsInTopic = dataTool.divideLabel(parsedLabelNews)
+    labelNewsInTopic = divideLabel(parsedLabelNews)
     for topicId, labelNewsList in labelNewsInTopic.items():
         for threshold in thresList:
             allowedSeedWord = dict() 

@@ -183,6 +183,20 @@ class OpinionModel:
                 print(key, cnt, sep=',', file=outfile)
 
 
+def initOM(labelNewsList, topicPhraseList=None):
+    om = OpinionModel(labelNewsList, topicPhraseList)
+    return om
+
+# generate opinion model features
+def genXY(om, params, pTreeList, negPList=None, sentiDict=None, wVolc=None):
+    print('generating opinion model features ...', file=sys.stderr)
+    p = params
+    (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
+                p['keyTypeList'], p['opnNameList'], p['negSepList'], 
+                p['minCnt'])
+    volc = om.getVolc()
+    return (X, y, volc)
+
 if __name__ == '__main__':
     if len(sys.argv) < 6:
         print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile [-p PhraseFile] [-v VolcFile]', file=sys.stderr)
@@ -224,6 +238,7 @@ if __name__ == '__main__':
             wVolc.load(wordVolcFile)
     
     # model parameters #FIXME: allowed relation
+    targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
     paramsIter = ParameterGrid(config['params'])
     clfList = config['setting']['clfList']
@@ -239,13 +254,11 @@ if __name__ == '__main__':
 
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
-    #om = OpinionModel(labelNewsList, topicPhraseList)
-    tom = dict()
-    for topicId, labelNewsList in labelNewsInTopic.items():
-        #if topicId == 2:
-        tom[topicId] = OpinionModel(labelNewsList, topicPhraseList) 
+    om = initOM(labelNewsList, topicPhraseList)
+    tom = { t: initOM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() }
  
     # ============= Run for self-train-test ===============
+    
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
         #if t != 2:
@@ -258,39 +271,32 @@ if __name__ == '__main__':
             volc = tom[t].getVolc()
             rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
                     p, clfList, topicId=t, randSeedList=randSeedList)
-            bestR = keepBestResult(bestR, rsList, 'MacroF1')
+            bestR = keepBestResult(bestR, rsList, targetScore)
         with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
             dataset, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
-
     
-    # ============= Run for all-train-test ================
-    print('All-Train-Test...', file=sys.stderr)
-    bestR = None
+    
+    # ============= Run for all-train-test & leave-one-test ================
+    print('All-Train-Test & Leave-One-Test ...', file=sys.stderr)
+    bestR = None # for all-train-test
+    bestR2 = {t:None for t in topicSet}  # for leave-one-test
     for p in paramsIter:
         (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
                 p['keyTypeList'], p['opnNameList'], p['negSepList'], 
                 p['minCnt'])
         volc = om.getVolc()
-        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, topicMap=topicMap, 
-                randSeedList=randSeedList)
-        bestR = keepBestResult(bestR, rsList, 'MacroF1')
-    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
-        pickle.dump(bestR, f)
-
-
-    # ============= Run for leave-one-test ================
-    print('Leave-One-Test...', file=sys.stderr)
-    for t in topicSet:
-        bestR = None
-        for p in paramsIter:
-            (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
-                p['keyTypeList'], p['opnNameList'], p['negSepList'], 
-                p['minCnt'])
-            volc = om.getVolc()
+        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
+                topicMap=topicMap, randSeedList=randSeedList)
+        bestR = keepBestResult(bestR, rsList, targetScore)
+        for t in topicSet:
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                     topicMap=topicMap, topicId=t, randSeedList=randSeedList)
-            bestR = keepBestResult(bestR, rsList, 'MacroF1', topicId=t)
-        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR, f)
-          
+            bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
+            
+    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        pickle.dump(bestR, f)
+    for t in topicSet:
+        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            pickle.dump(bestR2[t], f)
+

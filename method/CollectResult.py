@@ -94,10 +94,24 @@ def floatEq(f1, f2):
 # f3Rows: topic -> a row of leave-one-test
 def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
     print('TopicId, Self-TrainTest(%s), LeaveOneTest(%s), All-TrainTest(%s)' % (scoreName, scoreName, scoreName), file=outfile)
-    si = colNameMap['MacroF1']
+    si = colNameMap[scoreName]
     for t in topicList:
         print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
     print('All,         ,         , %f' % f2Row[si], file=outfile)
+
+def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
+    si = colNameMap[scoreName]
+    print('TopicId', end='', file=outfile)
+    for t in topicList:
+        print(',', t, end='', file=outfile)
+    print('\nSelfTrainTest', end='', file=outfile)
+    for t in topicList:
+        print(',', f1Rows[t][si], end='', file=outfile)
+    print('\nLeaveOneTest', end='',file=outfile)
+    for t in topicList:
+        print(',', f3Rows[t][si], end='', file=outfile)
+    print('\nAllTrainTest', end='',file=outfile)
+    print(',', f2Row[si], file=outfile)
 
 def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
     ResultPrinter.printFirstLine()
@@ -148,32 +162,34 @@ def getParamFromRow(row, colNameMap, extractColType):
     return params
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('Usage:', sys.argv[0], 'resultCSV outParamsFile [mergeRowKeyPrefixNum]', file=sys.stderr)
+    if len(sys.argv) < 4:
+        print('Usage:', sys.argv[0], 'targetScore ResultCSV outParamsFile [mergeRowKeyPrefixNum]', file=sys.stderr)
         exit(-1)
-    resultCSV = sys.argv[1]
-    outParamsFile = sys.argv[2]
+    targetScore = sys.argv[1]
+    resultCSV = sys.argv[2]
+    outParamsFile = sys.argv[3]
 
     dataType = ResultPrinter.getDataType()
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
-    if len(sys.argv) == 4:
-        keyPrefixNum = int(sys.argv[3])
+    if len(sys.argv) == 5:
+        keyPrefixNum = int(sys.argv[4])
         data = mergeRows(data, colNameMap, keyPrefixNum)
-    
-    #for d in data:
-    #    print(d)
     
     topicList = [2, 3, 4, 5, 6, 13, 16]
     firstN = 3
-    # find the rows with best MacroF1 
-    # first framework (self train->self test)
+    # find the rows with best score 
+    # first framework (self-train-test)
     f1Rows = dict()
     f1TopicRows = dict()
     for t in topicList:
-        newData = allowData(data, colNameMap, 'topicId', allow='%d' % t, type='string')
-        sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
+        newData = allowData(data, colNameMap, 'experimental settings', allow=set(['selfTrainTest']), type='string')
+        newData = allowData(newData, colNameMap, 'topicId', allow=set(['%d' % t]), type='string')
+        #for d in newData:
+        #    print(d)
+        #print('\n\n')
+        sortByColumn(newData, colNameMap, targetScore, reverse=True)
         f1Rows[t] = newData[0]
         f1TopicRows[t] = list()
         for i in range(0, firstN):
@@ -181,8 +197,11 @@ if __name__ == '__main__':
                 f1TopicRows[t].append(newData[i])
     
     # second framework (whole train-> whole test)
-    newData = allowData(data, colNameMap, 'experimental settings', allow='allMixed', type='string')
-    sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
+    newData = allowData(data, colNameMap, 'experimental settings', allow=set(['allMixed']), type='string')
+    #for d in newData:
+    #    print(d)
+    #print('\n\n')
+    sortByColumn(newData, colNameMap, targetScore, reverse=True)
     f2Row = newData[0]
     f2Rows = list()
     for i in range(0, firstN):
@@ -194,16 +213,19 @@ if __name__ == '__main__':
     f3Rows = dict()
     f3TopicRows = dict()
     for t in topicList:
-        newData = allowData(data, colNameMap, 'experimental settings', allow='Test on %d' % t, type='string')
-        sortByColumn(newData, colNameMap, 'MacroF1', reverse=True)
+        #for d in newData:
+        #    print(d)
+        #print('\n\n')
+        newData = allowData(data, colNameMap, 'experimental settings', allow=set(['Test on %d'% t]), type='string')
+        sortByColumn(newData, colNameMap, targetScore, reverse=True)
         f3Rows[t] = newData[0]
         f3TopicRows[t] = list()
         for i in range(0, firstN):
             if i < len(newData):
                 f3TopicRows[t].append(newData[i])
 
-    printBestRows(topicList, f1Rows, f2Row, f3Rows)
-    printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, 'MacroF1')
+    #printBestRows(topicList, f1Rows, f2Row, f3Rows)
+    printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore)
     extractColType = { 
         #'feature': 'str', 
         'model settings': 'dict', 
