@@ -25,7 +25,7 @@ OneLayerPhraseDepModel
 OpinionModel
 ------------------
     python3 OpinionModel.py DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile [-p PhraseFile] [-v VolcFile]
-
+    python3 ./DepBased/OpinionModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./DepBased/config/OM_all_config.json ./DepBased/my_pattern.json ./DepBased/negPattern.json ./res/NTUSD_core.csv -v ./WordClustering/cluster7852_300.volc
 
 
 LDA
@@ -47,7 +47,14 @@ python3 ./DepBased/WM_OLPDM.py ./zhtNewsData/taggedAndDepParsedLabelNews20150504
 
 Merged Model
 ------------------
-python3 MergedModel.py ../zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./config/OM_H_config.json ../res/NTUSD_core.csv -WM ../WM_cluster7852_300_params.json -OLDM ../OLDM_cluster7852_300_params.json -v ../WordClustering/cluster7852_300.volc -tp my_pattern.json -ng negPattern.json
+WM+OLDM
+python3 ./DepBased/MergedModel.py ./zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./DepBased/config/OM_H_config.json ./res/NTUSD_core.csv -WM ./WM_cluster7852_300_params.json -OLDM ./OLDM_cluster7852_300_params.json -v ./WordClustering/cluster7852_300.volc > WM_OLDM_cluster7852_300_results.csv
 
+WM+OM
+python3 ./DepBased/MergedModel.py ./zhtNewsData/taggedAndDepParsedLabelNews20150504.json ./DepBased/config/OM_H_config.json ./res/NTUSD_core.csv -WM ./WM_cluster7852_300_params.json -OM ./OM_all_cluster7852_300_params.json -v ./WordClustering/cluster7852_300.volc -tp ./DepBased/my_pattern.json -ng ./DepBased/negPattern.json  > WM_OM_cluster7852_300_results.csv
 
-python3 CollectResult.py WM20150504_results.csv WM_20150504_params.json 7
+WM+OLDM+OM
+
+Collect Results
+------------------
+python3 CollectResult.py MacroF1 WM20150504_results.csv WM_20150504_params.json 1 7

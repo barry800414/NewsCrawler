@@ -162,23 +162,24 @@ def getParamFromRow(row, colNameMap, extractColType):
     return params
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print('Usage:', sys.argv[0], 'targetScore ResultCSV outParamsFile [mergeRowKeyPrefixNum]', file=sys.stderr)
+    if len(sys.argv) < 5:
+        print('Usage:', sys.argv[0], 'targetScore ResultCSV outParamsFile printBestRow(0/1) [mergeRowKeyPrefixNum]', file=sys.stderr)
         exit(-1)
     targetScore = sys.argv[1]
     resultCSV = sys.argv[2]
     outParamsFile = sys.argv[3]
+    printBR = int(sys.argv[4])
 
     dataType = ResultPrinter.getDataType()
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
-    if len(sys.argv) == 5:
-        keyPrefixNum = int(sys.argv[4])
+    if len(sys.argv) == 6:
+        keyPrefixNum = int(sys.argv[5])
         data = mergeRows(data, colNameMap, keyPrefixNum)
     
     topicList = [2, 3, 4, 5, 6, 13, 16]
-    firstN = 3
+    firstN = 2
     # find the rows with best score 
     # first framework (self-train-test)
     f1Rows = dict()
@@ -223,8 +224,8 @@ if __name__ == '__main__':
         for i in range(0, firstN):
             if i < len(newData):
                 f3TopicRows[t].append(newData[i])
-
-    #printBestRows(topicList, f1Rows, f2Row, f3Rows)
+    if printBR:
+        printBestRows(topicList, f1Rows, f2Row, f3Rows)
     printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore)
     extractColType = { 
         #'feature': 'str', 

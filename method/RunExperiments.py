@@ -607,7 +607,7 @@ class ML:
             C = [math.pow(2, i) for i in range(-1,11,2)]
             gamma = [math.pow(2, i) for i in range(-11,-1,2)]
             parameters = {
-                    'kernel': ('rbf'), 
+                    'kernel': ('rbf', ), 
                     'C': C, 
                     'gamma': gamma
                 }

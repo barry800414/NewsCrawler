@@ -39,7 +39,7 @@ def genXY(params, wm=None, oldm=None, om=None, labelNewsList=None, volc=None,
         X_y_volc_Dict['OLDM'] = OLPDM.genXY(oldm, params['OLDM']['model settings'], topicSet, sentiDict)
     if 'OM' in params:
         assert om != None and pTreeList != None and negPList != None
-        X_y_volc_Dict['OM'] = genXY(om, OM.params['OM']['model settings'], pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
+        X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
     
     (mX, my, mVolc) = mergeXY(X_y_volc_Dict)
     return (mX, my, mVolc)
@@ -120,6 +120,7 @@ if __name__ == '__main__':
         config = json.load(f)
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
+    targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
     clfList = config['setting']['clfList']
     modelName = config['setting']['modelName']
@@ -155,6 +156,7 @@ if __name__ == '__main__':
     ResultPrinter.printFirstLine()
 
     # ============= Run for self-train-test ===============
+    
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
         bestR = None
@@ -169,29 +171,32 @@ if __name__ == '__main__':
         with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
             dataset, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
-
+    
     # ============= Run for all-train-test ================
-    print('All-Train-Test & Leave-One-Test...', file=sys.stderr)
+    
+    print('All-Train-Test ...', file=sys.stderr)
     bestR = None # for all-train-test
-    bestR2 = {t:None for t in topicSet}  # for leave-one-test
     
     paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
     for p in paramsIter:
-        (X, y, volc) = genXY(p, wm, toldm[t], tom[t], 
-                labelNewsInTopic[t], wVolc, topicSet, 
-                sentiDict, pTreeList, negPList)
+        (X, y, volc) = genXY(p, wm, oldm, om, labelNewsList, 
+                wVolc, topicSet, sentiDict, pTreeList, negPList)
 
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
                 clfList, topicMap=topicMap, randSeedList=randSeedList)
         bestR = keepBestResult(bestR, rsList, targetScore)
     with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
         pickle.dump(bestR, f)
-
     
+    
+    # ============ Leave-One-Test ===============
     for t in topicSet:
         bestR = None
         paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
         for p in paramsIter:
+            (X, y, volc) = genXY(p, wm, oldm, om, labelNewsList, wVolc, 
+                    topicSet, sentiDict, pTreeList, negPList)
+
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                     topicMap=topicMap, topicId=t, randSeedList=randSeedList)
             bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)

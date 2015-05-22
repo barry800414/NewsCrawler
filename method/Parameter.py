@@ -15,6 +15,9 @@ def loadFrameworkTopicParams(filename):
 
 # paramsDict: a dict (name of model -> a list of parameters)
 def getParamsIter(paramsDict, framework, topicId=None, newList=list(), goneSet=set(), finalP=dict()):
+    return __getParamsIter(paramsDict, framework, topicId, list(), set(), dict())
+
+def __getParamsIter(paramsDict, framework, topicId=None, newList=list(), goneSet=set(), finalP=dict()):
     toGo = set(paramsDict.keys()) - goneSet
     if len(toGo) == 0:
         newList.append(dict(finalP))
@@ -27,22 +30,15 @@ def getParamsIter(paramsDict, framework, topicId=None, newList=list(), goneSet=s
             pList = paramsDict[name][framework]
         for p in pList:
             finalP[name] = p
-            getParamsIter(paramsDict, framework, topicId, newList, goneSet, finalP)
+            __getParamsIter(paramsDict, framework, topicId, newList, goneSet, finalP)
             del finalP[name]
         goneSet.remove(name)
         return newList
 
-'''
-def getParamsIter(pList1, p1Name, pList2, p2Name):
-    newList = list()
-    for p1 in pList1:
-        for p2 in pList2:
-            newList.append( { p1Name: p1, p2Name:p2 } )
-    return newList
-'''
+
 
 if __name__ == '__main__':
-    # test case
+    # test case 1
     paramsDict = {
         "WM": [
                 {"allowedPOS": ["NN", "NT"]},
@@ -57,9 +53,20 @@ if __name__ == '__main__':
                 {"keyTypeList": [["HOT", "OT", "HO"]]}
             ]
     }
+    #paramsIter = getParamsIter(paramsDict)
+    #for p in paramsIter:
+    #    print(p)
 
-    paramsIter = getParamsIter(paramsDict)
+    WMParams = loadFrameworkTopicParams("WM_cluster7852_300_params.json")
+    OLDMParams = loadFrameworkTopicParams("OLDM_cluster7852_300_params.json")
+    #print(json.dumps(WMParams, indent=2))
+    #print(json.dumps(OLDMParams, indent=2))
 
-    for p in paramsIter:
-        print(p)
+    paramsDict = dict()
+    paramsDict['WM'] = WMParams
+    paramsDict['OLDM'] = OLDMParams
 
+    for t in [2, 3, 4, 5, 6, 13, 16]:
+        paramsIter = getParamsIter(paramsDict, framework="SelfTrainTest", topicId=t)
+        print('Topic %d: %d' % (t, len(paramsIter)))
+        print('---------------------------------------------')

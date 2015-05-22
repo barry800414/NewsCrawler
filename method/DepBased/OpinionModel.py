@@ -121,7 +121,7 @@ class OpinionModel:
             for opn in opns:
                 for keyType in self.kTL:
                     for negSep in self.nSL:
-                        (key, value) = OpinionModel.getOpnKeyValue(opn, keyType, sentiDict, negSep)
+                        (key, value) = OpinionModel.getOpnKeyValue(opn, keyType, self.sD, negSep)
                         opnCnt[key] += value
                         volc.addWord(key)
                         
