@@ -71,6 +71,11 @@ def mergeRows(data, colNameMap, keyPrefixNum):
     for key, dList in keyData.items():
         #print('key:', key)
         #print('num:', len(dList))
+        #if len(dList) == 10:
+        #    for d in dList:
+        #        print(d)
+        #    print('')
+        #assert len(dList) == 5
         avgD = [0.0 for i in range(0, len(colNameMap) - keyPrefixNum)]
         for d in dList:
             #print(d[keyPrefixNum:len(colNameMap)])
@@ -233,7 +238,10 @@ if __name__ == '__main__':
         #'column source': 'list'
         #'statementCol': 'bool'
     }
-    
+
+    if len(sys.argv) < 6:
+        print('\n***** Please Note that the results are not averaged ******\n', file=sys.stderr)
+
     # get best N params of given model
     
     (f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)

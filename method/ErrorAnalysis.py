@@ -1,7 +1,10 @@
 
 import sys
+import math
+
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
 
 from misc import *
 
@@ -11,17 +14,17 @@ from misc import *
 # clf: classifier
 # volc: volc -> index (dict) for each column (feature)
 # classMap: class-> text (dict)
-def printcoef(clf, volc, classMap, sort=False, reverse=True, outfile=sys.stdout):
-    supportCoef = [MultinomialNB, LogisticRegression]
+def printCoef(clf, volc, classMap, sort=False, reverse=True, outfile=sys.stdout):
+    supportCoef = [MultinomialNB, LogisticRegression, LinearSVC]
     if type(clf) in supportCoef:
-        rVolc = reverseVolc(volc)
         print('Coefficients:', file=outfile)
         
         coef = clf.coef_
         cNum = coef.shape[0] # class number
         cList = clf.classes_
         fNum = coef.shape[1] # feature number
-        
+        print('featureNum:', fNum)
+        print('volc size:', len(volc))
         # for each class, sort the vector
         cValues = list()
         for ci in range(0, cNum):
@@ -39,7 +42,7 @@ def printcoef(clf, volc, classMap, sort=False, reverse=True, outfile=sys.stdout)
         for ri in range(0, fNum):
             for ci in range(0, cNum):
                 (wIndex, value) = cValues[ci][ri]
-                print(toStr(rVolc[wIndex], ensure_ascii=False), value, sep=',', end=',', file=outfile)
+                print(toStr(volc.getWord(wIndex), ensure_ascii=False), value, sep=',', end=',', file=outfile)
             print('', file=outfile)
 
     else:
@@ -56,9 +59,9 @@ def printIntercept(clf, classMap, outfile=sys.stderr):
 
 def printDenseMatrix(m, volc, outfile=sys.stdout):
     assert m.shape[1] == len(volc)
-    rVolc = reverseVolc(volc)
     
-    for w in rVolc:
+    for i in range(0, len(volc)):
+        w = volc.getWord(i)
         print(toStr(w, ensure_ascii=False), end=',', file=outfile)
     print('', file=outfile)
     for row in m:
@@ -69,7 +72,6 @@ def printDenseMatrix(m, volc, outfile=sys.stdout):
 
 def printCSRMatrix(m, volc, outfile=sys.stdout):
     assert m.shape[1] == len(volc)
-    rVolc = reverseVolc(volc)
     
     (rowNum, colNum) = m.shape
     colIndex = m.indices
@@ -81,21 +83,20 @@ def printCSRMatrix(m, volc, outfile=sys.stdout):
     for ri in range(0, rowNum):
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
             value = data[nowPos]
-            word = rVolc[ci]
+            word = volc.getWord(ci)
             print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), value), end=',', file=outfile)
             sumOfCol[ci] += value
             nowPos += 1
         print('', file=outfile)
 
     for ci in range(0, colNum):
-        word = rVolc[ci]
+        word = volc.getWord(ci)
         print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), sumOfCol[ci]), file=outfile)
     #print('', file=outfile)
 
 # X is CSR-Matrix
 def printXY(X, y, yPredict, volc, classMap, outfile=sys.stdout):
     assert X.shape[1] == len(volc)
-    rVolc = reverseVolc(volc)
     
     (rowNum, colNum) = X.shape
     colIndex = X.indices
@@ -103,21 +104,23 @@ def printXY(X, y, yPredict, volc, classMap, outfile=sys.stdout):
     data = X.data
     nowPos = 0
     
-    sumOfCol = [0.0 for i in range(0, colNum)]
+    #sumOfCol = [0.0 for i in range(0, colNum)]
+    docF = [0 for i in range(0, colNum)]
     print('label, predict', file=outfile)
     for ri in range(0, rowNum):
         print('%s, %s, ' % (classMap[y[ri]], classMap[yPredict[ri]]), end=',', file=outfile)
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
             value = data[nowPos]
-            word = rVolc[ci]
+            word = volc.getWord(ci)
             print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), value), end=',', file=outfile)
-            sumOfCol[ci] += value
+            if math.fabs(value) > 1e-15:
+                docF[ci] += 1
             nowPos += 1
         print('', file=outfile)
 
     for ci in range(0, colNum):
-        word = rVolc[ci]
-        print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), sumOfCol[ci]), file=outfile)
+        word = volc.getWord(ci)
+        print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), docF[ci]), file=outfile)
     #print('', file=outfile)
 
 
@@ -143,7 +146,7 @@ if __name__ == '__main__':
     with open(coeffCSV, 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), sep=',', file=f) 
-        printcoef(clf, volc, i2Label, sort=True, reverse=True, outfile=f)
+        printCoef(clf, volc, i2Label, sort=True, reverse=True, outfile=f)
 
     '''
     with open(XCSV, 'w') as f:

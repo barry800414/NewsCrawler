@@ -1,8 +1,8 @@
 
 import json
 
-label2i = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
-i2Label = ["oppose", "neutral", "agree"]
+label2i = { "neutral" : 2, "oppose": 0, "agree" : 1 } 
+i2Label = ["oppose", "agree", "neutral"]
 
 def toStr(v, sep='**', ensure_ascii=True):
     outStr = json.dumps(v, ensure_ascii=ensure_ascii)
@@ -59,8 +59,7 @@ def getFileNamePrefix(path):
 #print(getFileNamePrefix('123'))
 
 # get labels from the list of label-news
-def getLabels(labelNewsList):
-    mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
+def getLabels(labelNewsList, mapping=label2i):
     labelList = list()
     for labelNews in labelNewsList:
         if labelNews['label'] in mapping:

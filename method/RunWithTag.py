@@ -14,9 +14,11 @@ if __name__ == '__main__':
         e = volcFile.rfind('.')
         volcPrefix = volcFile[s+1:e]
         if taskType == 'WM':
-            cmd = 'python3 ./baseline/WordModelImproved.py ./zhtNewsData/taggedLabelNews20150504.json %s > WM20150504_%s_results.csv' % (volcFile, volcPrefix)
+            cmd = 'python3 ./baseline/WordModelImproved.py ./zhtNewsData/taggedLabelNews20150504.json ./baseline/config/WM_config.json %s > WM_%s_results.csv' % (volcFile, volcPrefix)
             print(cmd)
+            os.system(cmd)
         elif taskType == 'OLDM':
-            cmd = 'python3 ./DepBased/OneLayerPhraseDepModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./res/NTUSD_core.csv -v %s > OLDM_%s_results.csv' % (volcFile, volcPrefix)
+            cmd = 'python3 ./DepBased/OneLayerPhraseDepModel.py ./zhtNewsData/OLPDM_labelNews_20150504.json ./DepBased/config/OLDM_config.json ./res/NTUSD_core.csv -v %s > OLDM_%s_results.csv' % (volcFile, volcPrefix)
             print(cmd)
+            os.system(cmd)
 

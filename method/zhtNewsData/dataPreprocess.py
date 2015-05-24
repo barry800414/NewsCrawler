@@ -76,6 +76,7 @@ def mergeToLabelNews(labelList, newsDict, statDict,
             newDict['news'] = nDict
         else:
             print('%s not found in news corpus' % newsId, file=sys.stderr)
+            continue
         newList.append(newDict)
 
     return newList
@@ -118,13 +119,13 @@ if __name__ == "__main__":
         config = json.load(f)
 
     
-    labelNews = mergeToLabelNews(labelList, newsDict, statDict, 
+    labelNewsList = mergeToLabelNews(labelList, newsDict, statDict, 
             newsCol = config['news_column'], 
             statCol = config['statement_column'])
 
     with open(outFile, 'w') as f:
-        json.dump(labelNews, f, ensure_ascii=False, indent=2)
+        json.dump(labelNewsList, f, ensure_ascii=False, indent=2)
 
-    print("#statement_news:", len(labelNews), file=sys.stderr)
-
+    print("#statement_news:", len(labelNewsList), file=sys.stderr)
+    printStatInfo(labelNewsList)
     

@@ -66,6 +66,7 @@ def genXY(olpdm, params, topicSet, sentiDict):
             allowedRel, p['minCnt'])
     (X, y) = olpdm.genXY()
     volc = olpdm.getVolc()
+    assert X.shape[1] == len(volc)
     return (X, y, volc)
 
 
@@ -83,8 +84,8 @@ if __name__ == '__main__':
         exit(-1)
 
     depParsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
-    sentiDictFile = sys.argv[2]
-    modelConfigFile = sys.argv[3]
+    modelConfigFile = sys.argv[2]
+    sentiDictFile = sys.argv[3]
 
     # load dependency parsed label news
     with open(depParsedLabelNewsJsonFile, 'r') as f:
@@ -117,6 +118,7 @@ if __name__ == '__main__':
             i = i + 1
 
     # model parameters #FIXME: allowed relation
+    targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
     paramsIter = ParameterGrid(config['params'])
     clfList = config['setting']['clfList']
@@ -133,7 +135,7 @@ if __name__ == '__main__':
     # intialize the model
     print('Intializing the model...', file=sys.stderr)
     olpdm = initOLDM(labelNewsList, topicPhraseList, wVolc)
-    tolpdm = { t: OLDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() }
+    tolpdm = { t: initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() }
  
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)

@@ -52,6 +52,8 @@ class RunExp:
             print('In Cross Validation... ', end='', file=sys.stderr)
             (clf, bestParam, bestValScore, yTrainPredict) = ML.train(
                     XTrain, yTrain, clfName, scorer, randSeed=randSeed)
+            #print('yTrainTrue:', yTrain)
+            #print('yTrainPredict:', yTrainPredict)
             print('Done', file=sys.stderr)
 
             # testing 
@@ -509,7 +511,7 @@ class ML:
 
         # testing on training data
         yPredict = clfGS.predict(XTrain)
-        
+
         return (clfGS.best_estimator_, clfGS.best_params_, bestValScore, yPredict)
 
     def topicTrain(XTrain, yTrain, clfName, scorerName, trainMap, randSeed=1):

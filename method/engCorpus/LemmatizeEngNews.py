@@ -6,10 +6,11 @@ from Lemmatizer import *
 SENT_SEP=','
 
 def lemmatizeTaggedCorpus(taggedNewsDict, cols=['content_pos'], sentSep=SENT_SEP):
-    for newsId, news in taggedNewsDict.items():
+    newNewsDict = dict()
+    cnt = 0
+    for newsId, news in sorted(taggedNewsDict.items()):
         for col in cols:
             text = news[col]
-            print(text)
             newText = ''
             for sent in text.split(sentSep):
                 newSent = lemmatizeTaggedSent(sent)
@@ -18,8 +19,12 @@ def lemmatizeTaggedCorpus(taggedNewsDict, cols=['content_pos'], sentSep=SENT_SEP
                 else:
                     newText = newText + sentSep + newSent
             news[col] = newText
-            print(newText)
-    return taggedNewsDict
+        newNewsDict[newsId] = news 
+        cnt = cnt + 1
+        if (cnt + 1) % 10 == 0:
+            print('%cProgress: (%d/%d)' % (13, cnt, len(taggedNewsDict)), end='', file=sys.stderr)
+    print('',file=sys.stderr)
+    return newNewsDict
             
 
 if __name__ == '__main__':

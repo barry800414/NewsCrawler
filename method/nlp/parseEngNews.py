@@ -13,18 +13,23 @@ NEW_SEP = ','
 
 # parse the news
 def constParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
-    news['content_constituent'] = constParseEngText(news['content'], sepSet, rmFirstSet, rmLaterSet, new_sep=new_sep)
-    return news
+    r = constParseEngText(news['content'], sepSet, rmFirstSet, rmLaterSet, new_sep=new_sep)
+    if r == None:
+        return False
+    else:
+        news['content_constituent'] 
+        return True
 
 def constParseEngText(text, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
     result = list()
     #print('\033[1;33moriginal:\033[0m|' + text + '|')
     # remove some punctuation first
     rmFirstRegex = Punctuation.set2RegexStr(rmFirstSet)
-    cleanText = re.sub(rmFirstRegex, " ", text)
-    cleanText = cleanText.strip()
+    cleanedText = cleanText(text, rmFirstRegex)
+    if cleanedText == None or len(cleanedText) == 0:
+        return None
     #print('CleanedSent:|' + cleanText + '|')
-    sentList = splitSent(cleanText, sepSet)
+    sentList = splitSent(cleanedText, sepSet)
     
     # for each sentence
     for i, sent in enumerate(sentList):
@@ -44,13 +49,17 @@ def constParseEngText(text, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP):
     #print('\033[0;32mTagging Result:\033[0m|' + result + '|\n')
     return result
 
+
 # parse the news
 def depParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, 
         new_sep=NEW_SEP, draw=False, fileFolder=None, fileName=''):
-    news['content_dep'] = depParseEngText(news['content'], sepSet, 
-            rmFirstSet, rmLaterSet, new_sep=new_sep, draw=draw, 
-            fileFolder=fileFolder, fileName='content')
-    return news
+    r = depParseEngText(news['content'], sepSet, rmFirstSet, rmLaterSet, 
+            new_sep=new_sep, draw=draw, fileFolder=fileFolder, fileName='content')
+    if r == None:
+        return False
+    else:
+        news['content_dep'] = r
+        return True
 
 def depParseEngText(text, sepSet, rmFirstSet, rmLaterSet, 
         new_sep=NEW_SEP, draw=False, fileFolder=None, fileName=''):
@@ -58,11 +67,12 @@ def depParseEngText(text, sepSet, rmFirstSet, rmLaterSet,
     #print('\033[1;33moriginal:\033[0m|' + text + '|')
     # remove some punctuation first
     rmFirstRegex = Punctuation.set2RegexStr(rmFirstSet)
-    cleanText = re.sub(rmFirstRegex, " ", text)
-    cleanText = cleanText.strip()
+    cleanedText = cleanText(text, rmFirstRegex)
+    if cleanedText == None or len(cleanedText) == 0:
+        return None
     #print('CleanedSent:|' + cleanText + '|')
-    sentList = splitSent(cleanText, sepSet)
-    
+    sentList = splitSent(cleanedText, sepSet)
+
     # for each sentence
     for i, sent in enumerate(sentList):
         #print('|' + sent + '|')
@@ -87,12 +97,15 @@ def depParseEngText(text, sepSet, rmFirstSet, rmLaterSet,
 # parse the news
 def parseEngNews(news, sepSet, rmFirstSet, rmLaterSet, 
         new_sep=NEW_SEP, draw=False, fileFolder=None, fileName=''):
-    (news['content_constituent'], news['content_dep']) = parseEngText(
-            news['content'], sepSet, rmFirstSet, rmLaterSet, 
+    
+    r = parseEngText(news['content'], sepSet, rmFirstSet, rmLaterSet, 
             new_sep=new_sep, draw=draw, fileFolder=fileFolder, 
             fileName='content')
-    return news
-
+    if r != None:
+        (news['content_constituent'], news['content_dep']) = r
+        return True
+    else:
+        return False
 
 def parseEngText(text, sepSet, rmFirstSet, rmLaterSet, 
         new_sep=NEW_SEP, draw=False, fileFolder=None, fileName=''):
@@ -102,11 +115,12 @@ def parseEngText(text, sepSet, rmFirstSet, rmLaterSet,
     #print('\033[1;33moriginal:\033[0m|' + text + '|')
     # remove some punctuation first
     rmFirstRegex = Punctuation.set2RegexStr(rmFirstSet)
-    cleanText = re.sub(rmFirstRegex, " ", text)
-    cleanText = cleanText.strip()
+    cleanedText = cleanText(text, rmFirstRegex)
+    if cleanedText == None or len(cleanedText) == 0:
+        return None
     #print('CleanedSent:|' + cleanText + '|')
-    sentList = splitSent(cleanText, sepSet)
-    
+    sentList = splitSent(cleanedText, sepSet)
+
     # for each sentence
     for i, sent in enumerate(sentList):
         #print('|' + sent + '|')
@@ -127,7 +141,15 @@ def parseEngText(text, sepSet, rmFirstSet, rmLaterSet,
     #print('\033[0;32mTagging Result:\033[0m|' + result + '|\n')
     return (constResult, depResult)
 
+# removing urls and some punctuations
+def cleanText(text, rmFirstRegex):
+    cleanedText = removeUrls(text)
+    cleanedText = re.sub(rmFirstRegex, " ", cleanedText)
+    return cleanedText.strip()
 
+def removeUrls(string):
+    pattern = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    return re.sub(pattern, "", string)
 
 def removeSepStr(string, sepSet):
     outStr = ''
@@ -141,12 +163,13 @@ def removeSepStr(string, sepSet):
                 outStr = outStr + ' ' + e
     return outStr
 
-
+# split english sentence by nltk tokenizer, and normalize the tokens
 def splitSent(text, sepSet):
     tokens = nltk.word_tokenize(text)
     sentList = list()
     sent = ''
     for i, t in enumerate(tokens):
+        t = normalizeToken(t)
         if t in sepSet and len(sent) != 0:
             sentList.append(sent)
             sent = ''
@@ -155,8 +178,15 @@ def splitSent(text, sepSet):
                 sent = str(t)
             else:
                 sent = sent + ' ' + t
+    if len(sent) != 0:
+        sentList.append(sent)
     return sentList
-        
+    
+# converting "," to "" if the token is a number
+def normalizeToken(token):
+    if token.find(",") == -1 or token == ',':
+        return token
+    return token.replace(",", "")
 
 def mergeTokens(tokens):
     outStr = ''
@@ -166,6 +196,9 @@ def mergeTokens(tokens):
         else:
             outStr = outStr + ' ' + t
     return outStr
+
+
+
 
 
 if __name__ == '__main__':
@@ -190,18 +223,32 @@ if __name__ == '__main__':
     rmLaterSet = set(punct['remove_later'].keys())
 
     cnt = 0
+    newNewsDict = dict()
+    removedNewsId = set()
     for newsId, news in sorted(newsDict.items(), key=lambda x:x[0]):
         if parseType == 'Dep':
-            depParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP, draw=True, fileFolder=newsId)
+            r = depParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP, draw=True, fileFolder=newsId)
+            if r:
+                newNewsDict[newsId] = news
+            else:
+                removedNewsId.add(newsId)
         elif parseType == 'Const':
-            constParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP)
+            r = constParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP)
+            if r:
+                newNewsDict[newsId] = news
+            else:
+                removedNewsId.add(newsId)
         elif parseType == 'Dep_Const':
-            parseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP, draw=True, fileFolder=newsId)
+            r = parseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP, draw=True, fileFolder=newsId)
+            if r:
+                newNewsDict[newsId] = news
+            else:
+                removedNewsId.add(newsId)
         cnt += 1
         if cnt % 10 == 0:
             print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
-            
+    print('news are removed:', removedNewsId)
     with open(outNewsJsonFile, 'w') as f:
-        json.dump(newsDict, f, ensure_ascii=False, indent = 2)
+        json.dump(newNewsDict, f, ensure_ascii=False, indent = 2)
 
 

@@ -227,15 +227,6 @@ def convertToCSRMatrix(listOfDict, volc):
             shape=(numRow, numCol), dtype=np.float64)
     return m
 
-def divideLabel(labelNewsList):
-    #FIXME stat and topic
-    labelNewsInTopic = dict()
-    for labelNews in labelNewsList:
-        statId = labelNews['statement_id']
-        if statId not in labelNewsInTopic:
-            labelNewsInTopic[statId] = list()
-        labelNewsInTopic[statId].append(labelNews)
-    return labelNewsInTopic
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

@@ -30,7 +30,7 @@ NEW_TAG_MAP = {
 LMTZR_TAG_MAP = {
         "JJ": "a", "JJR": "a", "JJS": "a",
         "NN": "n", "NNP": "n", "NNPS": "n", "NNS": "n",
-        "RB": "r", "r": "r", "r": "r",
+        "RB": "r", "RBR": "r", "RBR": "r",
         "VB": "v", "VBD": "v", "VBG": "v", "VBN": "v", "VBP": "v", "VBZ": "v"
         }
 

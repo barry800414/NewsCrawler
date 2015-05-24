@@ -10,6 +10,7 @@ from scipy.sparse import csr_matrix
 import WFMapping
 from DepTree import DepTree
 from Volc import Volc
+from misc import *
 
 '''
 This codes implements the OneLayerDepModel for stance classification.
@@ -48,7 +49,7 @@ class OneLayerDepModel():
         # the list to store the dependency trees of each doc
         # self.corpusDTList[i]: (topicId of doc i, the dep tree list of doc i)
         self.corpusDTList = list()
-        for labelNews in self.pln:
+        for i, labelNews in enumerate(self.pln):
             topicId = labelNews['statement_id'] # FIXME
             contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
             newsDTList = list()
@@ -58,6 +59,8 @@ class OneLayerDepModel():
                 if dg != None:
                     newsDTList.append(dg)
             self.corpusDTList.append((topicId, newsDTList))
+            if (i+1) % 10 == 0:
+                print('%cProgress: (%d/%d)' % (13, i+1, len(self.pln)), end='', file=sys.stderr)
 
     # the pair volcabulary 
     def getVolc(self):
@@ -175,15 +178,6 @@ class OneLayerDepModel():
         self.volc = volc
 
         return (X, y)
-
-# get labels from the list of label-news
-def getLabels(labelNewsList):
-    mapping = { "neutral" : 1, "oppose": 0, "agree" : 2 } 
-    labelList = list()
-    for labelNews in labelNewsList:
-        if labelNews['label'] in mapping:
-            labelList.append(mapping[labelNews['label']])
-    return labelList
 
 
 # add a set of word to volcabulary

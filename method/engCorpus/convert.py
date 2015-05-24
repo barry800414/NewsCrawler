@@ -49,30 +49,36 @@ newsDict = dict()
 statId = 1 
 
 
-
 for dirpath, dirnames, filenames in os.walk(DATA_FOLDER):
     if dirpath == DATA_FOLDER:
         continue
+    agreeNum = 0
+    opposeNum = 0
     stat = dirpath.split('/')[-1]
     statDict[statId] = { "original" : stat } 
     fileNum = len(filenames)
-    print(fileNum)
     for i in range(0, fileNum):
         filePath = dirpath + '/post_%d' % (i) 
         newsId = "%s_%04d" %(stat, i)
         (label, news) = convert(filePath, newsId, statId, stat)
+        if label['label'] == 'agree':
+            agreeNum += 1
+        elif label['label'] == 'oppose':
+            opposeNum += 1
+        news['title'] = ''
         labelList.append(label)
         newsDict[newsId] = news
+    print('dirPath:', dirpath, '#total:', fileNum, '#Agree:', agreeNum, '#oppose:', opposeNum)
     statId += 1
 
-with open('engLabel.json', 'w') as f:
-    json.dump(labelList, f, ensure_ascii=False, indent=2)
+#with open('engLabel.json', 'w') as f:
+#    json.dump(labelList, f, ensure_ascii=False, indent=2)
 
-with open('engNews.json', 'w') as f:
-    json.dump(newsDict, f, ensure_ascii=False, indent=2)
+#with open('engNews.json', 'w') as f:
+#    json.dump(newsDict, f, ensure_ascii=False, indent=2)
 
-with open('engStat.json', 'w') as f:
-    json.dump(statDict, f, ensure_ascii=False, indent=2)
+#with open('engStat.json', 'w') as f:
+#    json.dump(statDict, f, ensure_ascii=False, indent=2)
 
     
 

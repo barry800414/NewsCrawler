@@ -1,18 +1,19 @@
 {
     "params":{ 
         "seedWordType": [
-            {"type": "tag", "allow": ("NR","NN","NP")}
+            {"type": "tag", "allow": ["NR","NN","NP"]}
         ],
         "firstLayerType": [ 
             {"type": "word", "allow": "NTUSD_core"}, 
-            {"type": "tag", "allow": ("VV","JJ","VA")} 
+            {"type": "tag", "allow": ["VV","JJ","VA"]} 
         ],
-        "minCnt": [2]
+        "minCnt": [2, 4, 6, 8, 10]
     },
     "setting":{
-        "clfList": ["MaxEnt", "NaiveBayes", "SVM"],
+        "targetScore": "MacroF1",
+        "clfList": ["MaxEnt", "NaiveBayes", "LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
-        "modelName": "OLDM",
+        "modelName": "OLDM_minCnt246810",
         "dataset": "zhtNews"
     }
 }

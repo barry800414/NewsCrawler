@@ -28,7 +28,8 @@ Date: 2015/05/04
 class WordModel:
     def genXY(self, labelNewsList, feature='tf', volc=None, allowedPOS=None, minCnt=0):
         #initialization
-        volc = Volc()
+        if volc == None:
+            volc = Volc()
         IDF = None
         zeroOne = False
         if feature == '0/1' or feature == '01':
@@ -73,7 +74,6 @@ class WordModel:
                 allowedPOS, IDF, zeroOne))
         return (vectorList, volc)
 
-    
     # convert text to TF-IDF features (dict)
     def text2TFIDF(text, volc, allowedPOS=None, IDF=None, zeroOne=False, 
             sentSep=",", wordSep=" ", tagSep='/'):
@@ -162,9 +162,12 @@ def initWM():
 def genXY(labelNewsList, wm, params, volc=None):
     print('generating word features...', file=sys.stderr)
     p = params
-    (X, y) = wm.genXY(labelNewsList, feature=p['feature'], 
-                    volc=volc, allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
+    (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volc=volc, 
+            allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
     volc = wm.getVolc()
+    #print('X.shape:', X.shape)
+    #print('volcSize:', len(volc))
+    assert X.shape[1] == len(volc)
     return (X, y, volc)
 
 if __name__ == '__main__':
@@ -182,29 +185,26 @@ if __name__ == '__main__':
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
 
-    volc = None
+    wVolc = None
+    wVolcPrefix = ''
     if len(sys.argv) == 4:
-        volc = Volc()
-        volc.load(sys.argv[3])
-        volc.lock() # lock the volcabulary, new words are OOV
+        wVolcPrefix = getFileNamePrefix(sys.argv[3])
+        wVolc = Volc()
+        wVolc.load(sys.argv[3])
+        wVolc.lock() # lock the volcabulary, new words are OOV
 
     # parameters:
-    params = {
-        'feature': ['0/1', 'tf', 'tfidf'],
-        'stat': [False],
-        'minCnt': [2],
-        'allowedPOS': set(['VA', 'VV', 'NN', 'NR', 'AD', 'JJ', 'FW'])
-    }
     targetScore = config['setting']['targetScore']
-    clfList = config['setting']['clfList']
     randSeedList = config['setting']['randSeedList']
-    paramIter = ParameterGrid(config['params'])
+    paramsIter = ParameterGrid(config['params'])
+    clfList = config['setting']['clfList']
+    modelName = config['setting']['modelName']
+    dataset = config['setting']['dataset']
 
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
     labelNewsInTopic = divideLabel(labelNewsList)
-
 
     # print first line of results
     ResultPrinter.printFirstLine()
@@ -212,6 +212,7 @@ if __name__ == '__main__':
     # initialize the model
     wm = WordModel()
 
+    
     # ============= Run for self-train-test ===============
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
@@ -219,9 +220,7 @@ if __name__ == '__main__':
         #    continue
         bestR = None
         for p in paramsIter:
-            (X, y) = wm.genXY(labelNewsInTopic[t], feature=p['feature'], 
-                    volc=volc, allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
-            volc = wm.getVolc()
+            (X, y, volc) = genXY(labelNewsInTopic[t], wm, p, volc=wVolc)
             rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
                     p, clfList, topicId=t, randSeedList=randSeedList)
             bestR = keepBestResult(bestR, rsList, targetScore)
@@ -229,16 +228,13 @@ if __name__ == '__main__':
             dataset, wVolcPrefix, t), 'w+b') as f:
             pickle.dump(bestR, f)
 
-
     # ============= Run for all-train-test & leave-one-test ================
     print('All-Train-Test & Leave-One-Test...', file=sys.stderr)
     bestR = None # for all-train-test
     bestR2 = {t:None for t in topicSet}  # for leave-one-test
 
     for p in paramsIter:
-        (X, y) = wm.genXY(labelNewsList, feature=p['feature'], 
-                    volc=volc, allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
-        volc = wm.getVolc()
+        (X, y, volc) = genXY(labelNewsList, wm, p, volc=wVolc)
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
                 topicMap=topicMap, randSeedList=randSeedList)
         bestR = keepBestResult(bestR, rsList, targetScore)
