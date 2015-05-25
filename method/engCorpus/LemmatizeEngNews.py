@@ -22,25 +22,49 @@ def lemmatizeTaggedCorpus(taggedNewsDict, cols=['content_pos'], sentSep=SENT_SEP
         newNewsDict[newsId] = news 
         cnt = cnt + 1
         if (cnt + 1) % 10 == 0:
-            print('%cProgress: (%d/%d)' % (13, cnt, len(taggedNewsDict)), end='', file=sys.stderr)
+            print('%cProgress: (%d/%d)' % (13, cnt+1, len(taggedNewsDict)), end='', file=sys.stderr)
     print('',file=sys.stderr)
     return newNewsDict
-            
+
+def lemmatizeDepParsedCorpus(depParsedNewsDict, cols=['content_dep']):
+    newNewsDict = dict()
+    cnt = 0 
+    for newsId, news in sorted(depParsedNewsDict.items()):
+        for col in cols:
+            depList = news[col]
+            for dep in depList:
+                tdList = dep['tdList']
+                newTdList = list()
+                for line in tdList:
+                    newLine = lemmatizeTdLine(line)
+                    newTdList.append(newLine)
+                dep['tdList'] = newTdList
+        newNewsDict[newsId] = news
+        cnt = cnt + 1
+        if (cnt + 1) % 10 == 0:
+            print('%cProgress: (%d/%d)' % (13, cnt+1, len(depParsedNewsDict)), end='', file=sys.stderr)
+    print('',file=sys.stderr)
+    return newNewsDict
+
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage:', sys.argv[0], 'InTaggedNewsJsonFile OutTaggedNewsJsonFile', file=sys.stderr)
+    if len(sys.argv) != 4:
+        print('Usage:', sys.argv[0], 'InNewsJsonFile OutNewsJsonFile tag/dep/const', file=sys.stderr)
         exit(-1)
 
-    inTaggedNewsJsonFile = sys.argv[1]
-    outTaggedNewsJsonFile = sys.argv[2]
+    inNewsJsonFile = sys.argv[1]
+    outNewsJsonFile = sys.argv[2]
+    taskType = sys.argv[3]
 
-    with open(inTaggedNewsJsonFile, 'r') as f:
-        taggedNewsDict = json.load(f)
+    with open(inNewsJsonFile, 'r') as f:
+        newsDict = json.load(f)
 
-    taggedNewsDict = lemmatizeTaggedCorpus(taggedNewsDict)
+    if taskType == 'tag':
+        newsDict = lemmatizeTaggedCorpus(newsDict)
+    elif taskType == 'dep':
+        newsDict = lemmatizeDepParsedCorpus(newsDict)
 
-    with open(outTaggedNewsJsonFile, 'w') as f:
-        json.dump(taggedNewsDict, f, ensure_ascii=False, indent=1)
+    with open(outNewsJsonFile, 'w') as f:
+        json.dump(newsDict, f, ensure_ascii=False, indent=1)
 
 

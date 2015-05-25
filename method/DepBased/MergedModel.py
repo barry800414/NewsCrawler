@@ -9,7 +9,7 @@ import numpy as np
 from scipy.sparse import csr_matrix, hstack
 from sklearn.grid_search import ParameterGrid
 
-import WordModelImproved as WM
+import WordModel as WM
 import OneLayerDepModel as OLDM
 import OpinionModel as OM
 import TreePattern as TP
@@ -25,19 +25,20 @@ Author: Wei-Ming Chen
 Date: 2015/05/19
 '''
 
-def genXY(params, wm=None, oldm=None, om=None, labelNewsList=None, volc=None,
-        topicSet=None, sentiDict=None, pTreeList=None, negPList=None):
+def genXY(params, preprocess, wm=None, oldm=None, om=None, 
+        labelNewsList=None, volc=None, topicSet=None, sentiDict=None,
+        pTreeList=None, negPList=None):
     assert len(params) >= 2
     X_y_volc_Dict = dict()
     if 'WM' in params: 
         assert wm != None and labelNewsList != None
-        X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], volc)    
+        X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], preprocess, volc)    
     if 'OLDM' in params: 
         assert oldm != None and topicSet != None and sentiDict != None
-        X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], topicSet, sentiDict)
+        X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], preprocess, topicSet, sentiDict)
     if 'OM' in params:
         assert om != None and pTreeList != None and negPList != None
-        X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
+        X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], preprocess, pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
     
     (mX, my, mVolc, wVolc) = mergeXY(X_y_volc_Dict)
     assert mX.shape[1] == len(mVolc)
@@ -166,7 +167,7 @@ if __name__ == '__main__':
         bestR = None
         paramsIter = Parameter.getParamsIter(allParams, framework='SelfTrainTest', topicId=t)
         for p in paramsIter:
-            (X, y, volc, mWVolc) = genXY(p, wm, toldm[t], tom[t], 
+            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, toldm[t], tom[t], 
                     labelNewsInTopic[t], wVolc, topicSet, 
                     sentiDict, pTreeList, negPList)
             rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
@@ -183,7 +184,7 @@ if __name__ == '__main__':
     
     paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
     for p in paramsIter:
-        (X, y, volc, mWVolc) = genXY(p, wm, oldm, om, labelNewsList, 
+        (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, labelNewsList, 
                 wVolc, topicSet, sentiDict, pTreeList, negPList)
 
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
@@ -198,8 +199,8 @@ if __name__ == '__main__':
         bestR = None
         paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
         for p in paramsIter:
-            (X, y, volc, mWVolc) = genXY(p, wm, oldm, om, labelNewsList, wVolc, 
-                    topicSet, sentiDict, pTreeList, negPList)
+            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, 
+                    labelNewsList, wVolc, topicSet, sentiDict, pTreeList, negPList)
 
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                     topicMap=topicMap, topicId=t, randSeedList=randSeedList, wVolc=mWVolc)

@@ -136,7 +136,7 @@ def parseEngText(text, sepSet, rmFirstSet, rmLaterSet,
         #print('ConstR:', constR)
         #print('depR:', depR)
         constResult.append({'nodes': constR[0], 'edges': constR[1]})
-        depResult.append({'tdList': response})
+        depResult.append({'tdList': depR})
 
     #print('\033[0;32mTagging Result:\033[0m|' + result + '|\n')
     return (constResult, depResult)
@@ -225,7 +225,7 @@ if __name__ == '__main__':
     cnt = 0
     newNewsDict = dict()
     removedNewsId = set()
-    for newsId, news in sorted(newsDict.items(), key=lambda x:x[0]):
+    for newsId, news in sorted(newsDict.items(), key=lambda x:x[0])[0:1]:
         if parseType == 'Dep':
             r = depParseEngNews(news, sepSet, rmFirstSet, rmLaterSet, new_sep=NEW_SEP, draw=True, fileFolder=newsId)
             if r:

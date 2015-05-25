@@ -194,12 +194,13 @@ def initOM(labelNewsList, topicPhraseList=None):
     return om
 
 # generate opinion model features
-def genXY(om, params, pTreeList, negPList=None, sentiDict=None, wVolc=None):
+def genXY(om, params, preprocess, pTreeList, negPList=None, sentiDict=None, wVolc=None):
     print('generating opinion model features ...', file=sys.stderr)
     p = params
     (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
                 p['keyTypeList'], p['opnNameList'], p['negSepList'], 
                 p['minCnt'])
+    X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volc = om.getVolc()
     wVolc = om.getWordVolc()
     return (X, y, volc, wVolc)
@@ -247,10 +248,14 @@ if __name__ == '__main__':
     # model parameters #FIXME: allowed relation
     targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
-    paramsIter = ParameterGrid(config['params'])
+    testSize = config['setting']['testSize']
+    n_folds = config['setting']['n_folds']
     clfList = config['setting']['clfList']
     modelName = config['setting']['modelName']
     dataset = config['setting']['dataset']
+    preprocess = config['setting']['preprocess']
+    
+    paramsIter = ParameterGrid(config['params'])
 
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
@@ -272,12 +277,11 @@ if __name__ == '__main__':
         #    continue
         bestR = None
         for p in paramsIter:
-            (X, y) = tom[t].genXY(pTreeList, negPList, sentiDict, wVolc, 
-                p['keyTypeList'], p['opnNameList'], p['negSepList'], 
-                p['minCnt'])
-            volc = tom[t].getVolc()
-            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
-                    p, clfList, topicId=t, randSeedList=randSeedList)
+            (X, y, volc, wVolc) = genXY(tom[t], p, preprocess, pTreeList,
+                negPList, sentiDict, wVolc)
+            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
+                    randSeedList, testSize, n_folds, targetScore, topicId=t, 
+                    wVolc=wVolc)
             bestR = keepBestResult(bestR, rsList, targetScore)
         with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
             dataset, wVolcPrefix, t), 'w+b') as f:
@@ -289,16 +293,16 @@ if __name__ == '__main__':
     bestR = None # for all-train-test
     bestR2 = {t:None for t in topicSet}  # for leave-one-test
     for p in paramsIter:
-        (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
-                p['keyTypeList'], p['opnNameList'], p['negSepList'], 
-                p['minCnt'])
-        volc = om.getVolc()
+        (X, y, volc, wVolc) = genXY(om, p, preprocess, pTreeList, 
+                negPList, sentiDict, wVolc)
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
-                topicMap=topicMap, randSeedList=randSeedList)
+                    randSeedList, testSize, n_folds, targetScore, 
+                    topicMap=topicMap, wVolc=wVolc)
         bestR = keepBestResult(bestR, rsList, targetScore)
         for t in topicSet:
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                    topicMap=topicMap, topicId=t, randSeedList=randSeedList)
+                    randSeedList, testSize, n_folds, targetScore, 
+                    topicMap=topicMap, topicId=t, wVolc=wVolc)
             bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
             
     with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:

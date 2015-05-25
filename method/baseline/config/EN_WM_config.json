@@ -1,0 +1,42 @@
+{
+    "params":{ 
+        "minCnt": [2, 5, 10],
+        "feature": ["0/1", "tf", "tfidf"],
+        "allowedPOS": [["JJ", "NN", "RB", "VB"]]
+
+    },
+    "setting":{
+        "toRun": ["SelfTrainTest"],
+        "targetScore": "Accuracy",
+        "clfList": ["MaxEnt", "LinearSVM"],
+        "randSeedList": [1],
+        "preprocess": {
+            "method": "std",
+            "params": { 
+                "with_mean": false,
+                "with_std": true
+            }
+        },
+        "testSize": 0.0,
+        "n_folds": 10,
+        "modelName": "EN_WM_std_seed1",
+        "dataset": "engDebate",
+        "sampling":{
+            "randSeed": 1,
+            "docNumForEachTopic": {
+                "1":{ 
+                    "agree": 275, "oppose": 275
+                },
+                "2":{
+                    "agree": 265, "oppose": 265
+                },
+                "3":{
+                    "agree": 423, "oppose": 423
+                },
+                "5":{
+                    "agree": 153, "oppose": 153
+                }
+            }
+        }
+    }
+}

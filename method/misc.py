@@ -111,9 +111,21 @@ def readSentiDict(filename):
         del sentiDict[w]
     return sentiDict
 
+
+# allDocs: a list of label-news of mixed topics
+# docNumOfEachTopic[t]: a dict (className -> number) of topic t
+def sampleDoc(allDocs, docNumOfEachTopic, randSeed=1):
+    docNumOfEachTopic = { int(key): value for key, value in docNumOfEachTopic.items() }
+    docsInTopic = divideLabelNewsByTopic(allDocs)
+    newDocs = list()
+    for t, docNum in docNumOfEachTopic.items():
+        sampleDocs = sampleDocInOneTopic(docsInTopic[t], docNum, randSeed)
+        newDocs.extend(sampleDocs)
+    return newDocs
+
 # docs is a list of label-news under certain topic
 # docNum is a dict (className -> number, e.g. "agree" -> 100) 
-def sampleDoc(docs, docNum, randSeed=1):
+def sampleDocInOneTopic(docs, docNum, randSeed=1):
     assert sum(docNum.values()) <= len(docs)
     index = [i for i in range(0, len(docs))]
     

@@ -118,6 +118,7 @@ def sendParseRequest(sentence, seg=False, draw=False, fileFolder=None,
         entry = lines[0].split(' ')
         constNum = int(entry[0])
         depNum = int(entry[1])
+        print('constNum:', constNum, 'depNum:', depNum)
         if not seg:
             assert len(lines) == constNum + depNum + 2
             tokenizedSent = lines[1]
@@ -135,7 +136,7 @@ def sendParseRequest(sentence, seg=False, draw=False, fileFolder=None,
     else:
         return None
 
-#s = "I hate this product"
+#s = "I hate this product, so I don't want to buy it."
 #print(sendParseRequest(s, seg=True, draw=True, fileName=s, fileFolder='./'))
 
 def sendTagRequest(sentence, seg=False):

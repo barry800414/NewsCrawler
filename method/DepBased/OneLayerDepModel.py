@@ -199,8 +199,7 @@ def initAllowedSet(topicSet, config, dictionary=None):
         allowedSet = { topicId: set(config['allow']) for topicId in topicSet }
     return allowedSet
 
-
-def genXY(oldm, params, topicSet, sentiDict):
+def genXY(oldm, params, preprocess, topicSet, sentiDict):
     print('generating one layer dependency features...', file=sys.stderr)
     p = params
     allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
@@ -209,6 +208,7 @@ def genXY(oldm, params, topicSet, sentiDict):
     (X, y) = oldm.genXY(allowedSeedWord, p['seedWordType']['type'], 
             allowedFirstLayerWord, p['firstLayerType']['type'], 
             allowedRel, p['minCnt'])
+    X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volc = oldm.getVolc()
     wVolc = oldm.getWordVolc()
     assert X.shape[1] == len(volc)
@@ -229,11 +229,16 @@ if __name__ == '__main__':
 
     # load dependency parsed label news
     with open(depParsedLabelNewsJsonFile, 'r') as f:
-        labelNewsList = json.load(f)
-    
+        labelNewsList = json.load(f)   
     # load model configs 
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
+    # sample document if neccessary
+    if 'sampling' in config['setting']:
+        c = config['setting']['sampling']
+        labelNewsList = sampleDoc(labelNewsList, 
+                c['docNumForEachTopic'], c['randSeed'])
+        printStatInfo(labelNewsList)
 
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
@@ -258,12 +263,17 @@ if __name__ == '__main__':
             i = i + 1
 
     # model parameters #FIXME: allowed relation
+    toRun = config['setting']['toRun']
     targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
-    paramsIter = ParameterGrid(config['params'])
+    testSize = config['setting']['testSize']
+    n_folds = config['setting']['n_folds']
     clfList = config['setting']['clfList']
     modelName = config['setting']['modelName']
     dataset = config['setting']['dataset']
+    preprocess = config['setting']['preprocess']
+
+    paramsIter = ParameterGrid(config['params'])
 
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
@@ -273,22 +283,28 @@ if __name__ == '__main__':
     ResultPrinter.printFirstLine()
 
     # intialize the model
-    #oldm = initOLDM(labelNewsList, topicPhraseList, wVolc)
-    toldm = { t: initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() if t == 2}
+    if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
+        oldm = initOLDM(labelNewsList, topicPhraseList, wVolc)
+    
+    if 'SelfTrainTest' in toRun:
+        toldm = { t: initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items()}
  
     # ============= Run for self-train-test ===============
-    print('Self-Train-Test...', file=sys.stderr)
-    for t in topicSet:
-        if t != 2:
-            continue
-        bestR = None
-        for p in paramsIter:
-            (X, y, volc, wVolc) = genXY(toldm[t], p, topicSet, sentiDict)
-            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
-                    p, clfList, topicId=t, randSeedList=randSeedList, wVolc=wVolc)
-            bestR = keepBestResult(bestR, rsList, targetScore)
-        with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR, f)
+    if 'SelfTrainTest' in toRun:
+        print('Self-Train-Test...', file=sys.stderr)
+        for t in topicSet:
+            #if t != 2:
+            #    continue
+            bestR = None
+            for p in paramsIter:
+                (X, y, volc, wVolc) = genXY(toldm[t], p, preprocess, topicSet, sentiDict)
+                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, topicId=t, 
+                        wVolc=wVolc)
+
+                bestR = keepBestResult(bestR, rsList, targetScore)
+            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+                pickle.dump(bestR, f)
 
     # ============= Run for all-train-test & leave-one-test ================
     print('All-Train-Test & Leave-One-Test...', file=sys.stderr)
@@ -296,17 +312,24 @@ if __name__ == '__main__':
     bestR2 = {t:None for t in topicSet}  # for leave-one-test
 
     for p in paramsIter:
-        (X, y, volc, wVolc) = genXY(oldm, p, topicSet, sentiDict)
-        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
-                clfList, topicMap=topicMap, randSeedList=randSeedList, wVolc=wVolc)
-        bestR = keepBestResult(bestR, rsList, targetScore)
+        if 'AllTrainTest' in toRun:
+            (X, y, volc, wVolc) = genXY(oldm, p, preprocess, topicSet, sentiDict)
+            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, 
+                        topicMap=topicMap, wVolc=wVolc)
+            bestR = keepBestResult(bestR, rsList, targetScore)
+        if 'LeaveOneTest' in toRun:
+            for t in topicSet:
+                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, 
+                        topicMap=topicMap, topicId=t, wVolc=wVolc)
+                bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
+    
+    if 'AllTrainTest' in toRun:
+        with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+            pickle.dump(bestR, f)
+    
+    if 'LeaveOneTest' in toRun:
         for t in topicSet:
-            rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                    topicMap=topicMap, topicId=t, randSeedList=randSeedList, wVolc=wVolc)
-            bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
-
-    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
-        pickle.dump(bestR, f)
-    for t in topicSet:
-        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR2[t], f)
+            with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+                pickle.dump(bestR2[t], f)

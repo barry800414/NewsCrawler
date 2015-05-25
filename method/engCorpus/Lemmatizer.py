@@ -15,7 +15,8 @@ TAG_SEP = '/'
 # Value is new POS Tag: simplified by prefix (e.g. JJR-> JJ)
 NEW_TAG_MAP = {
         "JJ": "JJ", "JJR": "JJ", "JJS": "JJ",
-        "NN": "NN", "NNP": "NNP", "NNPS": "NNP", "NNS": "NN",
+        "NN": "NN", "NNS": "NN",
+        "NNP": "NNP", "NNPS": "NNP", 
         "RB": "RB", "RBR": "RB", "RBS": "RB",
         "VB": "VB", "VBD": "VB", "VBG": "VB", "VBN": "VB", "VBP": "VB", "VBZ": "VB"
         }
@@ -51,3 +52,16 @@ def lemmatizeTaggedSent(sent, wordSep=WORD_SEP, tagSep=TAG_SEP):
     return outStr
 
 #print(lemmatizeTaggedSent('he/PRP had/VBD cars/NNS'))
+
+def lemmatizeTdLine(line, wordSep=WORD_SEP):
+    (rel, gP, gW, gT, dP, dW, dT) = line.split(' ')
+    if gT in LMTZR_TAG_MAP:
+        gW = lmtzr.lemmatize(gW, pos=LMTZR_TAG_MAP[gT]) 
+        gT = NEW_TAG_MAP[gT]
+    if dT in LMTZR_TAG_MAP:
+        dW = lmtzr.lemmatize(dW, pos=LMTZR_TAG_MAP[dT]) 
+        dT = NEW_TAG_MAP[dT]
+    
+    newLine = '%s %s %s %s %s %s %s' %(rel, gP, gW, gT, dP, dW, dT)
+    return newLine
+
