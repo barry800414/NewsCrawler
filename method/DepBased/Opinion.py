@@ -35,83 +35,95 @@ class Opinion():
         if self.wVolc == None:
             return
         if self.opnW != None:
-            self.opn = str(self.wVolc[self.opnW]) if self.opnW in self.wVolc else None
+            self.opn = self.wVolc[self.opnW] if self.opnW in self.wVolc else None
         if self.hdW != None:
-            self.hd = str(self.wVolc[self.hdW]) if self.hdW in self.wVolc else None
+            self.hd = self.wVolc[self.hdW] if self.hdW in self.wVolc else None
         if self.tgW != None:
-            self.tg = str(self.wVolc[self.tgW]) if self.tgW in self.wVolc else None
+            self.tg = self.wVolc[self.tgW] if self.tgW in self.wVolc else None
 
     # negSep=True: divide opinion+/opinion- into to different tuple
     # |O|x|H|x|T|(x2)
     def getKeyHOT(self, negSep=False):
-        #if self.opn == None or self.hd == None or self.tg == None:
-        #    return None
+        if self.opn == None or self.hd == None or self.tg == None:
+            return None
         if negSep:
-            key = 'HOT_%s_%s^%d_%s' % (self.hd, self.opn, 
-                    self.sign, self.tg)
+            key = ('HOT', self.hd, self.opn, 'sign' + str(self.sign), self.tg)
+            #key = 'HOT_%s_%s^%d_%s' % (self.hd, self.opn, 
+            #        self.sign, self.tg)
             return (key, 1)
         else:
-            key = 'HOT_%s_%s_%s' % (self.hd, self.opn, self.tg)
+            key = ('HOT', self.hd, self.opn, self.tg)
+            #key = 'HOT_%s_%s_%s' % (self.hd, self.opn, self.tg)
             return (key, self.sign)
 
     # |H|x|T|(x2)
     def getKeyHT(self, sentiDict, negSep=False):
-        #if self.hd == None or self.opn == None or self.tg == None or sentiDict == None:
-        #    return None
+        if self.hd == None or self.opn == None or self.tg == None or sentiDict == None:
+            return None
         sign = self.getSign(sentiDict)
         if negSep:
-            key = 'HT_%s_^%d_%s' % (self.hd, sign, self.tg)
+            key = ('HT', self.hd, 'sign' + str(sign), self.tg)
+            #key = 'HT_%s_^%d_%s' % (self.hd, sign, self.tg)
             return (key, 1)
         else:
-            key = 'HT_%s_%s' % (self.hd, self.tg)
+            key = ('HT', self.hd, self.tg)
+            #key = 'HT_%s_%s' % (self.hd, self.tg)
             return (key, sign)
 
 
     # |H|x|T|(x2)
     def getKeyHO(self, negSep=False):
-        #if self.hd == None or self.opn == None or self.tg == None:
-        #    return None
+        if self.hd == None or self.opn == None or self.tg == None:
+            return None
         if negSep:
-            key = 'HO_%s_%s^%d' % (self.hd, self.sign, self.opn)
+            key = ('HO', self.hd, 'sign' + str(self.sign), self.opn)
+            #key = 'HO_%s_%s^%d' % (self.hd, self.sign, self.opn)
             return (key, 1)
         else:
-            key = 'HO_%s_%s' % (self.hd, self.opn)
+            key = ('HO', self.hd, self.opn)
+            #key = 'HO_%s_%s' % (self.hd, self.opn)
             return (key, self.sign)
 
 
     # |H|(x2)
     def getKeyH(self, sentiDict, negSep=False):
-        #if self.hd == None or self.opn == None or sentiDict == None:
-        #    return None
+        if self.hd == None or self.opn == None or sentiDict == None:
+            return None
         sign = self.getSign(sentiDict)
         if negSep:
-            key = 'H_%s^%d' % (self.hd, sign)
+            key = ('H', self.hd, 'sign' + str(sign))
+            #key = 'H_%s^%d' % (self.hd, sign)
             return (key, 1)
         else:
-            key = 'H_%s' % (self.hd)
+            key = ('H', self.hd)
+            #key = 'H_%s' % (self.hd)
             return (key, sign)
     
     # |O|x|T|(x2)
     def getKeyOT(self, negSep=False):
-        #if self.opn == None or self.target == None or sentiDict == None:
-        #    return None
+        if self.opn == None or self.tg == None:
+            return None
         if negSep:
-            key = 'OT_%s^%d_%s' % (self.opn, self.sign, self.tg)
+            key = ('OT', self.opn, 'sign' + str(self.sign), self.tg)
+            #key = 'OT_%s^%d_%s' % (self.opn, self.sign, self.tg)
             return (key, 1)
         else:
-            key = 'OT_%s_%s' % (self.opn, self.tg)
+            key = ('OT', self.opn, self.tg)
+            #key = 'OT_%s_%s' % (self.opn, self.tg)
             return (key, self.sign)
 
     # |T|(x2)
     def getKeyT(self, sentiDict, negSep=False):
-        #if self.opn == None or self.target == None or sentiDict == None:
-        #    return None
+        if self.opn == None or self.tg == None or sentiDict == None:
+            return None
         sign = self.getSign(sentiDict)
         if negSep:
-            key = 'T_%s^%d' % (self.tg, sign)
+            key = ('T', self.tg, 'sign' + str(sign))
+            #key = 'T_%s^%d' % (self.tg, sign)
             return (key, 1)
         else:
-            key = 'T_%s' % (self.tg)
+            key = ('T', self.tg)
+            #key = 'T_%s' % (self.tg)
             return (key, sign)
         
     def getSign(self, sentiDict=None):

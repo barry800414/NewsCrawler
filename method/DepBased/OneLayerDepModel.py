@@ -6,9 +6,12 @@ from collections import defaultdict
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from sklearn.grid_search import ParameterGrid
 
-import WFMapping
-from DepTree import DepTree
+from DepTree import *
+from PhraseDepTree import *
+from RunExperiments import *
+from misc import *
 from Volc import Volc
 from misc import *
 
@@ -27,7 +30,7 @@ Date: 2015/05/08
 '''
 
 class OneLayerDepModel():
-    # parsedLabelNews: The list of parsed label-news
+    # depParsedLabelNews: The list of parsed label-news
     # if allowedSeedWordType = '[t][w]':
     #   allowedSeedWord[T][P]: a set of allowed words with `P` POS-Tag in topic T 
     # elif allowedSeedWordType = 'word':
@@ -38,20 +41,19 @@ class OneLayerDepModel():
     # allowedFirstLayerWord is similar to allowedSeedWord
     #
     # wVolc: word vocabulary
-    def __init__(self, parsedLabelNews, wVolc=None):
-        self.pln = parsedLabelNews
+    def __init__(self, depParsedLabelNews, topicPhraseList=None, wVolc=None):
+        self.pln = depParsedLabelNews
+        self.topicPhraseList = topicPhraseList
         self.wVolc = wVolc # word vocabulary
-        self.volc = None # pair vocabulary
         self.init()
         
     def init(self):
-        self.setModelFlag = False
         # the list to store the dependency trees of each doc
         # self.corpusDTList[i]: (topicId of doc i, the dep tree list of doc i)
         self.corpusDTList = list()
         for i, labelNews in enumerate(self.pln):
-            topicId = labelNews['statement_id'] # FIXME
-            contentDep = labelNews['news']['content_dep'] #TODO: title, content, statement
+            topicId = labelNews['statement_id'] 
+            contentDep = labelNews['news']['content_dep']
             newsDTList = list()
             for depList in contentDep:
                 # generate dependency graph for each dependency list
@@ -60,8 +62,8 @@ class OneLayerDepModel():
                     newsDTList.append(dg)
             self.corpusDTList.append((topicId, newsDTList))
             if (i+1) % 10 == 0:
-                print('%cProgress: (%d/%d)' % (13, i+1, len(self.pln)), end='', file=sys.stderr)
-
+                print('%cIntializing the model... Progress: (%d/%d)' % (13, i+1, len(self.pln)), end='', file=sys.stderr)
+        print('', file=sys.stderr)
     # the pair volcabulary 
     def getVolc(self):
         return self.volc
@@ -72,30 +74,35 @@ class OneLayerDepModel():
 
     # generate dependency tree from typed dependencies
     def getDepTree(self, tdList, topicId):
-        dt = DepTree(tdList)
-        if dt.isValid():
-            return dt
+        if self.topicPhraseList != None:
+            pdt = PhraseDepTree(tdList, self.topicPhraseList[topicId])
+            if pdt.isValid():
+                pdt.construct()
+                return pdt
+            else:
+                return None
         else:
-            return None
+            dt = DepTree(tdList)
+            if dt.isValid():
+                return dt
+            else:
+                return None
 
-    def setModel(self, allowedSeedWord, allowedSeedWordType, 
+    # generate X, y. Must call setModel in advance 
+    def genXY(self, allowedSeedWord, allowedSeedWordType, 
             allowedFirstLayerWord, allowedFirstLayerWordType, 
-            allowedRel, threshold=0, debugLevel=0, 
-            debugFile=sys.stderr):
+            allowedRel, minCnt=0, debugLevel=0, debugFile=sys.stderr):
         self.asw = allowedSeedWord
         self.aswType = allowedSeedWordType
         self.aflw = allowedFirstLayerWord
         self.aflwType = allowedFirstLayerWordType
         self.ar = allowedRel
-        self.threshold = threshold
+        self.minCnt = minCnt
         self.debugLevel = debugLevel
         self.debugFile = debugFile
         self.setModelFlag = True
+        self.volc = None # pair vocabulary
 
-    # generate X, y. Must call setModel in advance 
-    def genXY(self):
-        if self.setModelFlag == False:
-            return 
 
         # all retrieved edges in whole corpus
         corpusEdgeList = list()
@@ -118,56 +125,39 @@ class OneLayerDepModel():
 
         # build the volcabulary for pair
         volc = self.volc if self.volc != None else Volc()
-        wVolc = self.wVolc if self.wVolc != None else Volc()
-
+        wVolc = self.wVolc
+        
+        pairCntList = list()
         docF = defaultdict(int) # doc frequency for each pair
         for newsEdgeList in corpusEdgeList:
-            docPairSet = set()
-            for edgeList in newsEdgeList:
-                for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    wVolc.addWord(sW)
-                    wVolc.addWord(eW)
-                    pair = (wVolc[sW], wVolc[eW])
-                    #print('Pair:', pair, sW, eW)
-                    if pair not in volc:
-                        volc.addWord(pair)
-                        #volc[(sW,eW)] = len(volc)
-                    docPairSet.add(volc[pair])
-            for key in docPairSet:
-                docF[key] += 1        
+            pairCnt = self.extractPairs(newsEdgeList, wVolc, volc)
+            for key in pairCnt.keys():
+                docF[volc[key]] += 1
+            pairCntList.append(pairCnt)
 
         # if the doc frequency of that pair is less than or equal 
-        # to threshold, then discard it
-        print('before: pair volc size:', len(volc), file=sys.stderr)
-        if self.threshold != None:
-            docF = volc.shrinkVolcByDocF(docF, self.threshold)
-        print('after: pair volc size:', len(volc), file=sys.stderr)
-        # FIXME
-        if self.debugLevel > 0:
-            print('# distinct pairs: ', len(volc), file=sys.stderr)
-            for (sW, eW), index in volc.items():
-                print(sW, '/', eW, index, file=self.debugFile)
+        # to minCnt, then discard it
+        print('Pair volc size:', len(volc), end='', file=sys.stderr)
+        if self.minCnt != None:
+            docF = volc.shrinkVolcByDocF(docF, self.minCnt)
+        print('-> ', len(volc), file=sys.stderr)
 
         # converting all extraced dependencies to features X
         # Here the features are the word counts from each seed word, 
         # first layer word pair
-        XFeature = [defaultdict(int) for i in range(0, len(self.pln))]
-        for i, newsEdgeList in enumerate(corpusEdgeList):
-            for edgeList in newsEdgeList:
-                for rel,sP,sW,sT,eP,eW,eT in edgeList:
-                    pair = (wVolc[sW], wVolc[eW])
-                    if pair in volc:
-                        XFeature[i][volc[pair]] += 1
         
         rows = list()
         cols = list()
         entries = list()
-        for rowId, cntDict in enumerate(XFeature):
-            for colId, cnt in cntDict.items():
+        for rowId, pairCnt in enumerate(pairCntList):
+            for pairId, value in pairCnt.items():
+                if pairId not in volc:
+                    continue
+                colId = volc[pairId]
                 rows.append(rowId)
                 cols.append(colId)
-                entries.append(cnt)
-        numRow = len(XFeature)
+                entries.append(value)
+        numRow = len(pairCntList)
         numCol = len(volc)
         X = csr_matrix((entries, (rows, cols)), shape=(numRow, 
             numCol), dtype=np.float64)
@@ -179,88 +169,144 @@ class OneLayerDepModel():
 
         return (X, y)
 
+    def extractPairs(self, newsEdgeList, wVolc, volc):
+        pairCnt = defaultdict(int)
+        for edgeList in newsEdgeList:
+            for rel,sP,sW,sT,eP,eW,eT in edgeList:
+                if wVolc != None:
+                    wVolc.addWord(sW)
+                    wVolc.addWord(eW)
+                    pair = (wVolc[sW], wVolc[eW])
+                else:
+                    pair = (sW, eW)
+                if pair not in volc:
+                    volc.addWord(pair)
+                pairCnt[pair] += 1
+        return pairCnt
+
 
 # add a set of word to volcabulary
 def addWordSetToVolc(wordSet, volc):
     for w in wordSet:
         if w not in volc:
             volc.addWord(w)
-            #volc[w] = len(volc)
         
+# initialize allowed set. dictionary: word -> score
+def initAllowedSet(topicSet, config, dictionary=None):
+    if config['type'] == 'word': #using words in dictionary
+        allowedSet = { topicId: set(dictionary.keys()) for topicId in topicSet }
+    elif config['type'] == 'tag': #using tag
+        allowedSet = { topicId: set(config['allow']) for topicId in topicSet }
+    return allowedSet
 
-# temporally deprecated
+
+def genXY(oldm, params, topicSet, sentiDict):
+    print('generating one layer dependency features...', file=sys.stderr)
+    p = params
+    allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
+    allowedFirstLayerWord = initAllowedSet(topicSet, p['firstLayerType'], sentiDict)
+    allowedRel = { t: None for t in topicSet }
+    (X, y) = oldm.genXY(allowedSeedWord, p['seedWordType']['type'], 
+            allowedFirstLayerWord, p['firstLayerType']['type'], 
+            allowedRel, p['minCnt'])
+    volc = oldm.getVolc()
+    wVolc = oldm.getWordVolc()
+    assert X.shape[1] == len(volc)
+    return (X, y, volc, wVolc)
+
+def initOLDM(labelNewsList, topicPhraseList=None, wVolc=None):
+    oldm = OneLayerDepModel(labelNewsList, topicPhraseList, wVolc)
+    return oldm
+
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print('Usage:', sys.argv[0], 'parsedLabelNewsJson wordFrequencyMappingJson', file=sys.stderr)
+    if len(sys.argv) < 4:
+        print('Usage:', sys.argv[0], 'DepParsedLabelNewsJson ModelConfig SentiDictFile [-p phraseFile] [-v volcFile]', file=sys.stderr)
         exit(-1)
 
-    parsedLabelNewsJsonFile = sys.argv[1]
-    wordFrequencyMappingJsonFile = sys.argv[2]
+    depParsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
+    modelConfigFile = sys.argv[2]
+    sentiDictFile = sys.argv[3]
 
-    # load label-news
-    with open(parsedLabelNewsJsonFile, 'r') as f:
-        parsedLabelNews = json.load(f)
+    # load dependency parsed label news
+    with open(depParsedLabelNewsJsonFile, 'r') as f:
+        labelNewsList = json.load(f)
+    
+    # load model configs 
+    with open(modelConfigFile, 'r') as f:
+        config = json.load(f)
 
-    WFDict = WFMapping.loadWFDict(wordFrequencyMappingJsonFile)
+    # load sentiment dictionary
+    sentiDict = readSentiDict(sentiDictFile)
+
+    # load other files
+    topicPhraseList = None
+    wVolc = None
+    wVolcPrefix = ''
+    for i in range(4, len(sys.argv)):
+        if sys.argv[i] == '-p' and len(sys.argv) > i:
+            # load phrase file
+            phrasesJsonFile = sys.argv[i+1]
+            topicPhraseList = loadPhraseFile(phrasesJsonFile)
+            i = i + 1
+        elif sys.argv[i] == '-v' and len(sys.argv) > i:
+            # load word volcabulary file
+            wordVolcFile = sys.argv[i+1]
+            wVolcPrefix = getFileNamePrefix(wordVolcFile)
+            wVolc = Volc()
+            wVolc.load(wordVolcFile)
+            wVolc.lock() # lock the volcabulary, all new words are viewed as OOV
+            i = i + 1
+
+    # model parameters #FIXME: allowed relation
+    targetScore = config['setting']['targetScore']
+    randSeedList = config['setting']['randSeedList']
+    paramsIter = ParameterGrid(config['params'])
+    clfList = config['setting']['clfList']
+    modelName = config['setting']['modelName']
+    dataset = config['setting']['dataset']
 
     # get the set of all possible topic
-    topicSet = set()
-    for labelNews in parsedLabelNews:
-        topicSet.add(labelNews['statement_id'])
+    topicSet = set([ln['statement_id'] for ln in labelNewsList])
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
 
-    # model setting
-    seedWordPOSType = ['NN', 'NR'] 
-    firstLayerPOSType = ['VA', 'VV', 'JJ', 'AD']
-    thresList = [0.01, 0.005, 0.001, 0.0005, 0.00001]
+    ResultPrinter.printFirstLine()
 
-    '''
-    # all news are mixed to train and test
-    for threshold in thresList:
-        allowedSeedWord = dict() 
-        allowedFirstLayerWord = dict()
-        allowedRel = dict()
-        for topicId in topicSet:
-            allowedSeedWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], seedWordPOSType, threshold)
-            allowedFirstLayerWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], firstLayerPOSType, threshold)
-            allowedRel[topicId] = None
-            
-            for pos in seedWordPOSType:
-                print('#%s:%d' % (pos, len(allowedSeedWord[topicId][pos])), end='\t')
-            for pos in firstLayerPOSType:    
-                print('#%s:%d' % (pos, len(allowedFirstLayerWord[topicId][pos])), end='\t')
-            print('')
+    # intialize the model
+    #oldm = initOLDM(labelNewsList, topicPhraseList, wVolc)
+    toldm = { t: initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() if t == 2}
+ 
+    # ============= Run for self-train-test ===============
+    print('Self-Train-Test...', file=sys.stderr)
+    for t in topicSet:
+        if t != 2:
+            continue
+        bestR = None
+        for p in paramsIter:
+            (X, y, volc, wVolc) = genXY(toldm[t], p, topicSet, sentiDict)
+            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
+                    p, clfList, topicId=t, randSeedList=randSeedList, wVolc=wVolc)
+            bestR = keepBestResult(bestR, rsList, targetScore)
+        with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            pickle.dump(bestR, f)
 
-        # building the model
-        oldm = OneLayerDepModel(parsedLabelNews, allowedSeedWord, 
-            allowedFirstLayerWord, allowedRel)
-        (X, y) = oldm.genXY()
-    
-        MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'SVM'], 
-            prefix='Threshold=%f' % (threshold))
-    '''
-    # news are divided into different topic to train and test
-    labelNewsInTopic = divideLabel(parsedLabelNews)
-    for topicId, labelNewsList in labelNewsInTopic.items():
-        for threshold in thresList:
-            allowedSeedWord = dict() 
-            allowedFirstLayerWord = dict()
-            allowedRel = dict()
-            allowedSeedWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], seedWordPOSType, threshold)
-            allowedFirstLayerWord[topicId] = WFMapping.getAllowedWords(WFDict[topicId], firstLayerPOSType, threshold)
-            allowedRel[topicId] = None
-                
-            for pos in seedWordPOSType:
-                print('#%s:%d' % (pos, len(allowedSeedWord[topicId][pos])), end='\t')
-            for pos in firstLayerPOSType:    
-                print('#%s:%d' % (pos, len(allowedFirstLayerWord[topicId][pos])), end='\t')
-            print('')
+    # ============= Run for all-train-test & leave-one-test ================
+    print('All-Train-Test & Leave-One-Test...', file=sys.stderr)
+    bestR = None # for all-train-test
+    bestR2 = {t:None for t in topicSet}  # for leave-one-test
 
-            # building the model
-            oldm = OneLayerDepModel(labelNewsList, allowedSeedWord, 
-                allowedFirstLayerWord, allowedRel)
-            (X, y) = oldm.genXY()
-        
-            MLProcedure.runExperiments(X, y, clfList=['NaiveBayes', 'MaxEnt',  'SVM'], 
-                prefix='topicId=%d, Threshold=%f' % (topicId,threshold))
+    for p in paramsIter:
+        (X, y, volc, wVolc) = genXY(oldm, p, topicSet, sentiDict)
+        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
+                clfList, topicMap=topicMap, randSeedList=randSeedList, wVolc=wVolc)
+        bestR = keepBestResult(bestR, rsList, targetScore)
+        for t in topicSet:
+            rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+                    topicMap=topicMap, topicId=t, randSeedList=randSeedList, wVolc=wVolc)
+            bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
 
-    
+    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        pickle.dump(bestR, f)
+    for t in topicSet:
+        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            pickle.dump(bestR2[t], f)

@@ -50,6 +50,9 @@ class OpinionModel:
 
     def getVolc(self):
         return self.volc
+    
+    def getWordVolc(self):
+        return self.wVolc
 
     # keyTypeList: The list of key types to be used as opinion key ('HOT', 'HT', 'OT', 'HO', 'T', 'H')
     # opnNameList: The list of selected opinion name 
@@ -106,7 +109,8 @@ class OpinionModel:
         
         # update volcabulary
         self.volc = volc
-        
+        self.wVolc = wVolc
+
         return (X, y)
 
     # opnDict: a dictionary (opinion-type-name -> list of opinions)
@@ -121,9 +125,11 @@ class OpinionModel:
             for opn in opns:
                 for keyType in self.kTL:
                     for negSep in self.nSL:
-                        (key, value) = OpinionModel.getOpnKeyValue(opn, keyType, self.sD, negSep)
-                        opnCnt[key] += value
-                        volc.addWord(key)
+                        keyValue = OpinionModel.getOpnKeyValue(opn, keyType, self.sD, negSep)
+                        if keyValue != None:
+                            (key, value) = keyValue
+                            opnCnt[key] += value
+                            volc.addWord(key)
                         
         return opnCnt
         
@@ -195,7 +201,8 @@ def genXY(om, params, pTreeList, negPList=None, sentiDict=None, wVolc=None):
                 p['keyTypeList'], p['opnNameList'], p['negSepList'], 
                 p['minCnt'])
     volc = om.getVolc()
-    return (X, y, volc)
+    wVolc = om.getWordVolc()
+    return (X, y, volc, wVolc)
 
 if __name__ == '__main__':
     if len(sys.argv) < 6:
@@ -248,7 +255,7 @@ if __name__ == '__main__':
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-    labelNewsInTopic = divideLabel(labelNewsList)
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
 
     ResultPrinter.printFirstLine()
 

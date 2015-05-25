@@ -14,6 +14,7 @@ rVolc: index -> word string
 
 import sys
 from collections import defaultdict
+from misc import toStr
 
 class Volc:
     def __init__(self):
@@ -96,9 +97,9 @@ class Volc:
         wStr = ''
         for i, w in enumerate(self.rVolc[index]):
             if i != len(self.rVolc[index]) - 1:
-                wStr = wStr + w + ';'
+                wStr = wStr + toStr(w, ensure_ascii=False) + ';'
             else:
-                wStr = wStr + w
+                wStr = wStr + toStr(w, ensure_ascii=False)
         return wStr
 
     def getWordList(self, index):
@@ -147,6 +148,14 @@ class Volc:
 
     #FIXME: dealing with OOV problem
     def mergeVolc(volc1, volc2):
+        if volc1 == None:
+            if volc2 == None:
+                return None
+            else:
+                return volc2.copy()
+        else:
+            if volc2 == None:
+                return volc1.copy()
         newVolc = volc1.copy()
         offset = len(newVolc)
         for key, index in volc2.volc.items():
@@ -157,7 +166,6 @@ class Volc:
 
 def testCase():
     v = Volc()
-    
     v['aaa'] = 0
     v['bbb'] = 1
     v['ccc'] = 1
@@ -181,6 +189,10 @@ def testCase():
     print(v.volc)
     print(v.rVolc)
     print(len(v))
+
+    v2 = Volc()
+    
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

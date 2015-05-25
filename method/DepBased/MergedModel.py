@@ -10,12 +10,11 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.grid_search import ParameterGrid
 
 import WordModelImproved as WM
-import OneLayerPhraseDepModel as OLPDM
+import OneLayerDepModel as OLDM
 import OpinionModel as OM
 import TreePattern as TP
 import NegPattern as NP
 from PhraseDepTree import loadPhraseFile
-from sentiDictSum import readSentiDict
 from RunExperiments import *
 from Volc import Volc
 from misc import *
@@ -26,7 +25,6 @@ Author: Wei-Ming Chen
 Date: 2015/05/19
 '''
 
-#TODO: merge OLDM & OLPDM, mergeVolc, 
 def genXY(params, wm=None, oldm=None, om=None, labelNewsList=None, volc=None,
         topicSet=None, sentiDict=None, pTreeList=None, negPList=None):
     assert len(params) >= 2
@@ -36,20 +34,22 @@ def genXY(params, wm=None, oldm=None, om=None, labelNewsList=None, volc=None,
         X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], volc)    
     if 'OLDM' in params: 
         assert oldm != None and topicSet != None and sentiDict != None
-        X_y_volc_Dict['OLDM'] = OLPDM.genXY(oldm, params['OLDM']['model settings'], topicSet, sentiDict)
+        X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], topicSet, sentiDict)
     if 'OM' in params:
         assert om != None and pTreeList != None and negPList != None
         X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
     
-    (mX, my, mVolc) = mergeXY(X_y_volc_Dict)
-    return (mX, my, mVolc)
+    (mX, my, mVolc, wVolc) = mergeXY(X_y_volc_Dict)
+    assert mX.shape[1] == len(mVolc)
+    return (mX, my, mVolc, wVolc)
 
 # merge features
 def mergeXY(X_y_volc_Dict):
     mX = None
     my = None
     mVolc = None
-    for key, (X, y, volc) in X_y_volc_Dict.items():
+    mWVolc = None
+    for key, (X, y, volc, wVolc) in X_y_volc_Dict.items():  
         print('%s: X:(%d, %d)' % (key, X.shape[0], X.shape[1]), file=sys.stderr)
         mX = X if mX == None else DataTool.hstack(mX, X)
         if my != None:
@@ -57,8 +57,10 @@ def mergeXY(X_y_volc_Dict):
         else:
             my = y
         mVolc = volc if mVolc == None else Volc.mergeVolc(mVolc, volc)
+        mWVolc = wVolc if mWVolc == None else Volc.mergeVolc(mWVolc, wVolc)
+
     print('Final: X:(%d, %d)' % (mX.shape[0], mX.shape[1]), file=sys.stderr)
-    return (mX, my, mVolc)
+    return (mX, my, mVolc, wVolc)
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
@@ -136,7 +138,7 @@ if __name__ == '__main__':
     toldm = {t:None for t in topicSet}
     om = None 
     tom = {t:None for t in topicSet}
-    labelNewsInTopic = divideLabel(labelNewsList)
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
     if WMParamsJsonFile != None:
         print('initializing WordModel ...', file=sys.stderr)
         allParams['WM'] = Parameter.loadFrameworkTopicParams(WMParamsJsonFile)
@@ -144,13 +146,13 @@ if __name__ == '__main__':
     if OLDMParamsJsonFile != None:
         print('intializing OLDM ...', file=sys.stderr)
         allParams['OLDM'] = Parameter.loadFrameworkTopicParams(OLDMParamsJsonFile)
-        oldm = OLPDM.initOLDM(labelNewsList, topicPhraseList, wVolc)
-        toldm = { t: OLPDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() }
+        #oldm = OLDM.initOLDM(labelNewsList, topicPhraseList, wVolc)
+        toldm = { t: OLDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() if t == 2}
     if OMParamsJsonFile != None:
         print('initializing OM ...', file=sys.stderr)
         allParams['OM'] = Parameter.loadFrameworkTopicParams(OMParamsJsonFile)
-        om = OM.initOM(labelNewsList, topicPhraseList)
-        tom = { t: OM.initOM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() }
+        #om = OM.initOM(labelNewsList, topicPhraseList)
+        tom = { t: OM.initOM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() if t == 2}
     
     # print result of first Line
     ResultPrinter.printFirstLine()
@@ -159,14 +161,16 @@ if __name__ == '__main__':
     
     print('Self-Train-Test...', file=sys.stderr)
     for t in topicSet:
+        if t != 2:
+            continue
         bestR = None
         paramsIter = Parameter.getParamsIter(allParams, framework='SelfTrainTest', topicId=t)
         for p in paramsIter:
-            (X, y, volc) = genXY(p, wm, toldm[t], tom[t], 
+            (X, y, volc, mWVolc) = genXY(p, wm, toldm[t], tom[t], 
                     labelNewsInTopic[t], wVolc, topicSet, 
                     sentiDict, pTreeList, negPList)
             rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
-                    p, clfList, topicId=t, randSeedList=randSeedList)
+                    p, clfList, topicId=t, randSeedList=randSeedList, wVolc=mWVolc)
             bestR = keepBestResult(bestR, rsList, targetScore)
         with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
             dataset, wVolcPrefix, t), 'w+b') as f:
@@ -179,11 +183,11 @@ if __name__ == '__main__':
     
     paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
     for p in paramsIter:
-        (X, y, volc) = genXY(p, wm, oldm, om, labelNewsList, 
+        (X, y, volc, mWVolc) = genXY(p, wm, oldm, om, labelNewsList, 
                 wVolc, topicSet, sentiDict, pTreeList, negPList)
 
         rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
-                clfList, topicMap=topicMap, randSeedList=randSeedList)
+                clfList, topicMap=topicMap, randSeedList=randSeedList, wVolc=mWVolc)
         bestR = keepBestResult(bestR, rsList, targetScore)
     with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
         pickle.dump(bestR, f)
@@ -194,11 +198,11 @@ if __name__ == '__main__':
         bestR = None
         paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
         for p in paramsIter:
-            (X, y, volc) = genXY(p, wm, oldm, om, labelNewsList, wVolc, 
+            (X, y, volc, mWVolc) = genXY(p, wm, oldm, om, labelNewsList, wVolc, 
                     topicSet, sentiDict, pTreeList, negPList)
 
             rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                    topicMap=topicMap, topicId=t, randSeedList=randSeedList)
+                    topicMap=topicMap, topicId=t, randSeedList=randSeedList, wVolc=mWVolc)
             bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
         with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(
             modelName, dataset, wVolcPrefix, t), 'w+b') as f:
@@ -216,7 +220,7 @@ if __name__ == '__main__':
     mainProcedure(labelNewsList, paramsIter, clfList, allowedFirstLayerWord, 
         allowedRel, topicMap=topicMap, topicId=None)
 
-    topicLabelNewsList = dataTool.divideLabel(labelNewsList)
+    topicLabelNewsList = dataTool.divideLabelNewsByTopic(labelNewsList)
     for topicId, labelNewsList in topicLabelNewsList.items():
         mainProcedure(labelNewsList, paramsIter, clfList, allowedFirstLayerWord, 
         allowedRel, topicMap=None, topicId=topicId)

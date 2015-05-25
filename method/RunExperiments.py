@@ -11,6 +11,7 @@ from numpy.matrixlib.defmatrix import matrix
 from scipy.sparse import csr_matrix, hstack, vstack
 
 from sklearn import svm, cross_validation, grid_search
+from sklearn import preprocessing
 from sklearn.grid_search import GridSearchCV, ParameterGrid
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
@@ -195,7 +196,7 @@ class RunExp:
     # higher layer function for running task
     # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
     def runTask(X, y, volc, taskType, params, clfList, topicMap=None, 
-        topicId=None, randSeedList=[1], targetScore='MacroF1'):
+        topicId=None, randSeedList=[1], targetScore='MacroF1', wVolc=None):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
         
         rsList = list()
@@ -208,6 +209,7 @@ class RunExp:
                     return None
                 for r in rs:
                     r['volc'] = volc
+                    r['wVolc'] = wVolc
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params
@@ -221,6 +223,7 @@ class RunExp:
                     return None
                 for r in rs:
                     r['volc'] = volc
+                    r['wVolc'] = wVolc
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params
@@ -234,6 +237,7 @@ class RunExp:
                     return None
                 for r in rs[topicId]:
                     r['volc'] = volc
+                    r['wVolc'] = wVolc
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params
@@ -486,6 +490,45 @@ class DataTool:
                     nowPos += 1
                 print('', file=outfile)
     
+    # preprocessing the feature matrix (including standardization, 
+    # minMax scaling, normalization and binarization)
+    def preprocessX(X, method, params):
+        success = False
+        # standardization: transforming each column(feature) to zero-mean, std=1
+        if method in ['std', 'standardization']:
+            print('Using standardization ...', file=sys.stderr)
+            preX = preprocessing.scale(X)
+            success = True
+        # minMax scaling: transforming each column(feature) to [a, b]
+        # (usually [-1, 1] or [0, 1])
+        elif method in ['minmax', 'minMax']:
+            if 'feature_range' in params:
+                print('Using MinMax scaling to', params['feature_range'], file=sys.stderr)
+                scaler = preprocessing.MinMaxScaler(params['feature_range'])
+                preX = scaler.fit_transform(X)
+                success = True
+        # normalization: transforming scaling each row(an instance) to fixed length 
+        # (usually L1-norm or L2-norm to length 1)
+        elif method == ['norm', 'normalization']:
+            if 'norm' in params:
+                print('Using normalization (%s)' % (params['norm']), file=sys.stderr)
+                preX = preprocessing.normalize(X, norm=params['norm'])
+                success = True
+        # binarization: transforming each entry to 0 or 1 by given threshold
+        elif method == ['0/1', 'binary', 'binarization']:
+            if 'threshold' in params:
+                binarizer = preprocessing.Binarizer(threshold=params['threshold'])
+                preX = binarizer.transform(X)
+                success = True
+        else:
+            print('Preprocessing method not found', file=sys.stderr)
+        
+        if not sucess:
+            print('preprocessing X failed', file=sys.stderr)
+            assert 1 == 0
+
+        return preX
+
 # The class for providing function to do machine learning procedure
 class ML:
     def train(XTrain, yTrain, clfName, scorer, randSeed=1):
@@ -698,6 +741,7 @@ class Evaluator:
         macroR = recall_score(yTrue, yPredict, average='macro')
         return { "Accuracy": accu, "ConfusionMatrix": cm, "MacroF1": macroF1, 
                  "MacroR": macroR }
+
 
     def avgTopicResults(topicResults, weights):
         if topicResults == None or len(topicResults) == 0:

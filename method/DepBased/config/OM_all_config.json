@@ -2,8 +2,8 @@
     "params":{ 
         "keyTypeList": [["H", "T", "HT", "HOT", "OT", "HO"]],
         "opnNameList": [null],
-        "negSepList": [[false]],
-        "minCnt": [2, 5, 10]
+        "negSepList": [[false], [true], [true, false]],
+        "minCnt": [2, 4, 6, 8, 10]
     },
     "setting":{
         "targetScore": "MacroF1",

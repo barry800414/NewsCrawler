@@ -165,10 +165,8 @@ def genXY(labelNewsList, wm, params, volc=None):
     (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volc=volc, 
             allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
     volc = wm.getVolc()
-    #print('X.shape:', X.shape)
-    #print('volcSize:', len(volc))
     assert X.shape[1] == len(volc)
-    return (X, y, volc)
+    return (X, y, volc, Volc())
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -204,7 +202,7 @@ if __name__ == '__main__':
     # get the set of all possible topic
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-    labelNewsInTopic = divideLabel(labelNewsList)
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
 
     # print first line of results
     ResultPrinter.printFirstLine()
