@@ -53,7 +53,7 @@ class RunExp:
             (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
                     yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
             
-            if XTest == None or yTest == None:
+            if XTest is None or yTest is None:
                 result = { 'valScore': bestValScore, scorerName: 0.0 }
             else:
                 # testing 
@@ -63,7 +63,7 @@ class RunExp:
                 result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
                 result['valScore'] = bestValScore
             
-            if modelDir != None:
+            if modelDir is not None:
                 filename = dumpModel(modelDir, clf)
             else:
                 filename = None
@@ -113,7 +113,7 @@ class RunExp:
                     yTrain, clfName, scorerName, trainMap, randSeed=randSeed, n_folds=3)
             #print('Done', file=sys.stderr)
 
-            if XTest == None or yTest == None:
+            if XTest is None or yTest is None:
                 result = { 'valScore': bestValScore, scorerName: 0.0 }
             else:
                 # testing 
@@ -123,11 +123,11 @@ class RunExp:
                 yTestPredict = ML.test(XTest, clf)
 
                 # evaluation
-                (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap, scorerName)
+                (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap, scorerName=scorerName)
                 avgR['valScore'] = bestValScore
                 #print('Done', file=sys.stderr)
 
-            if modelDir != None:
+            if modelDir is not None:
                 filename = dumpModel(modelDir, clf)
             else:
                 filename = None
@@ -157,7 +157,7 @@ class RunExp:
 
         # N-1 topics are as training data, 1 topic is testing
         # if the test topic id is given, then only test it
-        if testTopic == None:
+        if testTopic is None:
             testTopic = list(topicList)
         
         returnObj = dict()
@@ -173,7 +173,7 @@ class RunExp:
                         yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
                 #print('Done', file=sys.stderr)
                 
-                if XTest == None or yTest == None:
+                if XTest is None or yTest is None:
                     result = { 'valScore': bestValScore, scorerName: 0.0 }
                 else:
                     # testing 
@@ -185,7 +185,7 @@ class RunExp:
                     result['valScore'] = bestValScore
                     #print('Done', file=sys.stderr)
 
-                if modelDir != None:
+                if modelDir is not None:
                     filename = dumpModel(modelDir, clf)
                 else:
                     filename = None
@@ -210,7 +210,7 @@ class RunExp:
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
                         randSeed=randSeed, testSize=testSize, n_folds=n_folds, prefix=prefix)
-                if rs == None:
+                if rs is None:
                     return None
                 for r in rs:
                     r['volc'] = volc
@@ -224,7 +224,7 @@ class RunExp:
                 rs = RunExp.allTrainTest(X, y, topicMap, clfList, targetScore, 
                         randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
                         prefix=prefix)
-                if rs == None:
+                if rs is None:
                     return None
                 for r in rs:
                     r['volc'] = volc
@@ -238,7 +238,7 @@ class RunExp:
                 rs = RunExp.leaveOneTest(X, y, topicMap, clfList, targetScore, 
                         randSeed=randSeed, testTopic=[topicId], n_folds=n_folds,
                         prefix=prefix)
-                if rs == None:
+                if rs is None:
                     return None
                 for r in rs[topicId]:
                     r['volc'] = volc
@@ -398,7 +398,7 @@ class DataTool:
     # for each topic, do stratified K fold, and then merge them
     def topicStratifiedKFold(yTrain, trainMap, n_folds, randSeed=1):
         assert n_folds > 1
-        print('n_folds:',n_folds) 
+        print('n_folds:', n_folds, end='', file=sys.stderr) 
         ySet = set(yTrain)
         
         # divide data by topic
@@ -521,13 +521,13 @@ class DataTool:
                 success = True
         # normalization: transforming scaling each row(an instance) to fixed length 
         # (usually L1-norm or L2-norm to length 1)
-        elif method == ['norm', 'normalization']:
+        elif method in ['norm', 'normalization']:
             if 'norm' in params:
                 print('Using normalization (%s)' % (params['norm']), file=sys.stderr)
                 preX = preprocessing.normalize(X, norm=params['norm'])
                 success = True
         # binarization: transforming each entry to 0 or 1 by given threshold
-        elif method == ['0/1', 'binary', 'binarization']:
+        elif method in ['0/1', 'binary', 'binarization']:
             if 'threshold' in params:
                 binarizer = preprocessing.Binarizer(threshold=params['threshold'])
                 preX = binarizer.transform(X)
@@ -598,7 +598,7 @@ class ML:
         paramsGrid = ParameterGrid(parameters)
         
         out = Parallel(n_jobs=n_jobs)(delayed(topicGSCV_oneTask)(clone(clf), 
-            params, k, train, test, XTrain, yTrain, foldTopicMap[k]) 
+            params, scorerName, k, train, test, XTrain, yTrain, foldTopicMap[k]) 
                 for params in paramsGrid 
                 for k, (train, test) in enumerate(kfold))
 
@@ -611,7 +611,7 @@ class ML:
             for r in out[grid_start:grid_start + n_folds]:
                 avgScore += r['avgR'][scorerName]
             avgScore /= n_folds
-            if bestScore == None or avgScore > bestScore:
+            if bestScore is None or avgScore > bestScore:
                 bestScore = avgScore
                 bestParams = out[grid_start]['params']
         
@@ -663,13 +663,45 @@ class ML:
 
         return (clf, parameters) 
 
+    # feature selection 
+    def fSelect(XTrain, yTrain, method, params, clf=None, scorer=None):
+        if method in ["chi", "chi-square"]:
+            if 'top_k' in params:
+                print('Selecting features with top %d chi-square value ...', params['top_k'], file=sys.stderr) 
+                selector = SelectKBest(chi2, k=params['top_k']).fit(XTrain, yTrain)
+                newX = selector.transform(XTrain)
+            elif 'percentage' in params:
+                print('Selecting %d%% features with top chi-square value ...', params['percentage'], file=sys.stderr)
+                selector = SelectPercentile(chi2, percentile=params['percentage']).fit(XTrain, yTrain)
+                newX = selector.transform(XTrain)
+        elif method in ["rfe", "RFE", 'RecursiveFeatureElimination']:
+            if 'n_features_to_select' in params and 'step' in params:
+                selector = RFE(clf, params['n_features_to_select'], step=params['step']).fit(XTrain, yTrain)
+                newX = selector.transform(XTrain)
+        elif method in ['LinearSVM', 'LinearSVC']:
+            if 'C' in params:
+                selector = LinearSVC(C=params['C'], penalty="l1", dual=False).fit(XTrain, yTrain)
+                newX = selector.transform(XTrain)
+        elif method in ['rf', 'RF', 'RandomForest']:
+            selector = RandomForestClassifier().fit(XTrain, yTrain)
+            newX = selector.transform(XTrain)
+        return (newX, selector)
+
+    # using cross-validation to do feature selection
+    def fSelectCV(XTrain, yTrain, clfName, params):
+        pass
+        #return (clfGS.best_estimator_, clfGS.best_params_, )
+
+
+            
+
 def topicGSCV_oneTask(clf, params, scorerName, k, train, test, XTrain, yTrain, foldTopicMapAtK):
     clf.set_params(**params)
     clf.fit(XTrain[train], yTrain[train])
     yPredict = clf.predict(XTrain[test])
     #print('yPredict:', len(yPredict))
     #print('yTrain[test]:', len(yTrain[test]))
-    (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK, scorerName)
+    (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK, scorerName=scorerName)
     return {'params': params, 'avgR': avgR, 'k': k }
 
 
@@ -707,7 +739,7 @@ class Evaluator:
             topicResults[t] = r
     
         # calculate average metric for all topics
-        if topicWeights == None: # default: equal weight
+        if topicWeights is None: # default: equal weight
             topicWeights = { t: 1.0/len(topicSet) for t in topicSet }
         avgR = Evaluator.avgTopicResults(topicResults, topicWeights)
         
@@ -732,18 +764,18 @@ class Evaluator:
         return { scorerName: score }
     
     def avgTopicResults(topicResults, weights):
-        if topicResults == None or len(topicResults) == 0:
+        if topicResults is None or len(topicResults) == 0:
             return None
         cnt = 0
         avgScore = defaultdict(float)
         for t, r in topicResults.items():
             for scorerName in r.keys():
-                avgScore[avgScore] += weights[t] * r[scorerName]
+                avgScore[scorerName] += weights[t] * r[scorerName]
         
         return dict(avgScore)
 
     def makeScorer(scorerName, topicMap=None):
-        if topicMap == None:
+        if topicMap is None:
             return scorerMap[scorerName]
         else:
             return make_scorer(Evaluator.topicMacroF1Scorer, 
@@ -752,7 +784,7 @@ class Evaluator:
     def topicMacroF1Scorer(yTrue, yPredict, **kwargs):
         assert 'topicMap' in set(kwargs.keys())
         topicMap = kwargs['topicMap']
-        (topicResult, avgR) = Evaluator.topicEvaluate(yPredict, yTrue, topicMap, scorerName)
+        (topicResult, avgR) = Evaluator.topicEvaluate(yPredict, yTrue, topicMap, scorerName=scorerName)
         return avgR['MacroF1']
 
 class ResultPrinter:
@@ -775,17 +807,17 @@ class ResultPrinter:
 
 # nowBestR: now best result
 def keepBestResult(nowBestR, nextRSList, scorerName, largerIsBetter=True, topicId=None):
-    if nextRSList == None:
+    if nextRSList is None:
         return nowBestR
     
-    if nowBestR == None:
+    if nowBestR is None:
         nowScore = -1.0
     else:
         nowScore = nowBestR['result'][scorerName]
     for rs1 in nextRSList: 
-        if rs1 == None:
+        if rs1 is None:
             continue
-        if topicId != None:
+        if topicId is not None:
             rs = rs1[topicId]
         else:
             rs = rs1

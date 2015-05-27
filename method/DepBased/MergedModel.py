@@ -31,13 +31,13 @@ def genXY(params, preprocess, wm=None, oldm=None, om=None,
     assert len(params) >= 2
     X_y_volc_Dict = dict()
     if 'WM' in params: 
-        assert wm != None and labelNewsList != None
+        assert wm is not None and labelNewsList is not None
         X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], preprocess, volc)    
     if 'OLDM' in params: 
-        assert oldm != None and topicSet != None and sentiDict != None
+        assert oldm is not None and topicSet is not None and sentiDict is not None
         X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], preprocess, topicSet, sentiDict)
     if 'OM' in params:
-        assert om != None and pTreeList != None and negPList != None
+        assert om is not None and pTreeList is not None and negPList is not None
         X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], preprocess, pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
     
     (mX, my, mVolc, wVolc) = mergeXY(X_y_volc_Dict)
@@ -52,13 +52,13 @@ def mergeXY(X_y_volc_Dict):
     mWVolc = None
     for key, (X, y, volc, wVolc) in X_y_volc_Dict.items():  
         print('%s: X:(%d, %d)' % (key, X.shape[0], X.shape[1]), file=sys.stderr)
-        mX = X if mX == None else DataTool.hstack(mX, X)
-        if my != None:
+        mX = X if mX is None else DataTool.hstack(mX, X)
+        if my is not None:
             assert np.array_equal(my, y)
         else:
             my = y
-        mVolc = volc if mVolc == None else Volc.mergeVolc(mVolc, volc)
-        mWVolc = wVolc if mWVolc == None else Volc.mergeVolc(mWVolc, wVolc)
+        mVolc = volc if mVolc is None else Volc.mergeVolc(mVolc, volc)
+        mWVolc = wVolc if mWVolc is None else Volc.mergeVolc(mWVolc, wVolc)
 
     print('Final: X:(%d, %d)' % (mX.shape[0], mX.shape[1]), file=sys.stderr)
     return (mX, my, mVolc, wVolc)
@@ -116,18 +116,30 @@ if __name__ == '__main__':
     # load labels and news 
     print('Loading labels and news ...', file=sys.stderr)
     with open(labelNewsJson, 'r') as f:
-        labelNewsList = json.load(f)  
+        labelNewsList = json.load(f)
     # load model config
     print('Reading merged model config ...', file=sys.stderr)
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
+    # sample document if neccessary
+    if 'sampling' in config['setting']:
+        c = config['setting']['sampling']
+        labelNewsList = sampleDoc(labelNewsList, 
+                c['docNumForEachTopic'], c['randSeed'])
+        printStatInfo(labelNewsList)
+
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
+
+    toRun = config['setting']['toRun']
     targetScore = config['setting']['targetScore']
     randSeedList = config['setting']['randSeedList']
+    testSize = config['setting']['testSize']
+    n_folds = config['setting']['n_folds']
     clfList = config['setting']['clfList']
     modelName = config['setting']['modelName']
     dataset = config['setting']['dataset']
+    preprocess = config['setting']['preprocess']
 
     topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
@@ -140,74 +152,85 @@ if __name__ == '__main__':
     om = None 
     tom = {t:None for t in topicSet}
     labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
-    if WMParamsJsonFile != None:
+    if WMParamsJsonFile is not None:
         print('initializing WordModel ...', file=sys.stderr)
         allParams['WM'] = Parameter.loadFrameworkTopicParams(WMParamsJsonFile)
         wm = WM.initWM()
-    if OLDMParamsJsonFile != None:
+    if OLDMParamsJsonFile is not None:
         print('intializing OLDM ...', file=sys.stderr)
         allParams['OLDM'] = Parameter.loadFrameworkTopicParams(OLDMParamsJsonFile)
-        #oldm = OLDM.initOLDM(labelNewsList, topicPhraseList, wVolc)
-        toldm = { t: OLDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items() if t == 2}
-    if OMParamsJsonFile != None:
+        if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
+            oldm = OLDM.initOLDM(labelNewsList, topicPhraseList, wVolc)
+        if 'SelfTrainTest' in toRun:
+            toldm = { t: OLDM.initOLDM(ln, topicPhraseList, wVolc) for t, ln in labelNewsInTopic.items()}
+    if OMParamsJsonFile is not None:
         print('initializing OM ...', file=sys.stderr)
         allParams['OM'] = Parameter.loadFrameworkTopicParams(OMParamsJsonFile)
-        #om = OM.initOM(labelNewsList, topicPhraseList)
-        tom = { t: OM.initOM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() if t == 2}
+        if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
+            om = OM.initOM(labelNewsList, topicPhraseList)
+        if 'SelfTrainTest' in toRun:
+            tom = { t: OM.initOM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items()}
     
     # print result of first Line
     ResultPrinter.printFirstLine()
 
     # ============= Run for self-train-test ===============
-    
-    print('Self-Train-Test...', file=sys.stderr)
-    for t in topicSet:
-        if t != 2:
-            continue
-        bestR = None
-        paramsIter = Parameter.getParamsIter(allParams, framework='SelfTrainTest', topicId=t)
-        for p in paramsIter:
-            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, toldm[t], tom[t], 
-                    labelNewsInTopic[t], wVolc, topicSet, 
-                    sentiDict, pTreeList, negPList)
-            rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', 
-                    p, clfList, topicId=t, randSeedList=randSeedList, wVolc=mWVolc)
-            bestR = keepBestResult(bestR, rsList, targetScore)
-        with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
-            dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR, f)
+    if 'SelfTrainTest' in toRun:
+        print('Self-Train-Test...', file=sys.stderr)
+        for t in topicSet:
+            #if t != 2:
+            #    continue
+            bestR = None
+            paramsIter = Parameter.getParamsIter(allParams, framework='SelfTrainTest', topicId=t)
+            for p in paramsIter:
+                (X, y, volc, mWVolc) = genXY(p, preprocess, wm, toldm[t], tom[t], 
+                        labelNewsInTopic[t], wVolc, topicSet, 
+                        sentiDict, pTreeList, negPList)
+                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, topicId=t, 
+                        wVolc=mWVolc)
+                bestR = keepBestResult(bestR, rsList, targetScore)
+            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
+                dataset, wVolcPrefix, t), 'w+b') as f:
+                pickle.dump(bestR, f)
     
     # ============= Run for all-train-test ================
-    
-    print('All-Train-Test ...', file=sys.stderr)
-    bestR = None # for all-train-test
-    
-    paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
-    for p in paramsIter:
-        (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, labelNewsList, 
-                wVolc, topicSet, sentiDict, pTreeList, negPList)
-
-        rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, 
-                clfList, topicMap=topicMap, randSeedList=randSeedList, wVolc=mWVolc)
-        bestR = keepBestResult(bestR, rsList, targetScore)
-    with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
-        pickle.dump(bestR, f)
+    if 'AllTrainTest' in toRun:
+        print('All-Train-Test ...', file=sys.stderr)
+        bestR = None # for all-train-test
+        
+        paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
+        for p in paramsIter:
+            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, labelNewsList, 
+                    wVolc, topicSet, sentiDict, pTreeList, negPList)
+            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, 
+                        topicMap=topicMap, wVolc=mWVolc)
+            bestR = keepBestResult(bestR, rsList, targetScore)
+            
+        with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+            pickle.dump(bestR, f)
     
     
     # ============ Leave-One-Test ===============
-    for t in topicSet:
-        bestR = None
-        paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
-        for p in paramsIter:
-            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, 
-                    labelNewsList, wVolc, topicSet, sentiDict, pTreeList, negPList)
+    if 'LeaveOneTest' in toRun:
+        for t in topicSet:
+            bestR = None
+            paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
+            for p in paramsIter:
+                (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, 
+                        labelNewsList, wVolc, topicSet, sentiDict, pTreeList, negPList)
+                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
+                        randSeedList, testSize, n_folds, targetScore, 
+                        topicMap=topicMap, topicId=t, wVolc=mWVolc)
+                bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
 
-            rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                    topicMap=topicMap, topicId=t, randSeedList=randSeedList, wVolc=mWVolc)
-            bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
-        with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(
-            modelName, dataset, wVolcPrefix, t), 'w+b') as f:
-            pickle.dump(bestR, f)
+            with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(
+                modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+                pickle.dump(bestR, f)
+
+
+
     '''
     # run all combination
     params = { 'feature': ['0/1', 'tf', 'tfidf'],

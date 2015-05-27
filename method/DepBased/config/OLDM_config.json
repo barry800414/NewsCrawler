@@ -10,10 +10,20 @@
         "minCnt": [2, 4, 6, 8, 10]
     },
     "setting":{
+        "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
         "targetScore": "MacroF1",
-        "clfList": ["MaxEnt", "NaiveBayes", "LinearSVM"],
+        "clfList": ["MaxEnt", "LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
-        "modelName": "OLDM_minCnt246810",
+        "preprocess": {
+            "method": "std",
+            "params": { 
+                "with_mean": false,
+                "with_std": true
+            }
+        },
+        "testSize": 0.2,
+        "n_folds": 3,
+        "modelName": "OLDM",
         "dataset": "zhtNews"
     }
 }

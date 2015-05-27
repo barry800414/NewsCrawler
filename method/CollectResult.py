@@ -70,7 +70,7 @@ def mergeRows(data, colNameMap, keyPrefixNum):
     newData = list()
     for key, dList in keyData.items():
         #print('key:', key)
-        print('num:', len(dList))
+        print(len(dList), end=',')
         #if len(dList) == 10:
         #    for d in dList:
         #        print(d)
@@ -182,8 +182,8 @@ if __name__ == '__main__':
     if len(sys.argv) == 6:
         keyPrefixNum = int(sys.argv[5])
         data = mergeRows(data, colNameMap, keyPrefixNum)
-    for d in data:
-        print(d)
+    #for d in data:
+    #    print(d)
 
     topicList = [2, 3, 4, 5, 6, 13, 16]
     firstN = 2
