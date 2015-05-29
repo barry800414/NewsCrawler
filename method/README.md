@@ -9,18 +9,15 @@ Please first edit mergeConfig.json to select the field you want. The use the com
 
 Word Model
 ------------------
-    python3 ./baseline/WordModelImproved.py taggedLabelNews.json [volcFile]
+    python3 ./baseline/WordModel.py TaggedLabelNewsJson modelConfigFile [volcFile]
     python3 ./baseline/WordModel.py ./engCorpus/taggedEngLabelNews.json ./baseline/config/EN_WM_config.json
 
 OneLayerDepModel
 ------------------
-    python3 ./DepBased/OneLayerDepModel.py OLPDM_labelNews.json
+    python3 ./DepBased/OneLayerDepModel.py DepParsedLabelNewsJson ModelConfig SentiDictFile [-p phraseFile] [-v volcFile]
     python3 ./DepBased/OneLayerDepModel.py ./engCorpus/depParsedLabelNews.json ./DepBased/config/EN_OLDM_config.json ./res/engDict.csv
 
-OneLayerPhraseDepModel 
-------------------
     python3 ./DepBased/ExtractPhrases.py ./zhtNewsData/constParsedNews.json ./DepBased/phrase.json
-    python3 ./DepBased/OneLayerPhraseDepModel.py DepParsedLabelNewsJson ModelConfig SentiDictFile [-p phraseFile] [-v volcFile]
     
 
 OpinionModel

@@ -17,6 +17,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, f1_score, recall_score, accuracy_score, make_scorer
+from sklearn.feature_selection import SelectKBest, SelectPercentile, RFE, chi2
 
 from sklearn.externals.joblib import Parallel, delayed
 from sklearn.base import clone
@@ -35,7 +36,7 @@ Date: 2015/03/29
 # class for providing frameworks for running experiments
 class RunExp:
     def selfTrainTest(X, y, clfList, scorerName, randSeed=1, testSize=0.2, 
-            n_folds=3, prefix='', outfile=sys.stdout, modelDir=None):
+            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -47,6 +48,13 @@ class RunExp:
         (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
                 X, y, randSeed, testSize)
         
+        # do feature selection if config is given
+        if fSelectIsBeforeClf(fSelectConfig) == True:
+            (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                    fSelectConfig['params'])
+            XTest = selector.transform(XTest)
+            #print('Dimension:', XTest.shape, file=sys.stderr)
+
         returnObj = list()
         for clfName in clfList:
             # training using validation
@@ -69,8 +77,9 @@ class RunExp:
                 filename = None
 
             # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', toStr(X.shape), clfName, 
-                    bestParam, scorerName, randSeed, result, filename, outfile=outfile)
+            ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
+                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
+                    result, filename, outfile=outfile)
 
             returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
                 'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
@@ -79,7 +88,7 @@ class RunExp:
         return returnObj
 
     def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, 
-            n_folds=3, prefix='', outfile=sys.stdout, modelDir=None):
+            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -104,6 +113,13 @@ class RunExp:
             topicyTest[topic] = yTest
         (XTrain, XTest, yTrain, yTest, trainMap, testMap) = DataTool.mergeData(
                 topicXTrain, topicXTest, topicyTrain, topicyTest, topicList)
+
+        # do feature selection if config is given
+        if fSelectIsBeforeClf(fSelectConfig) == True:
+            (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                    fSelectConfig['params'])
+            XTest = selector.transform(XTest)
+            #print('Dimension:', XTest.shape, file=sys.stderr)
 
         returnObj = list()
         # training using validation
@@ -133,9 +149,9 @@ class RunExp:
                 filename = None
 
             # printing out results
-            ResultPrinter.print(prefix + ", allMixed", toStr(X.shape), 
-                    clfName, bestParam, scorerName, randSeed, avgR, 
-                    filename, outfile=outfile)
+            ResultPrinter.print(prefix + ", allMixed", "%d %d" % (X.shape[0], 
+                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
+                avgR, filename, outfile=outfile)
             
             returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
                 'result': avgR, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
@@ -144,7 +160,7 @@ class RunExp:
         return returnObj
 
     def leaveOneTest(X, y, topicMap, clfList, scorerName, testTopic=None, randSeed=1, 
-            n_folds=3, prefix='', outfile=sys.stdout, modelDir=None):
+            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -159,13 +175,20 @@ class RunExp:
         # if the test topic id is given, then only test it
         if testTopic is None:
             testTopic = list(topicList)
-        
+       
+
         returnObj = dict()
         for topic in testTopic:
             returnObj[topic] = list()
             (XTrain, XTest, yTrain, yTest, trainMap, 
                     testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topicList, topic)
 
+            # do feature selection if config is given
+            if fSelectIsBeforeClf(fSelectConfig) == True:
+                (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                        fSelectConfig['params'])
+                XTest = selector.transform(XTest)
+                #print('Dimension:', XTest.shape, file=sys.stderr)
             for clfName in clfList:
                 # training using validation
                 #print('In Cross Validation... ', end='', file=sys.stderr)
@@ -191,8 +214,9 @@ class RunExp:
                     filename = None
 
                 # printing out results
-                ResultPrinter.print(prefix + ", Test on %d " % topic, toStr(X.shape), clfName, 
-                        bestParam, scorerName, randSeed, result, filename, outfile=outfile)
+                ResultPrinter.print(prefix + ", Test on %d " % topic, "%d %d" % (
+                    X.shape[0], XTrain.shape[1]), clfName, bestParam, scorerName,
+                    randSeed, result, filename, outfile=outfile)
                 returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
                     'param': bestParam, 'result': result, 'data':{'XTrain': XTrain, 
                         'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
@@ -201,15 +225,15 @@ class RunExp:
     # higher layer function for running task
     # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
     def runTask(X, y, volc, taskType, params, clfList, randSeedList, testSize, n_folds, 
-        targetScore, topicMap=None, topicId=None, wVolc=None):
+        targetScore, fSelectConfig, topicMap=None, topicId=None, wVolc=None):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
-        
         rsList = list()
         for randSeed in randSeedList:
             if taskType == 'SelfTrainTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
-                        randSeed=randSeed, testSize=testSize, n_folds=n_folds, prefix=prefix)
+                        randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
+                        fSelectConfig=fSelectConfig, prefix=prefix)
                 if rs is None:
                     return None
                 for r in rs:
@@ -223,7 +247,7 @@ class RunExp:
                 prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
                 rs = RunExp.allTrainTest(X, y, topicMap, clfList, targetScore, 
                         randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
-                        prefix=prefix)
+                        fSelectConfig=fSelectConfig, prefix=prefix)
                 if rs is None:
                     return None
                 for r in rs:
@@ -237,7 +261,7 @@ class RunExp:
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 rs = RunExp.leaveOneTest(X, y, topicMap, clfList, targetScore, 
                         randSeed=randSeed, testTopic=[topicId], n_folds=n_folds,
-                        prefix=prefix)
+                        fSelectConfig=fSelectConfig, prefix=prefix)
                 if rs is None:
                     return None
                 for r in rs[topicId]:
@@ -543,7 +567,7 @@ class DataTool:
 
 # The class for providing function to do machine learning procedure
 class ML:
-    def train(XTrain, yTrain, clfName, scorer, n_folds, randSeed=1):
+    def train(XTrain, yTrain, clfName, scorer, n_folds, randSeed=1, fSelectConfig=None):
         # make cross validation iterator 
         print(' n_folds:', n_folds, end='', file=sys.stderr) 
         kfold = cross_validation.StratifiedKFold(yTrain, n_folds=n_folds, 
@@ -551,7 +575,7 @@ class ML:
 
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
-            
+
         # get grid search classifier
         print('->grid search ', end='', file=sys.stderr)
         clfGS = GridSearchCV(clf, parameters, scoring=scorer, 
@@ -664,25 +688,29 @@ class ML:
         return (clf, parameters) 
 
     # feature selection 
+    # FIXME: for the method using classifier, the target score is Accuracy (rather than MacroF1)
     def fSelect(XTrain, yTrain, method, params, clf=None, scorer=None):
         if method in ["chi", "chi-square"]:
             if 'top_k' in params:
-                print('Selecting features with top %d chi-square value ...', params['top_k'], file=sys.stderr) 
+                print('Selecting features with top %d chi-square value ...' % params['top_k'], file=sys.stderr) 
                 selector = SelectKBest(chi2, k=params['top_k']).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
             elif 'percentage' in params:
-                print('Selecting %d%% features with top chi-square value ...', params['percentage'], file=sys.stderr)
+                print('Selecting %d%% features with top chi-square value ...' % params['percentage'], file=sys.stderr)
                 selector = SelectPercentile(chi2, percentile=params['percentage']).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ["rfe", "RFE", 'RecursiveFeatureElimination']:
             if 'n_features_to_select' in params and 'step' in params:
+                print('Selecting features using RecursiveFeatureElimination (with original classifier) ...', file=sys.stderr)
                 selector = RFE(clf, params['n_features_to_select'], step=params['step']).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ['LinearSVM', 'LinearSVC']:
             if 'C' in params:
-                selector = LinearSVC(C=params['C'], penalty="l1", dual=False).fit(XTrain, yTrain)
+                print('Selecting features using Linear SVM (L1 regularizaton) ...', file=sys.stderr)
+                selector = svm.LinearSVC(C=params['C'], penalty="l1", dual=False).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ['rf', 'RF', 'RandomForest']:
+            print('Selecting features using RandomForest ...', file=sys.stderr)
             selector = RandomForestClassifier().fit(XTrain, yTrain)
             newX = selector.transform(XTrain)
         return (newX, selector)
@@ -692,8 +720,16 @@ class ML:
         pass
         #return (clfGS.best_estimator_, clfGS.best_params_, )
 
-
-            
+def fSelectIsBeforeClf(fSelectConfig):
+    if fSelectConfig == None or 'method' not in fSelectConfig:
+        return None
+    method = fSelectConfig['method']
+    if method in ["chi", "chi-square", 'LinearSVM', 'LinearSVC', 'rf', 'RF', 'RandomForest']:
+        return True
+    elif method in ["rfe", "RFE", 'RecursiveFeatureElimination']:
+        return False
+    else:
+        return None
 
 def topicGSCV_oneTask(clf, params, scorerName, k, train, test, XTrain, yTrain, foldTopicMapAtK):
     clf.set_params(**params)
@@ -790,7 +826,7 @@ class Evaluator:
 class ResultPrinter:
     def printFirstLine(outfile=sys.stdout):
         print('topicId, model settings, column source,'
-          ' experimental settings, dimension, classifier, scorer,'
+          ' experimental settings, classifier, scorer, dimension,'
           ' parameters, randSeed, valScore, testScore,'
           ' modelPath(pickle)', file=outfile)
 
@@ -801,7 +837,7 @@ class ResultPrinter:
     def print(prefix, Xshape, clfName, params, scorerName, randSeed, 
             result, filename, outfile):
         paramStr = toStr("%s" % params)
-        print(prefix, Xshape, clfName, scorerName, paramStr, randSeed, 
+        print(prefix, clfName, scorerName, Xshape, paramStr, randSeed, 
                 result['valScore'], result[scorerName], filename, sep=',', 
                 file=outfile)
 

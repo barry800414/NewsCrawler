@@ -19,7 +19,7 @@
         },
         "testSize": 0.2,
         "n_folds": 3,
-        "modelName": "OM_all",
+        "modelName": "OM_all_std",
         "dataset": "zhtNews"
     }
 }

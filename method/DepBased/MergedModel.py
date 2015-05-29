@@ -140,6 +140,7 @@ if __name__ == '__main__':
     modelName = config['setting']['modelName']
     dataset = config['setting']['dataset']
     preprocess = config['setting']['preprocess']
+    fSelectConfig = config['setting']['fSelect'] if 'fSelect' in config['setting'] else None
 
     topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
@@ -187,8 +188,8 @@ if __name__ == '__main__':
                         labelNewsInTopic[t], wVolc, topicSet, 
                         sentiDict, pTreeList, negPList)
                 rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, topicId=t, 
-                        wVolc=mWVolc)
+                        randSeedList, testSize, n_folds, targetScore, fSelectConfig, 
+                        topicId=t, wVolc=mWVolc)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
                 dataset, wVolcPrefix, t), 'w+b') as f:
@@ -204,7 +205,7 @@ if __name__ == '__main__':
             (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, labelNewsList, 
                     wVolc, topicSet, sentiDict, pTreeList, negPList)
             rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, 
+                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
                         topicMap=topicMap, wVolc=mWVolc)
             bestR = keepBestResult(bestR, rsList, targetScore)
             
@@ -221,7 +222,7 @@ if __name__ == '__main__':
                 (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, 
                         labelNewsList, wVolc, topicSet, sentiDict, pTreeList, negPList)
                 rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, 
+                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
                         topicMap=topicMap, topicId=t, wVolc=mWVolc)
                 bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
 

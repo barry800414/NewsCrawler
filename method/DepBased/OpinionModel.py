@@ -262,6 +262,7 @@ if __name__ == '__main__':
     modelName = config['setting']['modelName']
     dataset = config['setting']['dataset']
     preprocess = config['setting']['preprocess']
+    fSelectConfig = config['setting']['fSelect'] if 'fSelect' in config['setting'] else None
     
     paramsIter = ParameterGrid(config['params'])
 
@@ -291,7 +292,7 @@ if __name__ == '__main__':
                 (X, y, volc, wVolc) = genXY(tom[t], p, preprocess, pTreeList,
                     negPList, sentiDict, wVolc)
                 rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, topicId=t, 
+                        randSeedList, testSize, n_folds, targetScore, fSelectConfig, topicId=t, 
                         wVolc=wVolc)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
@@ -309,13 +310,13 @@ if __name__ == '__main__':
                     negPList, sentiDict, wVolc)
             rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
                         randSeedList, testSize, n_folds, targetScore, 
-                        topicMap=topicMap, wVolc=wVolc)
+                        fSelectConfig, topicMap=topicMap, wVolc=wVolc)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
                 rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
                         randSeedList, testSize, n_folds, targetScore, 
-                        topicMap=topicMap, topicId=t, wVolc=wVolc)
+                        fSelectConfig, topicMap=topicMap, topicId=t, wVolc=wVolc)
                 bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
     
     if 'AllTrainTest' in toRun:
