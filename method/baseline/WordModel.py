@@ -159,12 +159,13 @@ def initWM():
     return WordModel()
 
 # generate word model features
-def genXY(labelNewsList, wm, params, preprocess, volc=None):
+def genXY(labelNewsList, wm, params, preprocess, minCnt, volc=None):
     print('generating word features...', file=sys.stderr)
     p = params
     (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volc=volc, 
-            allowedPOS=p['allowedPOS'], minCnt=p['minCnt'])
-    X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
+            allowedPOS=p['allowedPOS'], minCnt=minCnt)
+    if preprocess != None:
+        X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volc = wm.getVolc()
     assert X.shape[1] == len(volc)
     return (X, y, volc, Volc())
@@ -199,16 +200,14 @@ if __name__ == '__main__':
         wVolc.lock() # lock the volcabulary, new words are OOV
 
     # parameters:
-    toRun = config['setting']['toRun']
-    targetScore = config['setting']['targetScore'] #
-    randSeedList = config['setting']['randSeedList'] #
-    testSize = config['setting']['testSize'] #
-    n_folds = config['setting']['n_folds'] #
-    clfList = config['setting']['clfList'] #
-    modelName = config['setting']['modelName']
-    dataset = config['setting']['dataset']
-    preprocess = config['setting']['preprocess']
-    fSelectConfig = config['setting']['fSelect'] if 'fSelect' in config['setting'] else None #
+    toRun = config['toRun']
+    modelName = config['modelName']
+    dataset = config['dataset']
+    preprocess = config['preprocess']
+    minCnt = config['minCnt']
+    setting = config['setting']
+    targetScore = config['setting']['targetScore'] 
+    
     paramsIter = ParameterGrid(config['params'])
 
     # get the set of all possible topic
@@ -231,10 +230,8 @@ if __name__ == '__main__':
             #    continue
             bestR = None
             for p in paramsIter:
-                (X, y, volc, tmp) = genXY(labelNewsInTopic[t], wm, p, preprocess, volc=wVolc)
-                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig, 
-                        topicId=t, wVolc=tmp)
+                (X, y, volc, tmp) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, volc=wVolc)
+                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=tmp, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
                 dataset, wVolcPrefix, t), 'w+b') as f:
@@ -247,16 +244,13 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, volc, tmp) = genXY(labelNewsList, wm, p, preprocess, volc=wVolc)
-            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
-                        topicMap=topicMap, wVolc=tmp)
+            (X, y, volc, tmp) = genXY(labelNewsList, wm, p, preprocess, minCnt, volc=wVolc)
+            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=tmp, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
-                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
-                        topicMap=topicMap, topicId=t, wVolc=tmp)
+                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, topicMap=topicMap, 
+                        topicId=t, wVolc=tmp, **setting)
                 bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
     if 'AllTrainTest' in toRun:
         with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:

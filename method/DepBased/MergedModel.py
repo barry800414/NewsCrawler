@@ -25,20 +25,20 @@ Author: Wei-Ming Chen
 Date: 2015/05/19
 '''
 
-def genXY(params, preprocess, wm=None, oldm=None, om=None, 
+def genXY(params, preprocess, minCnt, wm=None, oldm=None, om=None, 
         labelNewsList=None, volc=None, topicSet=None, sentiDict=None,
         pTreeList=None, negPList=None):
     assert len(params) >= 2
     X_y_volc_Dict = dict()
     if 'WM' in params: 
         assert wm is not None and labelNewsList is not None
-        X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], preprocess, volc)    
+        X_y_volc_Dict['WM'] = WM.genXY(labelNewsList, wm, params['WM']['model settings'], preprocess, minCnt, volc)    
     if 'OLDM' in params: 
         assert oldm is not None and topicSet is not None and sentiDict is not None
-        X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], preprocess, topicSet, sentiDict)
+        X_y_volc_Dict['OLDM'] = OLDM.genXY(oldm, params['OLDM']['model settings'], preprocess, minCnt, topicSet, sentiDict)
     if 'OM' in params:
         assert om is not None and pTreeList is not None and negPList is not None
-        X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], preprocess, pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
+        X_y_volc_Dict['OM'] = OM.genXY(om, params['OM']['model settings'], preprocess, minCnt, pTreeList, negPList=negPList, sentiDict=sentiDict, wVolc=volc)
     
     (mX, my, mVolc, wVolc) = mergeXY(X_y_volc_Dict)
     assert mX.shape[1] == len(mVolc)
@@ -114,11 +114,11 @@ if __name__ == '__main__':
     assert modelNum >= 2 # at least two model
     
     # load labels and news 
-    print('Loading labels and news ...', file=sys.stderr)
+    #print('Loading labels and news ...', file=sys.stderr)
     with open(labelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
     # load model config
-    print('Reading merged model config ...', file=sys.stderr)
+    #print('Reading merged model config ...', file=sys.stderr)
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
     # sample document if neccessary
@@ -130,17 +130,13 @@ if __name__ == '__main__':
 
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
-
-    toRun = config['setting']['toRun']
-    targetScore = config['setting']['targetScore']
-    randSeedList = config['setting']['randSeedList']
-    testSize = config['setting']['testSize']
-    n_folds = config['setting']['n_folds']
-    clfList = config['setting']['clfList']
-    modelName = config['setting']['modelName']
-    dataset = config['setting']['dataset']
-    preprocess = config['setting']['preprocess']
-    fSelectConfig = config['setting']['fSelect'] if 'fSelect' in config['setting'] else None
+    toRun = config['toRun']
+    modelName = config['modelName']
+    dataset = config['dataset']
+    preprocess = config['preprocess']
+    minCnt = config['minCnt']
+    setting = config['setting']
+    targetScore = config['setting']['targetScore'] 
 
     topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
@@ -184,12 +180,9 @@ if __name__ == '__main__':
             bestR = None
             paramsIter = Parameter.getParamsIter(allParams, framework='SelfTrainTest', topicId=t)
             for p in paramsIter:
-                (X, y, volc, mWVolc) = genXY(p, preprocess, wm, toldm[t], tom[t], 
-                        labelNewsInTopic[t], wVolc, topicSet, 
-                        sentiDict, pTreeList, negPList)
-                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig, 
-                        topicId=t, wVolc=mWVolc)
+                (X, y, volc, mWVolc) = genXY(p, preprocess, minCnt, wm, toldm[t], tom[t], 
+                        labelNewsInTopic[t], wVolc, topicSet, sentiDict, pTreeList, negPList)
+                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=mWVolc, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
                 dataset, wVolcPrefix, t), 'w+b') as f:
@@ -202,11 +195,9 @@ if __name__ == '__main__':
         
         paramsIter = Parameter.getParamsIter(allParams, framework='AllTrainTest')
         for p in paramsIter:
-            (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, labelNewsList, 
+            (X, y, volc, mWVolc) = genXY(p, preprocess, minCnt, wm, oldm, om, labelNewsList, 
                     wVolc, topicSet, sentiDict, pTreeList, negPList)
-            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
-                        topicMap=topicMap, wVolc=mWVolc)
+            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=mWVolc, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
             
         with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
@@ -219,11 +210,9 @@ if __name__ == '__main__':
             bestR = None
             paramsIter = Parameter.getParamsIter(allParams, framework='LeaveOneTest', topicId=t)
             for p in paramsIter:
-                (X, y, volc, mWVolc) = genXY(p, preprocess, wm, oldm, om, 
+                (X, y, volc, mWVolc) = genXY(p, preprocess, minCnt, wm, oldm, om, 
                         labelNewsList, wVolc, topicSet, sentiDict, pTreeList, negPList)
-                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig,
-                        topicMap=topicMap, topicId=t, wVolc=mWVolc)
+                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, topicMap=topicMap, topicId=t, wVolc=mWVolc, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
 
             with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(

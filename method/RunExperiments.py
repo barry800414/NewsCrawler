@@ -422,7 +422,7 @@ class DataTool:
     # for each topic, do stratified K fold, and then merge them
     def topicStratifiedKFold(yTrain, trainMap, n_folds, randSeed=1):
         assert n_folds > 1
-        print('n_folds:', n_folds, end='', file=sys.stderr) 
+        #print('n_folds:', n_folds, end='', file=sys.stderr) 
         ySet = set(yTrain)
         
         # divide data by topic
@@ -569,7 +569,7 @@ class DataTool:
 class ML:
     def train(XTrain, yTrain, clfName, scorer, n_folds, randSeed=1, fSelectConfig=None):
         # make cross validation iterator 
-        print(' n_folds:', n_folds, end='', file=sys.stderr) 
+        #print(' n_folds:', n_folds, end='', file=sys.stderr) 
         kfold = cross_validation.StratifiedKFold(yTrain, n_folds=n_folds, 
                 shuffle=True, random_state=randSeed)
 
@@ -577,12 +577,12 @@ class ML:
         (clf, parameters) = ML.__genClfAndParams(clfName)
 
         # get grid search classifier
-        print('->grid search ', end='', file=sys.stderr)
+        #print('->grid search ', end='', file=sys.stderr)
         clfGS = GridSearchCV(clf, parameters, scoring=scorer, 
                 refit=True, cv=kfold, n_jobs=-1)
         
         # refit the data by the best parameters
-        print('->refit ', end='', file=sys.stderr)
+        #print('->refit ', end='', file=sys.stderr)
         clfGS.fit(XTrain, yTrain)
 
         # get validation score
@@ -597,14 +597,14 @@ class ML:
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
         
-        print('n_folds:%d -> topic grid search ' %(n_folds), end='', file=sys.stderr)
+        #print('n_folds:%d -> topic grid search ' %(n_folds), end='', file=sys.stderr)
         (bestValScore, bestParams) = ML.topicGridSearchCV(clf, parameters, 
                 scorerName, XTrain, yTrain, trainMap, n_folds=n_folds, 
                 randSeed=randSeed, n_jobs=-1)
         
         # refit the data by the best parameters
         clf.set_params(**bestParams)
-        print('-> topic refit ', end='', file=sys.stderr)
+        #print('-> topic refit ', end='', file=sys.stderr)
         clf.fit(XTrain, yTrain)
         
         # testing on training data
@@ -784,18 +784,18 @@ class Evaluator:
     def evaluate(yPredict, yTrue, scorerName='MacroF1'):
         if scorerName == 'Accuracy':
             # accuracy 
-            print('In accu ...', file=sys.stderr)
+            #print('In accu ...', file=sys.stderr)
             score = accuracy_score(yTrue, yPredict)
         elif scorerName == 'F1':
             # f1 scores
-            print('In F1 ...', file=sys.stderr)
+            #print('In F1 ...', file=sys.stderr)
             score = f1_score(yTrue, yPredict, average='binary')
         elif scorerName == 'MacroF1':
-            print('In MacroF1 score ...', file=sys.stderr) 
+            #print('In MacroF1 score ...', file=sys.stderr) 
             score = f1_score(yTrue, yPredict, average='macro')
         elif scorerName == "MacroR":
             # average recall (macro recall)
-            print('In Macro recall ...', file=sys.stderr)
+            #print('In Macro recall ...', file=sys.stderr)
             score = recall_score(yTrue, yPredict, average='macro')
         return { scorerName: score }
     

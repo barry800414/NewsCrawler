@@ -137,10 +137,10 @@ class OneLayerDepModel():
 
         # if the doc frequency of that pair is less than or equal 
         # to minCnt, then discard it
-        print('Pair volc size:', len(volc), end='', file=sys.stderr)
+        #print('Pair volc size:', len(volc), end='', file=sys.stderr)
         if self.minCnt != None:
             docF = volc.shrinkVolcByDocF(docF, self.minCnt)
-        print('-> ', len(volc), file=sys.stderr)
+        #print('-> ', len(volc), file=sys.stderr)
 
         # converting all extraced dependencies to features X
         # Here the features are the word counts from each seed word, 
@@ -199,7 +199,7 @@ def initAllowedSet(topicSet, config, dictionary=None):
         allowedSet = { topicId: set(config['allow']) for topicId in topicSet }
     return allowedSet
 
-def genXY(oldm, params, preprocess, topicSet, sentiDict):
+def genXY(oldm, params, preprocess, minCnt, topicSet, sentiDict):
     print('generating one layer dependency features...', file=sys.stderr)
     p = params
     allowedSeedWord = initAllowedSet(topicSet, p['seedWordType'])
@@ -207,8 +207,9 @@ def genXY(oldm, params, preprocess, topicSet, sentiDict):
     allowedRel = { t: None for t in topicSet }
     (X, y) = oldm.genXY(allowedSeedWord, p['seedWordType']['type'], 
             allowedFirstLayerWord, p['firstLayerType']['type'], 
-            allowedRel, p['minCnt'])
-    X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
+            allowedRel, minCnt)
+    if preprocess != None:
+        X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volc = oldm.getVolc()
     wVolc = oldm.getWordVolc()
     assert X.shape[1] == len(volc)
@@ -263,16 +264,14 @@ if __name__ == '__main__':
             i = i + 1
 
     # model parameters #FIXME: allowed relation
-    toRun = config['setting']['toRun']
-    targetScore = config['setting']['targetScore']
-    randSeedList = config['setting']['randSeedList']
-    testSize = config['setting']['testSize']
-    n_folds = config['setting']['n_folds']
-    clfList = config['setting']['clfList']
-    modelName = config['setting']['modelName']
-    dataset = config['setting']['dataset']
-    preprocess = config['setting']['preprocess']
-    fSelectConfig = config['setting']['fSelect'] if 'fSelect' in config['setting'] else None
+    toRun = config['toRun']
+    modelName = config['modelName']
+    dataset = config['dataset']
+    preprocess = config['preprocess']
+    minCnt = config['minCnt']
+    setting = config['setting']
+    targetScore = config['setting']['targetScore'] 
+
     paramsIter = ParameterGrid(config['params'])
 
     # get the set of all possible topic
@@ -297,11 +296,8 @@ if __name__ == '__main__':
             #    continue
             bestR = None
             for p in paramsIter:
-                (X, y, volc, wVolc) = genXY(toldm[t], p, preprocess, topicSet, sentiDict)
-                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, fSelectConfig, topicId=t, 
-                        wVolc=wVolc)
-
+                (X, y, volc, wVolc) = genXY(toldm[t], p, preprocess, minCnt, topicSet, sentiDict)
+                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=wVolc, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, dataset, wVolcPrefix, t), 'w+b') as f:
                 pickle.dump(bestR, f)
@@ -313,16 +309,12 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, volc, wVolc) = genXY(oldm, p, preprocess, topicSet, sentiDict)
-            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, 
-                        fSelectConfig, topicMap=topicMap, wVolc=wVolc)
+            (X, y, volc, wVolc) = genXY(oldm, p, preprocess, minCnt, topicSet, sentiDict)
+            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=wVolc, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
-                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, clfList, 
-                        randSeedList, testSize, n_folds, targetScore, 
-                        fSelectConfig, topicMap=topicMap, topicId=t, wVolc=wVolc)
+                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, topicMap=topicMap, topicId=t, wVolc=wVolc, **setting)
                 bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
     
     if 'AllTrainTest' in toRun:

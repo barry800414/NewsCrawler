@@ -70,7 +70,7 @@ def mergeRows(data, colNameMap, keyPrefixNum):
     newData = list()
     for key, dList in keyData.items():
         #print('key:', key)
-        print(len(dList), end=',')
+        #print(len(dList), end=',')
         #if len(dList) == 10:
         #    for d in dList:
         #        print(d)
@@ -106,17 +106,17 @@ def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, 
 
 def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
     si = colNameMap[scoreName]
-    print('TopicId', end='', file=outfile)
-    for t in topicList:
-        print(',', t, end='', file=outfile)
-    print('\nSelfTrainTest', end='', file=outfile)
-    for t in topicList:
-        print(',', f1Rows[t][si], end='', file=outfile)
-    print('\nLeaveOneTest', end='',file=outfile)
-    for t in topicList:
-        print(',', f3Rows[t][si], end='', file=outfile)
+    #print('TopicId', end='', file=outfile)
+    #for t in topicList:
+    #    print(',', t, end='', file=outfile)
+    #print('\nSelfTrainTest', end='', file=outfile)
+    #for t in topicList:
+    #    print(',', f1Rows[t][si], end='', file=outfile)
+    #print('\nLeaveOneTest', end='',file=outfile)
+    #for t in topicList:
+    #    print(',', f3Rows[t][si], end='', file=outfile)
     print('\nAllTrainTest', end='',file=outfile)
-    print(',', f2Row[si], file=outfile)
+    print(',', f2Row[si], end='',file=outfile)
 
 def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
     ResultPrinter.printFirstLine()
