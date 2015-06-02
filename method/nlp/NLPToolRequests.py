@@ -154,5 +154,5 @@ def sendTagRequest(sentence, seg=False):
 
 #print(sendTagRequest("He has cars", seg=True))
 #print(sendTagRequest("It 's my fault , ! ; ? not your business .", seg=True))
-#print(sendTaRequest(sendSegmentRequest("我是一個人")))
+#print(sendTagRequest("我是一個人"))
 

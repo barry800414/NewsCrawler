@@ -67,6 +67,7 @@ public class NLPToolServer {
 			server.createContext("/pcfg", new PCFGConstParserHandler());
             //server.createContext("/nn_dep", new NNDepParserHandler());
             server.createContext("/pcfg_dep", new PCFGDepParserHandler());
+            server.createContext("/pcfg_all", new PCFGParserHandler());
 
             server.setExecutor(null); // creates a default executor
             server.start();
@@ -302,6 +303,81 @@ public class NLPToolServer {
         }
     }
 	
+    //both constituent parsing and dependency parsing
+    static class PCFGParserHandler implements HttpHandler {
+        public void handle(HttpExchange httpExchange){
+            try{
+                String imgPath = null;
+
+                //retrieve sentence
+                StringBuilder response = new StringBuilder();
+                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+
+                boolean seg = false;
+                String text = parms.get("seg_s");
+                if(text == null || text.length() == 0){
+                    text = parms.get("s");
+                    if(text == null || text.length() == 0){
+                        return ;
+                    }
+                }
+                else{
+                    seg = true;
+                }
+
+                //Check drawing dependency tree or not
+                String drawFlag = parms.get("draw");
+                if(drawFlag != null){
+                    if(drawFlag.toLowerCase().compareTo("true") == 0){
+                        String fileFolder = parms.get("f_folder");
+                        String fileName = parms.get("f_name");
+                        if(fileFolder == null || fileName == null || 
+                           fileFolder.length() == 0 || fileName.length()==0){
+                            fileFolder = ".";
+                            fileName = text;
+                        }
+                        imgPath = NLPToolServer.imgFolder + fileFolder + "/" + fileName;
+                    }
+                }
+                System.out.println(imgPath);
+
+                //constituent parsing & dependency parsing by pcfg parser
+                //Tree tree;
+                Object[] object; 
+                if(seg){
+                    object = fpp.CDParseTokenizedSent(text, " ", Lang.ZHT, Lang.ZHT, imgPath);
+                }
+                else{
+                    object = fpp.CDParseUntokenizedSent(text, Lang.ZHT, Lang.ZHT, imgPath);
+                }
+                String tokenizedSent = fpp.getTokenizedSentBuffer();
+                Tree tree = (Tree) object[0];
+                List<TypedDependency> tdList = (List<TypedDependency>) object[1];
+                String treeStr = TreePrinter.treeToString(tree); //get string of tree
+                String depStr = DepPrinter.TDsToString(tdList); //get string of typed dependencies
+                
+                int nLine1 = TreePrinter.getExpLineNum();
+                int nLine2 = DepPrinter.getExpLineNum(tdList);
+                response.append(nLine1 + " " + nLine2 + '\n');
+                if(seg == false){
+                    response.append(tokenizedSent + "\n");
+                }
+                response.append(treeStr);
+                response.append(depStr);
+
+                //System.out.println("Reqeust:" + text.substring(0, text.length() > 10 ? 10: text.length()) + "...");
+                //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
+                System.out.println("Reqeust:" + text);
+                System.out.println("Response:" + response.toString());
+     
+                NLPToolServer.writeResponse(httpExchange, response.toString());
+            }
+            catch(Exception e){
+                e.printStackTrace(System.out);
+                e.printStackTrace();
+            }
+        }
+    }
 
     public static void writeResponse(HttpExchange httpExchange, String response) throws IOException {
         Headers header = httpExchange.getResponseHeaders();

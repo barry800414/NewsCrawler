@@ -1,26 +1,14 @@
 {
-    "params":{ 
-        "minCnt": [2, 5, 10],
-        "feature": ["0/1", "tf", "tfidf"],
-        "allowedPOS": [["JJ", "NN", "RB", "VB"]]
-
+    "toRun": ["SelfTrainTest"],
+    "preprocess": {
+        "method": "std",
+        "params": { 
+            "with_mean": false,
+            "with_std": true
+        }
     },
-    "setting":{
-        "toRun": ["SelfTrainTest"],
-        "targetScore": "Accuracy",
-        "clfList": ["MaxEnt", "LinearSVM"],
-        "randSeedList": [1],
-        "preprocess": {
-            "method": "std",
-            "params": { 
-                "with_mean": false,
-                "with_std": true
-            }
-        },
-        "testSize": 0.0,
-        "n_folds": 10,
-        "modelName": "EN_WM_std_seed1",
-        "dataset": "engDebate",
+    "dataset": "engDebate",
+    "modelName": "EN_WM_std_seed1",
         "sampling":{
             "randSeed": 1,
             "docNumForEachTopic": {
@@ -38,5 +26,18 @@
                 }
             }
         }
+    },
+    "params":{ 
+        "minCnt": [2],
+        "feature": ["0/1", "tf", "tfidf"],
+        "allowedPOS": [["JJ", "NN", "RB", "VB"]]
+        
+    },
+    "setting":{
+        "targetScore": "Accuracy",
+        "clfList": ["MaxEnt", "LinearSVM"],
+        "randSeedList": [1],
+        "testSize": 0.0,
+        "n_folds": 10,
     }
 }

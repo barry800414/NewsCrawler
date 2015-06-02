@@ -78,6 +78,7 @@ class DataInconsistent():
                         cmd = 'SELECT * FROM statement_news WHERE statement_id = %s and news_id = "%s"' % (ln1['statement_id'], ln2['news_id'])
                         print cmd
 
+    # pair-wise compare
     def detectValidFormat(self, snDict):
         cnt = 0
         toRelabelSet = set()
@@ -97,6 +98,32 @@ class DataInconsistent():
         print "#valid format inconsistent:", cnt
         return toRelabelSet
 
+    # voting compare
+    def detectValidFormat2(self, snDict):
+        cnt = 0
+        toRelabelSet = set()
+        invalidSet = set()
+        for sn, lns in snDict.items():
+            labelCnt = { 'valid': 0, 'small_error': 0, 'invalid': 0 }
+            for i in range(0, len(lns)):
+                ln1 = lns[i]
+                ln1v = ln1['valid_format']
+                labelCnt[ln1v] += 1
+
+            validCnt = labelCnt['valid'] + labelCnt['small_error'] 
+            invalidCnt = labelCnt['invalid']
+            #print(labelCnt, validCnt, invalidCnt)
+            if validCnt == invalidCnt:
+                print(sn)
+                toRelabelSet.add(sn)
+                cnt += 1
+            if invalidCnt > validCnt:
+                invalidSet.add(sn)
+
+        print "#valid format inconsistent:", cnt
+        return (toRelabelSet, invalidSet)
+
+    # pair-wise compare
     def detectRelevance(self, snDict):
         cnt = 0
         toRelabelSet = set()
@@ -115,6 +142,23 @@ class DataInconsistent():
                         toRelabelSet.add(sn)
         print "#Relevance inconsistent:", cnt
         return toRelabelSet
+    
+    # voting compare
+    def detectRelevance2(self, snDict, invalidSet):
+        toRelabelSet = set()
+        for sn, lns in snDict.items():
+            labelCnt = { 'relevant': 0, 'irrelevant': 0, '': 0}
+            for i in range(0, len(lns)):
+                ln1 = lns[i]
+                ln1r = ln1['relevance']
+                labelCnt[ln1r] += 1
+
+            if labelCnt['relevant'] == labelCnt['irrelevant'] and labelCnt['relevant'] != 0: 
+                toRelabelSet.add(sn)
+        toRelabelSet = toRelabelSet - invalidSet
+        print "#Relevance inconsistent:", len(toRelabelSet)
+        return toRelabelSet
+
 
     def labelValid(self):
         msg = uColor.PURPLE + u"格式正確性:" + uColor.NC + u"(1)內文無錯誤 (2)內文有些許錯誤，但不致於影響閱讀 (3)內文有較大錯誤（例如段落遺失、大量廣告文字、亂碼等等）:"
@@ -175,8 +219,8 @@ class DataInconsistent():
         return mapping[int(input) - 1]
 
     # get the labeled statement-news by this console
-    def getLabeledSet(self):
-        sql = "SELECT statement_id, news_id FROM `statement_news` WHERE labeler = 'console'" 
+    def getLabeledSet(self, userId):
+        sql = "SELECT statement_id, news_id FROM `statement_news` WHERE labeler = '%s'" % (userId) 
         try: 
             self.cursor.execute(sql)
             labeledSet = set()
@@ -210,12 +254,12 @@ class DataInconsistent():
             print e
             return None
 
-    def startLabel(self, toRelabelSet, newsLoader):
+    def startLabel(self, toRelabelSet, newsLoader, userId):
         results = list()
         print "# to relabel:", len(toRelabelSet)
         for sn in toRelabelSet:
             r = self.labelOneStatNews(sn[0], sn[1], newsLoader)    
-            self.insertStatNews(sn[0], sn[1], r)
+            self.insertStatNews(sn[0], sn[1], r, userId)
             r['statement_id'] = sn[0]
             r['news_id'] = sn[1]
             results.append(r)
@@ -252,7 +296,7 @@ class DataInconsistent():
         r['label'] = self.labelStance(statId)
         return r
 
-    def insertStatNews(self, statId, newsId, label):
+    def insertStatNews(self, statId, newsId, label, userId):
         sql = '''INSERT INTO statement_news(statement_id, news_id, 
                 valid_format, relevance, mention_agree, mention_disagree, 
                 label, labeler) VALUES''';
@@ -260,7 +304,7 @@ class DataInconsistent():
             self.cursor.execute(sql + '(%s, %s, %s, %s, %s, %s, %s, %s)', (
                 statId, newsId, label['valid_format'], label['relevance'], 
                 label['mention_agree'], label['mention_disagree'], 
-                label['label'], 'console'))
+                label['label'], userId))
             self.db.commit()
         except Exception, e:
             print '%s' % e
@@ -275,15 +319,29 @@ class DataInconsistent():
         self.detectRelevance(snDict)
 
     # relabel 
-    def relabel(self, newsLoader):
+    def relabel(self, newsLoader, userId):
         lnList = self.getStatementNews()
         snDict = self.toStatNewsDict(lnList)
+        self.detectDuplicate(snDict)
         s1 = self.detectValidFormat(snDict)
         s2 = self.detectRelevance(snDict)
-        labeledSet = self.getLabeledSet()
+        labeledSet = self.getLabeledSet(userId)
         toRelabelSet = (s1 | s2) - labeledSet
         results = self.startLabel(toRelabelSet, newsLoader)
         return results
+
+    # relabel 
+    def relabel2(self, newsLoader, userId):
+        lnList = self.getStatementNews()
+        snDict = self.toStatNewsDict(lnList)
+        self.detectDuplicate(snDict)
+        (s1, invalidSet) = self.detectValidFormat2(snDict)
+        s2 = self.detectRelevance2(snDict, invalidSet)
+        labeledSet = self.getLabeledSet(userId)
+        toRelabelSet = (s1 | s2) - labeledSet 
+        results = self.startLabel(toRelabelSet, newsLoader, userId)
+        return results
+
 
 '''
 topic_json = {
@@ -315,7 +373,7 @@ if __name__ == '__main__':
 
     nl = NewsLoader.NewsLoader(db_info)
     di = DataInconsistent(db_info)
-    labelLog = di.relabel(nl)
+    labelLog = di.relabel2(nl, 'a')
 
     with open(labelLogFile, 'w') as f:
         json.dump(labelLog, f, ensure_ascii=False, indent=2)

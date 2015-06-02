@@ -5,6 +5,7 @@ import json
 import math
 from collections import defaultdict
 
+import scipy.io
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix, hstack
 from sklearn.grid_search import ParameterGrid
@@ -166,6 +167,8 @@ def genXY(labelNewsList, wm, params, preprocess, minCnt, volc=None):
             allowedPOS=p['allowedPOS'], minCnt=minCnt)
     if preprocess != None:
         X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
+    #np.savetxt('test.X', X)
+    #scipy.io.mmwrite('test.mtx', X)
     volc = wm.getVolc()
     assert X.shape[1] == len(volc)
     return (X, y, volc, Volc())
@@ -185,8 +188,8 @@ if __name__ == '__main__':
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
     # sample document if neccessary
-    if 'sampling' in config['setting']:
-        c = config['setting']['sampling']
+    if 'sampling' in config:
+        c = config['sampling']
         labelNewsList = sampleDoc(labelNewsList, 
                 c['docNumForEachTopic'], c['randSeed'])
         printStatInfo(labelNewsList)
@@ -200,6 +203,7 @@ if __name__ == '__main__':
         wVolc.lock() # lock the volcabulary, new words are OOV
 
     # parameters:
+    #print(config, file=sys.stderr)
     toRun = config['toRun']
     modelName = config['modelName']
     dataset = config['dataset']

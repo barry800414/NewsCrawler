@@ -106,17 +106,20 @@ def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, 
 
 def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
     si = colNameMap[scoreName]
-    #print('TopicId', end='', file=outfile)
-    #for t in topicList:
-    #    print(',', t, end='', file=outfile)
-    #print('\nSelfTrainTest', end='', file=outfile)
-    #for t in topicList:
-    #    print(',', f1Rows[t][si], end='', file=outfile)
-    #print('\nLeaveOneTest', end='',file=outfile)
-    #for t in topicList:
-    #    print(',', f3Rows[t][si], end='', file=outfile)
-    print('\nAllTrainTest', end='',file=outfile)
-    print(',', f2Row[si], end='',file=outfile)
+    print('TopicId', end='', file=outfile)
+    for t in topicList:
+        print(',', t, end='', file=outfile)
+    if f1Rows is not None:
+        print('\nSelfTrainTest', end='', file=outfile)
+        for t in topicList:
+            print(',', f1Rows[t][si], end='', file=outfile)
+    if f3Rows is not None:
+        print('\nLeaveOneTest', end='',file=outfile)
+        for t in topicList:
+            print(',', f3Rows[t][si], end='', file=outfile)
+    if f2Row is not None:
+        print('\nAllTrainTest', end='',file=outfile)
+        print(',', f2Row[si], end='',file=outfile)
 
 def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
     ResultPrinter.printFirstLine()
@@ -194,9 +197,6 @@ if __name__ == '__main__':
     for t in topicList:
         newData = allowData(data, colNameMap, 'experimental settings', allow=set(['selfTrainTest']), type='string')
         newData = allowData(newData, colNameMap, 'topicId', allow=set(['%d' % t]), type='string')
-        #for d in newData:
-        #    print(d)
-        #print('\n\n')
         sortByColumn(newData, colNameMap, targetScore, reverse=True)
         f1Rows[t] = newData[0]
         f1TopicRows[t] = list()
@@ -206,9 +206,6 @@ if __name__ == '__main__':
     
     # second framework (whole train-> whole test)
     newData = allowData(data, colNameMap, 'experimental settings', allow=set(['allMixed']), type='string')
-    #for d in newData:
-    #    print(d)
-    #print('\n\n')
     sortByColumn(newData, colNameMap, targetScore, reverse=True)
     f2Row = newData[0]
     f2Rows = list()
@@ -216,14 +213,10 @@ if __name__ == '__main__':
         if i < len(newData):
             f2Rows.append(newData[i])
 
-
     # third framework (leave one test)
     f3Rows = dict()
     f3TopicRows = dict()
     for t in topicList:
-        #for d in newData:
-        #    print(d)
-        #print('\n\n')
         newData = allowData(data, colNameMap, 'experimental settings', allow=set(['Test on %d'% t]), type='string')
         sortByColumn(newData, colNameMap, targetScore, reverse=True)
         f3Rows[t] = newData[0]
@@ -231,14 +224,12 @@ if __name__ == '__main__':
         for i in range(0, firstN):
             if i < len(newData):
                 f3TopicRows[t].append(newData[i])
+
     if printBR:
         printBestRows(topicList, f1Rows, f2Row, f3Rows)
     printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore)
     extractColType = { 
-        #'feature': 'str', 
         'model settings': 'dict', 
-        #'column source': 'list'
-        #'statementCol': 'bool'
     }
 
     if len(sys.argv) < 6:

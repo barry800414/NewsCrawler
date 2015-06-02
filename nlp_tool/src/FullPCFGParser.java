@@ -160,6 +160,36 @@ public class FullPCFGParser extends PCFGParser{
 		return object;
     }
 
+    //return constituent parsing and dependency parsing
+    public Object[] CDParseUntokenizedSent(String untokenizedSent, int inLang, int outLang, String imgPath){
+        // tokenize the sentence & converting the language
+        tokenizedSentBuffer = segmenter.segmentStr(untokenizedSent, inLang, Lang.ZHS);
+
+		// constituent parsing
+		Tree parse = parseTokenizedSent(tokenizedSentBuffer);
+    
+        // convert to typed dependencies
+        List<TypedDependency> tdl = toTypedDependency(parse);
+
+        // convert the language if necessary
+		if(inLang != Lang.ENG && outLang == Lang.ZHT){
+            tokenizedSentBuffer = wordToZht(tokenizedSentBuffer);
+			parse = wordToZht(parse);
+            tdl = wordToZht(tdl);
+		}
+
+        //drawing the dependency tree
+        if(imgPath != null){
+            drawDepTree(parse, tdl, imgPath, 3);
+        }
+
+        Object[] object = new Object[2];
+        object[0] = parse;
+        object[1] = tdl;
+		return object;
+    }
+
+
     public List<TypedDependency> depParseTokenizedSent(String tokenizedSent, String sep, 
             int inLang, int outLang, String imgPath){
         // tokenize the sentence & converting the language

@@ -11,6 +11,7 @@ from numpy.matrixlib.defmatrix import matrix
 from scipy.sparse import csr_matrix, hstack, vstack
 
 from sklearn import svm, cross_validation, grid_search
+from sklearn.cross_validation import StratifiedKFold 
 from sklearn import preprocessing
 from sklearn.grid_search import GridSearchCV, ParameterGrid
 from sklearn.ensemble import RandomForestClassifier
@@ -52,7 +53,8 @@ class RunExp:
         if fSelectIsBeforeClf(fSelectConfig) == True:
             (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                     fSelectConfig['params'])
-            XTest = selector.transform(XTest)
+            if XTest is not None:
+                XTest = selector.transform(XTest)
             #print('Dimension:', XTest.shape, file=sys.stderr)
 
         returnObj = list()
@@ -87,6 +89,62 @@ class RunExp:
         
         return returnObj
 
+    def selfTrainTestNFold(X, y, clfList, scorerName, randSeed=1, test_folds=10, 
+            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
+        # check data
+        if not DataTool.XyIsValid(X, y): #do nothing
+            return
+
+        # making scorer
+        scorer = Evaluator.makeScorer(scorerName)
+
+        # split data in N-fold
+        skf = StratifiedKFold(y, n_folds=test_folds, shuffle=True, random_state=randSeed)
+        for train_index, test_index in skf:
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+        
+            # do feature selection if config is given
+            if fSelectIsBeforeClf(fSelectConfig) == True:
+                (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                        fSelectConfig['params'])
+                if XTest is not None:
+                    XTest = selector.transform(XTest)
+                #print('Dimension:', XTest.shape, file=sys.stderr)
+
+            returnObj = list()
+            for clfName in clfList:
+                # training using validation
+                (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
+                        yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
+                
+                if XTest is None or yTest is None:
+                    result = { 'valScore': bestValScore, scorerName: 0.0 }
+                else:
+                    # testing 
+                    yTestPredict = ML.test(XTest, clf)
+
+                    # evaluation
+                    result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
+                    result['valScore'] = bestValScore
+                
+                if modelDir is not None:
+                    filename = dumpModel(modelDir, clf)
+                else:
+                    filename = None
+
+                # printing out results
+                ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
+                    XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
+                        result, filename, outfile=outfile)
+
+                returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
+                    'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                        'XTest': XTest, 'yTest': yTest } } )
+        
+        return returnObj
+
+
     def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, 
             n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout, modelDir=None):
         # check data
@@ -118,7 +176,8 @@ class RunExp:
         if fSelectIsBeforeClf(fSelectConfig) == True:
             (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                     fSelectConfig['params'])
-            XTest = selector.transform(XTest)
+            if XTest is not None:
+                XTest = selector.transform(XTest)
             #print('Dimension:', XTest.shape, file=sys.stderr)
 
         returnObj = list()
@@ -187,7 +246,8 @@ class RunExp:
             if fSelectIsBeforeClf(fSelectConfig) == True:
                 (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                         fSelectConfig['params'])
-                XTest = selector.transform(XTest)
+                if XTest is not None:
+                    XTest = selector.transform(XTest)
                 #print('Dimension:', XTest.shape, file=sys.stderr)
             for clfName in clfList:
                 # training using validation
@@ -231,9 +291,16 @@ class RunExp:
         for randSeed in randSeedList:
             if taskType == 'SelfTrainTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
-                rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
-                        randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
+                # FIXME: only support self train test now
+                if testSize <= 1.0:
+                    rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
+                            randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
+                            fSelectConfig=fSelectConfig, prefix=prefix)
+                else:
+                    rs = RunExp.selfTrainTestNFold(X, y, clfList, targetScore, 
+                        randSeed=randSeed, test_folds=testSize, n_folds=n_folds, 
                         fSelectConfig=fSelectConfig, prefix=prefix)
+
                 if rs is None:
                     return None
                 for r in rs:
