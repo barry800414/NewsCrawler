@@ -7,44 +7,33 @@ configFolder = './config/'
 
 mergeTemplate = {
     "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-    "preprocess": {
-        "method": "std",
-        "params": { 
-            "with_mean": False,
-            "with_std": True
-        }
-    },
+    "preprocess": None,
     "minCnt": 2,
     "modelName": "OM_all_norm1",
     "dataset": "zhtNews",
     "setting":{
         "targetScore": "MacroF1",
-        "clfList": ["MaxEnt", "LinearSVM"],
+        "clfList": ["LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
         "testSize": 0.2,
         "n_folds": 3
     }
 }
 
-template={
+# default config of each model
+defaultConfig={
         "WM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": {
-                "method": "std",
-                "params": { 
-                    "with_mean": False,
-                    "with_std": True
-                }
-            },
+            "preprocess": None,
             "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
-                "feature": ["0/1", "tf", "tfidf"],
+                "feature": ["tf"],
                 "allowedPOS": [["VA", "VV", "NN", "NR", "AD", "JJ"]]
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["MaxEnt", "LinearSVM"],
+                "clfList": ["LinearSVM"],
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
                 "n_folds": 3
@@ -52,13 +41,7 @@ template={
         },
         "OLDM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": {
-                "method": "std",
-                "params": { 
-                    "with_mean": False,
-                    "with_std": True
-                }
-            },
+            "preprocess": None,
             "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
@@ -66,13 +49,12 @@ template={
                     {"type": "tag", "allow": ["NR","NN","NP"]}
                 ],
                 "firstLayerType": [ 
-                    {"type": "word", "allow": "NTUSD_core"}, 
-                    {"type": "tag", "allow": ["VV","JJ","VA"]} 
+                    {"type": "word", "allow": "NTUSD_core"} 
                 ]
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["MaxEnt", "LinearSVM"],
+                "clfList": ["LinearSVM"],
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
                 "n_folds": 3,
@@ -80,23 +62,17 @@ template={
         },
         "OM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": {
-                "method": "std",
-                "params": { 
-                    "with_mean": False,
-                    "with_std": True
-                }
-            },
+            "preprocess": None,
             "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
-                "keyTypeList": [["H", "T", "HT", "HOT", "OT", "HO"]],
+                "keyTypeList": [["H", "T", "HT"]],
                 "opnNameList": [None],
-                "negSepList": [[False], [True], [True, False]]
+                "negSepList": [[True]]
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["MaxEnt", "LinearSVM"],
+                "clfList": ["LinearSVM"],
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
                 "n_folds": 3,
@@ -107,8 +83,128 @@ template={
         'WM_OLDM_OM': mergeTemplate
 }
 
+# configuration for search parameters (one parameter a time)
+iterConfig={
+    "WM": [
+        { "path": ["preprocess"], 
+            "params": {"None": None,
+                       "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
+                       "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                       "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                       }
+            },
+
+        { "path": ["setting", "fSelectConfig"],
+            "params": { "RF": { "method": "RF", "params": dict() },
+                        "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
+                }
+            },
+
+        { "path": ["setting", "clfList"], 
+            "params": { "MaxEnt": ["MaxEnt"] }
+            },
+        
+        { "path": ["params", "feature"], 
+            "params": { "01": ["0/1"], "tfidf": ["tfidf"] } 
+            }
+    ],
+    "OLDM" :[
+        { "path": ["preprocess"], 
+            "params": {"None": None,
+                       "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
+                       "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                       "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                       }
+            },
+
+        { "path": ["setting", "fSelectConfig"],
+            "params": { "RF": { "method": "RF", "params": dict() },
+                    "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
+                }
+            },
+
+        { "path": ["setting", "clfList"], 
+            "params": { "MaxEnt": ["MaxEnt"] }
+            },
+            
+        { "path": ["params", "firstLayerType"],
+            "params": { "tag": {"type": "tag", "allow": ["VV","JJ","VA"]} }
+            }
+    ],
+    "OM":[  
+        { "path": ["preprocess"], 
+            "params": { "None": None,
+                        "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
+                        "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                       }
+            },
+        { "path": ["setting", "fSelectConfig"],
+            "params": { "RF": { "method": "RF", "params": dict() },
+                    "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
+                }
+            },
+
+        { "path": ["setting", "clfList"], 
+            "params": { "MaxEnt": ["MaxEnt"] }
+            },
+
+        { "path": ["params", "keyTypeList"], 
+            "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
+                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]]}
+            },
+
+        { "path": ["params", "negSepList"], 
+            "params": { "negFalse": [[False]], "negBoth": [[True, False]]}
+            }
+    ]
+}
+
+nameList= {
+    "WM": [ "None", "None", "LinearSVM", "tf"],
+    "OLDM":  [ "None", "None", "LinearSVM", "NTUSD" ],
+    "OM": [ "None", "None", "LinearSVM", "H-T-HT", "negTrue"]
+}
+
+def genConfig(defaultConfig, iterConfig, nameList, prefix):
+    configList = list()
+    for i in range(0, len(iterConfig)):
+        path = iterConfig[i]["path"]
+        params = iterConfig[i]["params"]
+        for pName, p in params.items():
+            newConfig = copy.deepcopy(defaultConfig)
+            newNameList = copy.deepcopy(nameList)
+            
+            # replace new configs
+            obj = newConfig
+            for j in range(0, len(path) - 1):
+                obj = obj[path[j]]
+            obj[path[-1]] = p
+            newNameList[i] = pName
+            newName = mergeName(prefix, newNameList)
+            newConfig['modelName'] = newName
+            configList.append( (newName, newConfig) )
+    return configList
+
+def mergeName(prefix, nameList):
+    outStr = str(prefix)
+    for n in nameList:
+        outStr += '_' + n
+    return outStr
+
 
 if __name__ == '__main__':
+    
+    for model in ["WM", "OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + '_zhtNews')
+        print(len(configList))
+        for name, config in configList:
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
+            #print(config, '\n')
+
+if __name__ == '__main2__':
     cnt = 0
     # generate config first
     for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:

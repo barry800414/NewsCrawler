@@ -35,7 +35,8 @@ if __name__ == '__main__':
             print('Doing the task...', file=sys.stderr)
             sys.stderr.flush()
 
-            print(item)
+            print(item + '\n')
+            sys.stdout.flush()
             print(item, file=sys.stderr)
             sys.stderr.flush()
             os.system(item)

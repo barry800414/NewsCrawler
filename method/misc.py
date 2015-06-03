@@ -193,3 +193,12 @@ def printStatInfo(labelNewsList):
     #    100*float(opposeSum)/totalSum, totalSum), file=sys.stderr)
     
     return docNum
+
+
+def runSampleDoc(labelNewsList, config):
+    if 'sampling' in config:
+        c = config['sampling']
+        labelNewsList = sampleDoc(labelNewsList, 
+                c['docNumForEachTopic'], c['randSeed'])
+        printStatInfo(labelNewsList)
+    return labelNewsList

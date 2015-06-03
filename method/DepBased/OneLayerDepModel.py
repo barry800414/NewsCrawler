@@ -235,11 +235,7 @@ if __name__ == '__main__':
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
     # sample document if neccessary
-    if 'sampling' in config['setting']:
-        c = config['setting']['sampling']
-        labelNewsList = sampleDoc(labelNewsList, 
-                c['docNumForEachTopic'], c['randSeed'])
-        printStatInfo(labelNewsList)
+    labelNewsList = runSampleDoc(labelNewsList, config)
 
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)

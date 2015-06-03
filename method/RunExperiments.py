@@ -100,26 +100,28 @@ class RunExp:
 
         # split data in N-fold
         skf = StratifiedKFold(y, n_folds=test_folds, shuffle=True, random_state=randSeed)
-        for train_index, test_index in skf:
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-        
-            # do feature selection if config is given
-            if fSelectIsBeforeClf(fSelectConfig) == True:
-                (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
-                        fSelectConfig['params'])
-                if XTest is not None:
-                    XTest = selector.transform(XTest)
-                #print('Dimension:', XTest.shape, file=sys.stderr)
-
+        for clfName in clfList:
             returnObj = list()
-            for clfName in clfList:
+            resultList = list()
+            for train_index, test_index in skf:
+                XTrain, XTest = X[train_index], X[test_index]
+                yTrain, yTest = y[train_index], y[test_index]
+        
+                # do feature selection if config is given
+                if fSelectIsBeforeClf(fSelectConfig) == True:
+                    print('before selection:', XTrain.shape, file=sys.stderr)
+                    (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                            fSelectConfig['params'])
+                    print('after selection:', XTrain.shape, file=sys.stderr)
+                    if XTest is not None:
+                        XTest = selector.transform(XTest)
+
                 # training using validation
                 (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
                         yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
                 
                 if XTest is None or yTest is None:
-                    result = { 'valScore': bestValScore, scorerName: 0.0 }
+                    resultList.append({ 'valScore': bestValScore, scorerName: 0.0 })
                 else:
                     # testing 
                     yTestPredict = ML.test(XTest, clf)
@@ -127,20 +129,24 @@ class RunExp:
                     # evaluation
                     result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
                     result['valScore'] = bestValScore
+                    resultList.append(result)
                 
                 if modelDir is not None:
                     filename = dumpModel(modelDir, clf)
                 else:
                     filename = None
+            
+            # average NFold results
+            result = Evaluator.avgNFoldResult(resultList)
 
-                # printing out results
-                ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
-                    XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
-                        result, filename, outfile=outfile)
+            # printing out results
+            ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
+                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
+                    result, filename, outfile=outfile)
 
-                returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
-                    'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                        'XTest': XTest, 'yTest': yTest } } )
+            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
+                'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                    'XTest': XTest, 'yTest': yTest } } )
         
         return returnObj
 
@@ -866,6 +872,15 @@ class Evaluator:
             score = recall_score(yTrue, yPredict, average='macro')
         return { scorerName: score }
     
+    def avgNFoldResult(resultList):
+        avgScore = defaultdict(float)
+        for result in resultList:
+            for key, value in result.items():
+                avgScore[key] += value
+        for key in avgScore.keys():
+            avgScore[key] = avgScore[key] / len(resultList)
+        return avgScore
+
     def avgTopicResults(topicResults, weights):
         if topicResults is None or len(topicResults) == 0:
             return None
