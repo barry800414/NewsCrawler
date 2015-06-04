@@ -1,5 +1,5 @@
 {
-    "statement_column": ["original", "pos", "dep"],
-    "news_column": ["title_pos", "content_pos", "title_dep", "content_dep"]
+    "statement_column": ["original", "dep"],
+    "news_column": ["content_dep"]
 }
 

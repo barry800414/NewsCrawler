@@ -66,8 +66,7 @@ def mergeXY(X_y_volc_Dict):
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         print('Usage:', sys.argv[0], 'TagDepLabelNewsFile MergedModelConfig sentiDict [-options file]', file=sys.stderr)
-        print('[-WM ParamJson] [-OLDM ParamJson] [-OM ParamJson] [-p PhraseFile] [-v VolcFile] ', file=sys.stderr)
-        print('[-tp TreePatternFile] [-ng NegationPatternFile]', file=sys.stderr)
+        print('[-WM ParamJson] [-OLDM ParamJson] [-OM ParamJson] [-tp TreePatternFile] [-ng NegationPatternFile]', file=sys.stderr)
         exit(-1)
     
     # read in arguments
@@ -81,8 +80,6 @@ if __name__ == '__main__':
     topicPhraseList = None
     pTreeList = None
     negPList = None
-    wVolc = None
-    wVolcPrefix = ''
     for i in range(4, len(sys.argv)):
         if sys.argv[i] == '-WM' and len(sys.argv) > i:
             WMParamsJsonFile = sys.argv[i+1]
@@ -93,17 +90,6 @@ if __name__ == '__main__':
         elif sys.argv[i] == '-OM' and len(sys.argv) > i:
             OMParamsJsonFile = sys.argv[i+1]
             modelNum += 1
-        elif sys.argv[i] == '-p' and len(sys.argv) > i:
-            # load phrase file
-            print('Loading topic phrase file ...', file=sys.stderr)
-            topicPhraseList = loadPhraseFile(sys.argv[i+1])
-        elif sys.argv[i] == '-v' and len(sys.argv) > i:
-            # load word clustering vocabulary 
-            print('Loading word volcabulary file ...', file=sys.stderr)
-            wVolcPrefix = getFileNamePrefix(sys.argv[i+1])
-            wVolc = Volc()
-            wVolc.load(sys.argv[i+1])
-            wVolc.lock() # lock the volcabulary, all new words are viewed as OOV
         elif sys.argv[i] == '-tp' and len(sys.argv) > i:
             # load pattern trees 
             pTreeList = TP.loadPatterns(sys.argv[i+1])
@@ -123,12 +109,15 @@ if __name__ == '__main__':
         config = json.load(f)
     # sample document if neccessary
     labelNewsList = runSampleDoc(labelNewsList, config)
-
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
+    # load volcabulary file
+    volcDict = loadVolcFileFromConfig(config['volc'])
+    # load phrase file
+    topicPhraseList = loadPhraseFileFromConfig(config['phrase'])
+
     toRun = config['toRun']
-    modelName = config['modelName']
-    dataset = config['dataset']
+    taskName = config['taskName']
     preprocess = config['preprocess']
     minCnt = config['minCnt']
     setting = config['setting']
@@ -180,7 +169,7 @@ if __name__ == '__main__':
                         labelNewsInTopic[t], wVolc, topicSet, sentiDict, pTreeList, negPList)
                 rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=mWVolc, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
-            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
+            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (taskName, 
                 dataset, wVolcPrefix, t), 'w+b') as f:
                 pickle.dump(bestR, f)
     
@@ -196,7 +185,7 @@ if __name__ == '__main__':
             rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=mWVolc, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
             
-        with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        with open('%s_%s_%s_AllTrainTest.pickle' %(taskName, dataset, wVolcPrefix), 'w+b') as f:
             pickle.dump(bestR, f)
     
     
@@ -212,7 +201,7 @@ if __name__ == '__main__':
                 bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
 
             with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(
-                modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+                taskName, dataset, wVolcPrefix, t), 'w+b') as f:
                 pickle.dump(bestR, f)
 
 

@@ -9,7 +9,7 @@
 # N: negation (to opinion)
 class Opinion():
     def __init__(self, opinion=None, holder=None, target=None, negCnt=0, 
-            wVolc=None):
+            volcDict=None):
         # original word
         self.opnW = opinion 
         self.hdW = holder
@@ -20,26 +20,35 @@ class Opinion():
         self.tg = target
         self.negCnt = negCnt
         self.sign = 1 if negCnt % 2 == 0 else -1
-        self.wVolc = wVolc
-        self.__convertUsingWVolc__()
+        self.volcDict = volcDict
+        self.__convertUsingVolcDict__()
 
-    def genOpnFromDict(d, wVolc=None):
+    def genOpnFromDict(d, volcDict):
         opn = d['opinion'] if 'opinion' in d else None
         hd = d['holder'] if 'holder' in d else None
         tg = d['target'] if 'target' in d else None
         negCnt = d['neg']['opinion'] if 'neg' in d and 'opinion' in d['neg'] else 0
-        return Opinion(opn, hd, tg, negCnt, wVolc)
+        return Opinion(opn, hd, tg, negCnt, volcDict)
 
     # convert words to index if word vocabulary is given
-    def __convertUsingWVolc__(self):
-        if self.wVolc == None:
+    def __convertUsingVolcDict__(self):
+        if self.volcDict is None:
             return
-        if self.opnW != None:
-            self.opn = self.wVolc[self.opnW] if self.opnW in self.wVolc else None
-        if self.hdW != None:
-            self.hd = self.wVolc[self.hdW] if self.hdW in self.wVolc else None
-        if self.tgW != None:
-            self.tg = self.wVolc[self.tgW] if self.tgW in self.wVolc else None
+        if self.volcDict['opinion'] is None:
+            self.opn = self.opnW
+        else:
+            if self.opnW is not None:
+                self.opn = self.volcDict['opinion'][self.opnW] if self.opnW in self.volcDict['opinion'] else None
+        if self.volcDict['holder'] is None:
+            self.hd = self.hdW
+        else:
+            if self.hdW is not None:
+                self.hd = self.volcDict['holder'][self.hdW] if self.hdW in self.volcDict['holder'] else None
+        if self.volcDict['target'] is None:
+            self.tg = self.tgW
+        else:
+            if self.tgW is not None:
+                self.tg = self.volc['target'][self.tgW] if self.tgW in self.volcDict['target'] else None
 
     # negSep=True: divide opinion+/opinion- into to different tuple
     # |O|x|H|x|T|(x2)
@@ -140,5 +149,4 @@ class Opinion():
         tmp['target'] = self.tg
         tmp['opinion'] = self.opn
         tmp['sign'] = self.sign
-        tmp['hasWVolc'] = True if self.wVolc != None else False
         return '%s' % (tmp)

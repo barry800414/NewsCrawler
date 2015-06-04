@@ -142,9 +142,9 @@ def parseText(text, draw=False, fileFolder=None, fileName='',
             continue
         
         (tokenizedSent, constR, depR) = response
-        print('tokenizedSent:', tokenizedSent)
-        print('ConstR:', constR)
-        print('depR:', depR)
+        #print('tokenizedSent:', tokenizedSent)
+        #print('ConstR:', constR)
+        #print('depR:', depR)
         constResult.append({'nodes': constR[0], 'edges': constR[1], 'seg': tokenizedSent, 'sent': cleanSent})
         depResult.append({'tdList': depR, 'seg':tokenizedSent, 'sent': cleanSent})
         
@@ -187,7 +187,7 @@ if __name__ == '__main__':
     cnt = 0
     newNewsDict = dict()
     removedNewsId = set()
-    for newsId, news in sorted(newsDict.items())[0:10]:
+    for newsId, news in sorted(newsDict.items()):
         if parseType == 'Dep':
             r = depParseNews(news, draw=True, fileFolder=newsId, 
                     sep=sepRegexStr, new_sep=NEW_SEP, 
@@ -205,8 +205,7 @@ if __name__ == '__main__':
             else:
                 removedNewsId.add(newsId)
         elif parseType == 'Dep_Const':
-            r = parseNews(news, draw=True, fileFolder=newsId, 
-                    sep=sepRegexStr, new_sep=NEW_SEP, 
+            r = parseNews(news, sep=sepRegexStr, new_sep=NEW_SEP, 
                     to_remove=removeRegexStr)
             if r:
                 newNewsDict[newsId] = news

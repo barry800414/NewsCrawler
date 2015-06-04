@@ -80,6 +80,13 @@ def loadPhraseFile(jsonFile, wordSep=' '):
                 newDict[tId].append(Phrase(phraseList[i], tag, wordSep=' '))
     return newDict  # newDict[t]: the list of phrase objects of topic t           
 
+# now config is file path
+def loadPhraseFileFromConfig(config):
+    if config == None:
+        return None
+    else:
+        return loadPhraseFile(config)
+
 def filterPhraseByTag(phraseList, allowedTag):
     newList = list()
     for phrase in phraseList:

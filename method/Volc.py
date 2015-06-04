@@ -163,6 +163,17 @@ class Volc:
                 newVolc[key] = index + offset
         return newVolc
 
+# load volcabulary files from configuration
+def loadVolcFileFromConfig(config):
+    if config == None:
+        return None
+    volcDict = dict()
+    for name, filename in config.items():
+        v = Volc()
+        v.load(filename)
+        v.lock()
+        volcDict[name] = v
+    return volcDict
 
 def testCase():
     v = Volc()

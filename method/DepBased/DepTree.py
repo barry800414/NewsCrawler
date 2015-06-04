@@ -136,7 +136,50 @@ class DepTree():
         self.allowedRel.update(relSet)
 
     # FIXME: does dep graph contain cycle? avoid node repeat?
-    def searchOneStep(self):
+    def searchOneStep(self, keepDirection=False):
+        edgeList = list()
+        # out edges
+        for e in self.t.out_edges(self.nowNodes, data=True):
+            if self.__evalEdge(e, 'dep'):
+                self.t.edge[e[0]][e[1]]['gone'] = True
+                rel = e[2]['rel']
+                sP = e[0] 
+                sW = self.t.node[e[0]]['word']
+                sT = self.t.node[e[0]]['tag']
+                eP = e[1]
+                eW = self.t.node[e[1]]['word']
+                eT = self.t.node[e[1]]['tag']
+                edgeList.append((rel, sP, sW, sT, eP, eW, eT))
+                
+        # in edges
+        edgeList = list()
+        for e in self.t.in_edges(self.nowNodes, data=True):
+            if self.__evalEdge(e, 'gov'):
+                self.t.edge[e[0]][e[1]]['gone'] = True
+                rel = e[2]['rel']
+                if keepDirection:
+                    sP = e[1] 
+                    sW = self.t.node[e[1]]['word']
+                    sT = self.t.node[e[1]]['tag']
+                    eP = e[0]
+                    eW = self.t.node[e[0]]['word']
+                    eT = self.t.node[e[0]]['tag']
+                else:
+                    sP = e[0] 
+                    sW = self.t.node[e[0]]['word']
+                    sT = self.t.node[e[0]]['tag']
+                    eP = e[1]
+                    eW = self.t.node[e[1]]['word']
+                    eT = self.t.node[e[1]]['tag']
+                edgeList.append((rel, sP, sW, sT, eP, eW, eT))
+
+
+        # s: starting (maybe dep or gov node)
+        # e: ending(maybe dep or gov node)
+        return edgeList
+
+    # search edges which matching 
+    def searchOneStepNoExchange(self):
         edgeList = list()
         # out edges
         for e in self.t.out_edges(self.nowNodes, data=True):
@@ -167,6 +210,7 @@ class DepTree():
         # s: starting (maybe dep or gov node)
         # e: ending(maybe dep or gov node)
         return edgeList
+
 
     # evaluate whether the edge can be used, only the edges
     # which obey the allowing rules can be used.

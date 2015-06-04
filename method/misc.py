@@ -202,3 +202,11 @@ def runSampleDoc(labelNewsList, config):
                 c['docNumForEachTopic'], c['randSeed'])
         printStatInfo(labelNewsList)
     return labelNewsList
+
+
+
+def printWordCnt(wordCnt, filename):
+    with open(filename, 'w') as f:
+        sortedList = sorted(wordCnt.items(), key=lambda x:x[1], reverse=True)
+        for word, cnt in sortedList:
+            print(word, cnt, sep=':', file=f)

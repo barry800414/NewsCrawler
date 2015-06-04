@@ -118,7 +118,7 @@ def sendParseRequest(sentence, seg=False, draw=False, fileFolder=None,
         entry = lines[0].split(' ')
         constNum = int(entry[0])
         depNum = int(entry[1])
-        print('constNum:', constNum, 'depNum:', depNum)
+        #print('constNum:', constNum, 'depNum:', depNum)
         if not seg:
             assert len(lines) == constNum + depNum + 2
             tokenizedSent = lines[1]

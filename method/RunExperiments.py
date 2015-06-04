@@ -290,8 +290,8 @@ class RunExp:
     
     # higher layer function for running task
     # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
-    def runTask(X, y, volc, taskType, params, clfList, randSeedList, testSize, n_folds, 
-        targetScore, fSelectConfig, topicMap=None, topicId=None, wVolc=None):
+    def runTask(X, y, volcDict, taskType, params, clfList, randSeedList, testSize, n_folds, 
+        targetScore, fSelectConfig, topicMap=None, topicId=None):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
         rsList = list()
         for randSeed in randSeedList:
@@ -310,8 +310,7 @@ class RunExp:
                 if rs is None:
                     return None
                 for r in rs:
-                    r['volc'] = volc
-                    r['wVolc'] = wVolc
+                    r['volcDict'] = volcDict
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params
@@ -324,8 +323,7 @@ class RunExp:
                 if rs is None:
                     return None
                 for r in rs:
-                    r['volc'] = volc
-                    r['wVolc'] = wVolc
+                    r['volcDict'] = volcDict
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params
@@ -338,8 +336,7 @@ class RunExp:
                 if rs is None:
                     return None
                 for r in rs[topicId]:
-                    r['volc'] = volc
-                    r['wVolc'] = wVolc
+                    r['volc'] = volcDict
                     r['X'] = X
                     r['y'] = y
                     r['params'] = params

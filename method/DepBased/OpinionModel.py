@@ -10,11 +10,10 @@ from sklearn.grid_search import ParameterGrid
 
 import TreePattern as TP
 import DepTree as DT
-import PhraseDepTree as PDT
+from PhraseDepTree import *
 import NegPattern as NP
-from Volc import Volc
+from Volc import *
 from Opinion import *
-from sentiDictSum import readSentiDict
 from RunExperiments import *
 from misc import *
 
@@ -47,37 +46,45 @@ class OpinionModel:
         print('', file=sys.stderr)
         self.corpusDTList = corpusDTList
 
-    def getVolc(self):
-        return self.volc
-    
-    def getWordVolc(self):
-        return self.wVolc
+    def getVolcDict(self):
+        return self.volcDict
+
+    # copy original volcabulary
+    def setVolcDict(self, volcDict):
+        if volcDict is None:
+            self.volcDict = { 'main': Volc(), 'holder': None, 'opinion': None, 'target': None }
+        else:
+            self.volcDict = dict()
+            self.volcDict['main'] = Volc()
+            for type in ['holder', 'opinion', 'target']:
+                if type in volcDict and volcDict[type] is not None:
+                    self.volcDict[type] = volcDict[type].copy()
+                else:
+                    self.volcDict[type] = None
 
     # keyTypeList: The list of key types to be used as opinion key ('HOT', 'HT', 'OT', 'HO', 'T', 'H')
     # opnNameList: The list of selected opinion name 
     # sentiDict: sentiment dictionary
     # negSepList: the list of boolean flag to indicate whether negation pattern is represented separated
-    def genXY(self, pTreeList, negPList=None, sentiDict=None, wVolc=None, 
-            keyTypeList=['HOT'], opnNameList=None, negSepList=[False], minCnt=2):
+    def genXY(self, pTreeList, negPList, sentiDict, volcDict, 
+            keyTypeList, opnNameList, negSepList, minCnt):
         self.pTL = pTreeList
         self.nPL = negPList
-        self.wVolc = wVolc # word vocabulary
         self.kTL = keyTypeList
         self.opnNL = opnNameList
         self.sD = sentiDict
         self.nSL = negSepList
         self.minCnt = minCnt 
-        
-        volc = Volc()
+        self.setVolcDict(volcDict)
         
         print('Extracting Opinions(tree pattern matching) ...', end='',file=sys.stderr)
         opnCntList = list() # the list to save all opinions in each document
         docOpnCnt = defaultdict(int) # opnKey -> document frequency
         for i, newsDTList in enumerate(self.corpusDTList):
-            opnDict = self.extractOpn(newsDTList, wVolc)
-            opnCnt = self.countOpn(opnDict, volc)
+            opnDict = self.extractOpn(newsDTList)
+            opnCnt = self.countOpn(opnDict)
             for key in opnCnt.keys():
-                docOpnCnt[volc[key]] += 1
+                docOpnCnt[self.volcDict['main'][key]] += 1
             opnCntList.append(opnCnt)
 
             if (i+1) % 10 == 0:
@@ -86,7 +93,7 @@ class OpinionModel:
         print('', file=sys.stderr)
 
         # reduce volcabulary size
-        volc.shrinkVolcByDocF(docOpnCnt, self.minCnt)
+        self.volcDict['main'].shrinkVolcByDocF(docOpnCnt, self.minCnt)
 
         # convert to X, y
         rows = list()
@@ -94,28 +101,23 @@ class OpinionModel:
         entries = list()
         for rowId, opnCnt in enumerate(opnCntList):
             for opnKey, value in opnCnt.items():
-                if opnKey not in volc:
+                if opnKey not in self.volcDict['main']:
                     continue
-                colId = volc[opnKey]
+                colId = self.volcDict['main'][opnKey]
                 rows.append(rowId)
                 cols.append(colId)
                 entries.append(value)
         numRow = len(opnCntList)
-        numCol = len(volc)
+        numCol = len(self.volcDict['main'])
         X = csr_matrix((entries, (rows, cols)), shape=(numRow, 
             numCol), dtype=np.float64)
         y = np.array(getLabels(self.pln))
         
-        # update volcabulary
-        self.volc = volc
-        self.wVolc = wVolc
-
         return (X, y)
 
     # opnDict: a dictionary (opinion-type-name -> list of opinions)
-    # volc: vocabulary for opinion (key)
     # return: a dictionary (opnKey -> count) 
-    def countOpn(self, opnDict, volc):
+    def countOpn(self, opnDict):
         opnCnt = defaultdict(int)
         for opnName, opns in opnDict.items():
             # ignore the opinions which are not selected
@@ -128,15 +130,14 @@ class OpinionModel:
                         if keyValue != None:
                             (key, value) = keyValue
                             opnCnt[key] += value
-                            volc.addWord(key)
+                            self.volcDict['main'].addWord(key)
                         
         return opnCnt
         
 
     # depParsedNews: dependency parsed news 
-    # wVolc: word vocabulary
     # return: a dictionary (opinion-type-name -> list of opinions)
-    def extractOpn(self, newsDTList, wVolc=None):
+    def extractOpn(self, newsDTList):
         opnDict = dict()
         
         # for each dependency tree
@@ -158,7 +159,7 @@ class OpinionModel:
                 
                 # convert to Opinion objects
                 for i in range(0, len(results)):
-                    results[i] = Opinion.genOpnFromDict(results[i], wVolc)
+                    results[i] = Opinion.genOpnFromDict(results[i], self.volcDict)
 
                 opnDict[pTree.name].extend(results)
         return opnDict
@@ -193,21 +194,21 @@ def initOM(labelNewsList, topicPhraseList=None):
     return om
 
 # generate opinion model features
-def genXY(om, params, preprocess, minCnt, pTreeList, negPList=None, sentiDict=None, wVolc=None):
+def genXY(om, params, preprocess, minCnt, pTreeList, negPList=None, sentiDict=None, volcDict=None):
     print('generating opinion model features ...', file=sys.stderr)
     p = params
-    (X, y) = om.genXY(pTreeList, negPList, sentiDict, wVolc, 
+    (X, y) = om.genXY(pTreeList, negPList, sentiDict, volcDict, 
                 p['keyTypeList'], p['opnNameList'], p['negSepList'], 
                 minCnt)
     if preprocess != None:
         X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
-    volc = om.getVolc()
-    wVolc = om.getWordVolc()
-    return (X, y, volc, wVolc)
+    volcDict = om.getVolcDict()
+    assert X.shape[1] == len(volcDict['main'])
+    return (X, y, volcDict)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 6:
-        print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile [-p PhraseFile] [-v VolcFile]', file=sys.stderr)
+    if len(sys.argv) != 6:
+        print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile', file=sys.stderr)
         exit(-1)
 
     depParsedLabelNewsJsonFile = sys.argv[1]
@@ -231,27 +232,14 @@ if __name__ == '__main__':
     negPList = NP.loadNegPatterns(negPatternFile)
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
-    # load other files
-    topicPhraseList = None
-    wVolc = None
-    wVolcPrefix = ''
-    for i in range(6, len(sys.argv)):
-        if sys.argv[i] == '-p' and len(sys.argv) > i:
-            # load phrase file
-            phrasesJsonFile = sys.argv[i+1]
-            topicPhraseList = loadPhraseFile(phrasesJsonFile)
-            i = i + 1
-        elif sys.argv[i] == '-v' and len(sys.argv) > i:
-            # load word volcabulary file
-            wordVolcFile = sys.argv[i+1]
-            wVolcPrefix = getFileNamePrefix(wordVolcFile)
-            wVolc = Volc()
-            wVolc.load(wordVolcFile)
-    
+    # load volcabulary file
+    volcDict = loadVolcFileFromConfig(config['volc'])
+    # load phrase file
+    topicPhraseList = loadPhraseFileFromConfig(config['phrase'])
+
     # model parameters 
     toRun = config['toRun']
-    modelName = config['modelName']
-    dataset = config['dataset']
+    taskName = config['taskName']
     preprocess = config['preprocess']
     minCnt = config['minCnt']
     setting = config['setting']
@@ -282,12 +270,11 @@ if __name__ == '__main__':
             #    continue
             bestR = None
             for p in paramsIter:
-                (X, y, volc, wVolc) = genXY(tom[t], p, preprocess, minCnt, pTreeList,
-                    negPList, sentiDict, wVolc)
-                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=wVolc, **setting)
+                (X, y, newVolcDict) = genXY(tom[t], p, preprocess, minCnt, pTreeList,
+                    negPList, sentiDict, volcDict)
+                rsList = RunExp.runTask(X, y, newVolcDict, 'SelfTrainTest', p, topicId=t, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
-            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
-                dataset, wVolcPrefix, t), 'w+b') as f:
+            with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
                 pickle.dump(bestR, f)
     
     
@@ -297,21 +284,21 @@ if __name__ == '__main__':
     bestR2 = {t:None for t in topicSet}  # for leave-one-test
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, volc, wVolc) = genXY(om, p, preprocess, minCnt, pTreeList, 
-                    negPList, sentiDict, wVolc)
-            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=wVolc, **setting)
+            (X, y, newVolcDict) = genXY(om, p, preprocess, minCnt, pTreeList, 
+                    negPList, sentiDict, volcDict)
+            rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
-                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, topicMap=topicMap, topicId=t, wVolc=wVolc, **setting)
+                rsList = RunExp.runTask(X, y, newVolcDict, 'LeaveOneTest', p, topicMap=topicMap, topicId=t, **setting)
                 bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
     
     if 'AllTrainTest' in toRun:
-        with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
             pickle.dump(bestR, f)
 
     if 'LeaveOneTest' in toRun:
         for t in topicSet:
-            with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
                 pickle.dump(bestR2[t], f)
 

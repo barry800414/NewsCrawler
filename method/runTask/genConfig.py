@@ -9,14 +9,14 @@ mergeTemplate = {
     "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
     "preprocess": None,
     "minCnt": 2,
-    "modelName": "OM_all_norm1",
-    "dataset": "zhtNews",
+    "taskName": "OM_all_norm1",
     "setting":{
         "targetScore": "MacroF1",
         "clfList": ["LinearSVM"],
         "randSeedList": [1, 2, 3, 4, 5],
         "testSize": 0.2,
-        "n_folds": 3
+        "n_folds": 3,
+        "fSelectConfig": None
     }
 }
 
@@ -25,7 +25,6 @@ defaultConfig={
         "WM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
-            "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
                 "feature": ["tf"],
@@ -36,13 +35,15 @@ defaultConfig={
                 "clfList": ["LinearSVM"],
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
-                "n_folds": 3
-            }
+                "n_folds": 3,
+                "fSelectConfig": None
+            },
+            "fSelectConfig": None,
+            "volc": None
         },
         "OLDM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
-            "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
                 "seedWordType": [
@@ -58,12 +59,15 @@ defaultConfig={
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
                 "n_folds": 3,
-            }
+                "fSelectConfig": None
+            },
+            "fSelectConfig": None,
+            "volc": None,
+            "phrase": None
         },
         "OM": {
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
-            "dataset": "zhtNews",
             "minCnt": 2,
             "params":{ 
                 "keyTypeList": [["H", "T", "HT"]],
@@ -76,7 +80,10 @@ defaultConfig={
                 "randSeedList": [1, 2, 3, 4, 5],
                 "testSize": 0.2,
                 "n_folds": 3,
-            }
+                "fSelectConfig": None
+            },
+            "volc": None,
+            "phrase": None
         },
         'WM_OLDM': mergeTemplate,
         'WM_OM': mergeTemplate,
@@ -128,7 +135,7 @@ iterConfig={
             },
             
         { "path": ["params", "firstLayerType"],
-            "params": { "tag": {"type": "tag", "allow": ["VV","JJ","VA"]} }
+            "params": { "tag": [{"type": "tag", "allow": ["VV","JJ","VA"]}] }
             }
     ],
     "OM":[  
@@ -161,9 +168,9 @@ iterConfig={
 }
 
 nameList= {
-    "WM": [ "None", "None", "LinearSVM", "tf"],
-    "OLDM":  [ "None", "None", "LinearSVM", "NTUSD" ],
-    "OM": [ "None", "None", "LinearSVM", "H-T-HT", "negTrue"]
+    "WM": [ "None", "None", "LinearSVM", "tf", "vNone"],
+    "OLDM":  [ "None", "None", "LinearSVM", "NTUSD", "vNone", "pNone" ],
+    "OM": [ "None", "None", "LinearSVM", "H-T-HT", "negTrue", "vNone", "pNone"]
 }
 
 def genConfig(defaultConfig, iterConfig, nameList, prefix):
@@ -182,7 +189,7 @@ def genConfig(defaultConfig, iterConfig, nameList, prefix):
             obj[path[-1]] = p
             newNameList[i] = pName
             newName = mergeName(prefix, newNameList)
-            newConfig['modelName'] = newName
+            newConfig['taskName'] = newName
             configList.append( (newName, newConfig) )
     return configList
 
@@ -217,17 +224,17 @@ if __name__ == '__main2__':
                 p['params'] = dict()
                 p['params']['with_mean'] = False
                 p['params']['with_std'] = True
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             elif pre == 'norm1':
                 p['method'] = 'norm'
                 p['params'] = dict()
                 p['params']['norm'] = 'l1'
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             elif pre == 'norm2':
                 p['method'] = 'norm'
                 p['params'] = dict()
                 p['params']['norm'] = 'l2'
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             elif pre == 'binary':
                 if model == 'WM':
                     c['params']['feature'] = ['tf']
@@ -236,10 +243,10 @@ if __name__ == '__main2__':
                 p['method'] = 'binary'
                 p['params'] = dict()
                 p['params']['threshold'] = 0.0
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             elif pre == None:
                 c['preprocess'] = None
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             c['setting']['fSelectConfig'] = None
             fileName = configFolder + '%s_config.json' % (prefix)
             with open(fileName, 'w') as f:
@@ -255,11 +262,11 @@ if __name__ == '__main2__':
                 p['method'] = 'LinearSVC'
                 p['params'] = dict()
                 p['params']['C'] = 1.0
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             elif fSelect == 'RF':
                 p['method'] = 'RF'
                 p['params'] = dict()
-                c['modelName'] = prefix
+                c['taskName'] = prefix
             c['setting']['fSelectConfig'] = p
             fileName = configFolder + '%s_config.json' % (prefix)
             

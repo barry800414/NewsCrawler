@@ -12,7 +12,7 @@ from sklearn.grid_search import ParameterGrid
 
 from RunExperiments import *
 from misc import *
-from Volc import Volc
+from Volc import *
 
 '''
 This is the improved version of WordModel
@@ -27,10 +27,9 @@ Date: 2015/05/04
 '''
 
 class WordModel:
-    def genXY(self, labelNewsList, feature='tf', volc=None, allowedPOS=None, minCnt=0):
-        #initialization
-        if volc == None:
-            volc = Volc()
+    def genXY(self, labelNewsList, feature='tf', volcDict=None, allowedPOS=None, minCnt=0):
+        self.setVolcDict(volcDict)
+        volc = self.volcDict['main']
         IDF = None
         zeroOne = False
         if feature == '0/1' or feature == '01':
@@ -46,7 +45,7 @@ class WordModel:
         # calcualte IDF if necessary
         if feature == 'tfidf' or feature == 'tf-idf':
             IDF = WordModel.DF2IDF(DF, len(labelNewsList))
-
+        
         # calculate TF/TF-IDF (content)
         newsTFIDF = None
         (newsTFIDF, volc) = WordModel.corpusToTFIDF(labelNewsList,
@@ -60,11 +59,20 @@ class WordModel:
         y = np.array(getLabels(labelNewsList))
         
         # update volc
-        self.volc = volc
+        self.volcDict['main'] = volc
+
         return (X, y)
 
-    def getVolc(self):
-        return self.volc
+    # copy original volcabulary
+    def setVolcDict(self, volcDict):
+        if volcDict is None:
+            self.volcDict = { 'main': None }
+        else:
+            self.volcDict = dict()
+            self.volcDict['main'] = volcDict['main'].copy()
+
+    def getVolcDict(self):
+        return self.volcDict
 
     # convert the corpus of news to tf/tf-idf (a list of dict)
     def corpusToTFIDF(labelNewsList, volc, allowedPOS=None, IDF=None, zeroOne=False):
@@ -160,22 +168,20 @@ def initWM():
     return WordModel()
 
 # generate word model features
-def genXY(labelNewsList, wm, params, preprocess, minCnt, volc=None):
+def genXY(labelNewsList, wm, params, preprocess, minCnt, volcDict):
     print('generating word features...', file=sys.stderr)
     p = params
-    (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volc=volc, 
+    (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volcDict=volcDict, 
             allowedPOS=p['allowedPOS'], minCnt=minCnt)
     if preprocess != None:
         X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
-    #np.savetxt('test.X', X)
-    #scipy.io.mmwrite('test.mtx', X)
-    volc = wm.getVolc()
-    assert X.shape[1] == len(volc)
-    return (X, y, volc, Volc())
+    volcDict = wm.getVolcDict()
+    assert X.shape[1] == len(volcDict['main'])
+    return (X, y, volcDict)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print('Usage:', sys.argv[0], 'TaggedLabelNewsJson modelConfigFile [volcFile]', file=sys.stderr)
+    if len(sys.argv) != 3:
+        print('Usage:', sys.argv[0], 'TaggedLabelNewsJson modelConfigFile', file=sys.stderr)
         exit(-1)
     
     # arguments
@@ -189,20 +195,13 @@ if __name__ == '__main__':
         config = json.load(f)
     # sample document if neccessary
     labelNewsList = runSampleDoc(labelNewsList, config)
-
-    wVolc = None
-    wVolcPrefix = ''
-    if len(sys.argv) == 4:
-        wVolcPrefix = getFileNamePrefix(sys.argv[3])
-        wVolc = Volc()
-        wVolc.load(sys.argv[3])
-        wVolc.lock() # lock the volcabulary, new words are OOV
+    # load volcabulary file
+    volcDict = loadVolcFileFromConfig(config['volc'])
 
     # parameters:
     #print(config, file=sys.stderr)
     toRun = config['toRun']
-    modelName = config['modelName']
-    dataset = config['dataset']
+    taskName = config['taskName']
     preprocess = config['preprocess']
     minCnt = config['minCnt']
     setting = config['setting']
@@ -221,7 +220,6 @@ if __name__ == '__main__':
     # initialize the model
     wm = WordModel()
 
-    
     # ============= Run for self-train-test ===============
     if 'SelfTrainTest' in toRun:
         print('Self-Train-Test...', file=sys.stderr)
@@ -230,11 +228,10 @@ if __name__ == '__main__':
             #    continue
             bestR = None
             for p in paramsIter:
-                (X, y, volc, tmp) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, volc=wVolc)
-                rsList = RunExp.runTask(X, y, volc, 'SelfTrainTest', p, topicId=t, wVolc=tmp, **setting)
+                (X, y, newVolcDict) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, volcDict)
+                rsList = RunExp.runTask(X, y, newVolcDict, 'SelfTrainTest', p, topicId=t, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
-            with open('%s_%s_%s_SelfTrainTest_topic%d.pickle' % (modelName, 
-                dataset, wVolcPrefix, t), 'w+b') as f:
+            with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
                 pickle.dump(bestR, f)
 
     # ============= Run for all-train-test & leave-one-test ================
@@ -244,19 +241,19 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, volc, tmp) = genXY(labelNewsList, wm, p, preprocess, minCnt, volc=wVolc)
-            rsList = RunExp.runTask(X, y, volc, 'AllTrainTest', p, topicMap=topicMap, wVolc=tmp, **setting)
+            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, volcDict)
+            rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
-                rsList = RunExp.runTask(X, y, volc, 'LeaveOneTest', p, topicMap=topicMap, 
-                        topicId=t, wVolc=tmp, **setting)
+                rsList = RunExp.runTask(X, y, newVolcDict, 'LeaveOneTest', p, topicMap=topicMap, 
+                        topicId=t, **setting)
                 bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
     if 'AllTrainTest' in toRun:
-        with open('%s_%s_%s_AllTrainTest.pickle' %(modelName, dataset, wVolcPrefix), 'w+b') as f:
+        with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
             pickle.dump(bestR, f)
     
     if 'LeaveOneTest' in toRun:
         for t in topicSet:
-            with open('%s_%s_%s_LeaveOneTest_topic%d.pickle' %(modelName, dataset, wVolcPrefix, t), 'w+b') as f:
+            with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
                 pickle.dump(bestR2[t], f)
