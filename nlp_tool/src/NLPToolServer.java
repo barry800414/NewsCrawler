@@ -311,7 +311,7 @@ public class NLPToolServer {
 
                 //retrieve sentence
                 StringBuilder response = new StringBuilder();
-                Map <String,String>parms = EngNLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
+                Map <String,String>parms = NLPToolServer.queryToMap(httpExchange.getRequestURI().getQuery());
 
                 boolean seg = false;
                 String text = parms.get("seg_s");
@@ -339,7 +339,6 @@ public class NLPToolServer {
                         imgPath = NLPToolServer.imgFolder + fileFolder + "/" + fileName;
                     }
                 }
-                System.out.println(imgPath);
 
                 //constituent parsing & dependency parsing by pcfg parser
                 //Tree tree;
@@ -369,7 +368,8 @@ public class NLPToolServer {
                 //System.out.println("Response:" + output.substring(0, output.length() > 10 ? 10: output.length()) + "...");
                 System.out.println("Reqeust:" + text);
                 System.out.println("Response:" + response.toString());
-     
+                System.out.println("Image Path:" + imgPath);
+
                 NLPToolServer.writeResponse(httpExchange, response.toString());
             }
             catch(Exception e){
