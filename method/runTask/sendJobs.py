@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from multiprocessing.managers import BaseManager
 import os
+from genConfig import *
 
 class QueueManager(BaseManager):
     pass
@@ -24,20 +25,35 @@ pyMap = {
         "WM_OLDM_OM": "./DepBased/MergedModel.py"
 }
 configFolder = './config/'
-taggedFile = './zhtNewsData/taggedLabelNews20150504.json'
-depFile = './zhtNewsData/OLPDM_labelNews_20150504.json'
-taggedDepFile = './zhtNewsData/taggedAndDepParsedLabelNews20150504.json'
+taggedFile = './zhtNewsData/taggedLabelNewsFinal_long.json'
+depFile = './zhtNewsData/DepParsedLabelNewsFinal_short.json'
+#taggedDepFile = './zhtNewsData/taggedAndDepParsedLabelNews20150504.json'
 dictFile = './res/NTUSD_core.csv'
 negFile = './DepBased/negPattern.json'
 patternFile = './DepBased/my_pattern.json'
 
 scoreFile = './results20150601.csv'
 
+
 if __name__ == '__main__':
     sender = SendJob()
-    
-    cnt = 0
-    
+    for model in ["WM", "OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
+        print(len(configList))
+        for taskName, config in configList:
+            configFile = configFolder + taskName + '_config.json'
+            resultFile = '%s_results.csv' % (taskName)
+            if model == 'WM':
+                cmd = "python3 %s %s %s > %s" % (pyMap[model], taggedFile, configFile, resultFile)
+            elif model == 'OLDM':
+                cmd = "python3 %s %s %s %s > %s" %(pyMap[model], depFile, configFile, dictFile, resultFile) 
+            elif model == 'OM':
+                cmd = "python3 %s %s %s %s %s %s > %s" % (pyMap[model], depFile, configFile, patternFile, negFile, dictFile, resultFile)
+            
+            print(cmd)
+
+
+if __name__ == '__main2__':
     for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:
     #for model in ['WM', 'OLDM', 'OM']:
     #for model in ['WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:

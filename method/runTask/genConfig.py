@@ -90,6 +90,41 @@ defaultConfig={
         'WM_OLDM_OM': mergeTemplate
 }
 
+
+# generating configs for word clustering 
+volcFolder = './WordClustering/volc'
+topicList = [2, 3, 4, 5, 6, 13, 16, 'all']
+volcFileConfig = { "WM": dict(), "OLDM": dict(), "OM": dict() }
+
+# for WM
+c = volcFileConfig['WM']
+for type in ["c7852F"]:
+    c[type] = dict()
+    for t in topicList:
+        c[type][t] = dict()
+        c[type][t]['main'] = '%s/%s_WM_T%s.volc' % (volcFolder, type, str(t))
+
+# for OLDM
+c = volcFileConfig['OLDM']
+for type in ['c7852F_NTUSD', 'c7852F_Tag']:
+    c[type] = dict()
+    for t in topicList:
+        c[type][t] = dict()
+        c[type][t]['seed'] = '%s/%s_OLDM_T%s_sW.volc' % (volcFolder, type, str(t))
+        c[type][t]['firstLayer'] = '%s/%s_OLDM_T%s_flW.volc' % (volcFolder, type, str(t))
+
+# for OM
+c = volcFileConfig['OM']
+for type in ['c7852F']:
+    c[type] = dict()
+    for t in topicList:
+        c[type][t] = dict()
+        c[type][t]['holder'] = '%s/%s_OM_T%s_hdW.volc' % (volcFolder, type, str(t))
+        c[type][t]['opinion'] = '%s/%s_OM_T%s_opnW.volc' % (volcFolder, type, str(t))
+        c[type][t]['target'] = '%s/%s_OM_T%s_tgW.volc' % (volcFolder, type, str(t))
+
+#print(volcFileConfig)
+
 # configuration for search parameters (one parameter a time)
 iterConfig={
     "WM": [
@@ -113,7 +148,10 @@ iterConfig={
         
         { "path": ["params", "feature"], 
             "params": { "01": ["0/1"], "tfidf": ["tfidf"] } 
-            }
+            },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['WM']
+        #}
     ],
     "OLDM" :[
         { "path": ["preprocess"], 
@@ -136,7 +174,11 @@ iterConfig={
             
         { "path": ["params", "firstLayerType"],
             "params": { "tag": [{"type": "tag", "allow": ["VV","JJ","VA"]}] }
-            }
+            },
+        { "path": ["volc"],
+            "params": volcFileConfig['OLDM']
+        }
+
     ],
     "OM":[  
         { "path": ["preprocess"], 
@@ -163,15 +205,22 @@ iterConfig={
 
         { "path": ["params", "negSepList"], 
             "params": { "negFalse": [[False]], "negBoth": [[True, False]]}
-            }
+            },
+        { "path": ["volc"],
+            "params": volcFileConfig['OM']
+        }
+
     ]
 }
 
 nameList= {
-    "WM": [ "None", "None", "LinearSVM", "tf", "vNone"],
-    "OLDM":  [ "None", "None", "LinearSVM", "NTUSD", "vNone", "pNone" ],
-    "OM": [ "None", "None", "LinearSVM", "H-T-HT", "negTrue", "vNone", "pNone"]
+    #"WM": [ "pN", "fN", "LinearSVM", "tf", "vN"],
+    "WM": [ "pN", "fN", "LinearSVM", "tf"],
+    "OLDM":  [ "pN", "fN", "LinearSVM", "NTUSD", "vN"],
+    "OM": [ "pN", "fN", "LinearSVM", "H-T-HT", "negTrue", "vN"]
 }
+
+
 
 def genConfig(defaultConfig, iterConfig, nameList, prefix):
     configList = list()
@@ -201,16 +250,15 @@ def mergeName(prefix, nameList):
 
 
 if __name__ == '__main__':
-    
     for model in ["WM", "OLDM", "OM"]:
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + '_zhtNews')
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
         print(len(configList))
         for name, config in configList:
             with open(configFolder + name + '_config.json', 'w') as f:
                 json.dump(config, f, indent=2)
             print(name)
             #print(config, '\n')
-
+    
 if __name__ == '__main2__':
     cnt = 0
     # generate config first
