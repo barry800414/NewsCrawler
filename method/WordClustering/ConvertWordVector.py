@@ -43,7 +43,7 @@ def readWordVector(filename):
             i = i + 1
             if (i+1) % 10 == 0:
                 print('%cProgress: (%d/%d)' % (13, i+1, volcNum), end='', file=sys.stderr)
-           
+        print('', file=sys.stderr)
     assert len(volc) == len(vectors)
     vectors = np.array(vectors, dtype=np.float64)
     return (volc, vectors)
@@ -62,15 +62,26 @@ def filterByWord(X, volc, wordSet):
             newVolc[w] = oldNewMapping[volc[w]]
             #if not np.array_equal(newX[oldNewMapping[volc[w]]],X[volc[w]]):
             #    print('fail')
-
+    
     #print(newX.shape, len(newVolc))
     return (newX, newVolc)
+
+def readWordCnt(filename):
+    wordCnt = dict()
+    with open(filename, 'r') as f:
+        for line in f:
+            entry = line.split(':')
+            assert len(entry) == 2
+            word = entry[0]
+            cnt = int(entry[1])
+            wordCnt[word] = cnt
+    return wordCnt
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         print('Converting word vector file(text, from word2vec tool) to volcabulary file(.volc) and numpy array file(.npy)', file=sys.stderr)
-        print('Usage:', sys.argv[0], 'InWordVectorFile(text) OutWordVectorFile(npy) outVolcFile [inWordTagFile]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'InWordVectorFile(text) OutWordVectorFile(npy) outVolcFile [-wt inWordTagFile/-wc inWordCntFile minCnt]', file=sys.stderr)
         exit(-1)
 
     inWVFile = sys.argv[1]
@@ -81,22 +92,31 @@ if __name__ == '__main__':
     (volc, vectors) = readWordVector(inWVFile)
     
     wordSet = None
-    if len(sys.argv) == 5:
-        # if input word-tag file was given, then only the words and word vector
-        # in word-tag file are output 
-        inWordTagFile = sys.argv[4]
-        with open(inWordTagFile, 'r') as f:
-            (wordTag, tagWord) = WordTag.loadWordTag(f)
-        wordSet = set(wordTag.keys())
-        print('#words in word tag file:', len(wordSet))
-        
-        #print(wordSet - set(volc.volc.keys()))
-        (newX, newVolc) = filterByWord(vectors, volc, wordSet)
-        print('#words in new volc:', len(newVolc))
-    else:
-        newX = vectors
-        newVolc = volc
-
+    for i in range(4, len(sys.argv)):
+        if sys.argv[i] == '-wt' and len(sys.argv) > i:
+            # if input word-tag file was given, then only the words and word vector
+            # in word-tag file are output 
+            inWordTagFile = sys.argv[i+1]
+            with open(inWordTagFile, 'r') as f:
+                (wordTag, tagWord) = WordTag.loadWordTag(f)
+            wordSet = set(wordTag.keys())
+            print('#words in word tag file:', len(wordSet))
+            
+            #print(wordSet - set(volc.volc.keys()))
+            (newX, newVolc) = filterByWord(vectors, volc, wordSet)
+            print('#words in new volc:', len(newVolc))
+            break
+        elif sys.argv[i] == '-wc' and len(sys.argv) > i + 1:
+            inWordCntFile = sys.argv[i+1]
+            minCnt = int(sys.argv[i+2])
+            wordCnt = readWordCnt(inWordCntFile)
+            wordSet = set([word for word, cnt in wordCnt.items() if cnt >= minCnt])
+            (newX, newVolc) = filterByWord(vectors, volc, wordSet)
+            print("#words in wordCnt file:", len(wordSet), '\tminCnt:', minCnt, '\t#word in final volc:', len(newVolc), file=sys.stderr) 
+            break
+        else:
+            newX = vectors
+            newVolc = volc
     np.save(outWVFile, newX)
     newVolc.save(outVolcFile)
 

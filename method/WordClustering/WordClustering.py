@@ -35,7 +35,7 @@ def getWordCluster(labels, volc):
     for i, label in enumerate(labels):
         if label not in clusters:
             clusters[label] = list()
-        clusters[label].append(volc.getWord(i))
+        clusters[label].append(volc.getWord(i, usingJson=False))
     return clusters
 
 # print word clusters for human reading
@@ -53,23 +53,27 @@ def printWordClusterAsVolc(clusters, offset=0, outfile=sys.stdout):
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print('Usage:', sys.argv[0], 'WordVector volcFile nCluster outWordClusterPrefix [WordTagFile]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'WordVector volcFile nCluster(nClusterPercentage) outWordClusterPrefix [WordTagFile]', file=sys.stderr)
         exit(-1)
 
     wordVectorFile = sys.argv[1]
     volcFile = sys.argv[2]
-    nCluster = int(sys.argv[3])
+    try: nCluster = int(sys.argv[3])
+    except:
+        try: nCluster = float(sys.argv[3])
+        except: exit(-1)
+
     print('nCluster:', nCluster, file=sys.stderr)
     wordClusterFile = sys.argv[4]
     tagWord = None
 
     print('Loading word vector matrix ...', file=sys.stderr)
     WX = np.load(wordVectorFile)
-    print(WX.shape)
     print('Loading volcabulary ...', file=sys.stderr)
     volc = Volc()
     volc.load(volcFile)
 
+    # read word-tag file
     if len(sys.argv) == 6:
         # one word should have only one POS tag (most frequent)
         wordTagFile = sys.argv[5]
@@ -77,11 +81,14 @@ if __name__ == '__main__':
             (wordTag, tagWord) = WordTag.loadWordTag(f)
         allowedPOS = set(['NN', 'NR', 'VV', 'VA', 'AD', 'JJ'])
 
+
+
     if tagWord == None:
         # cluster all words into N cluster
         print('K-means clustering ...', file=sys.stderr)
+        if nCluster <= 1: # by percentage of #words
+            nCluster = math.ceil(WX.shape[0] * nCluster)
         labels = wordClustering(WX, 'KMeans', nCluster, {})
-    
         clusters = getWordCluster(labels, volc)
         with open(wordClusterFile + '.volc', 'w') as f, open(wordClusterFile + '.txt', 'w') as f2:
             printWordClusterAsVolc(clusters, outfile=f)
@@ -90,6 +97,8 @@ if __name__ == '__main__':
         # for each words with certain tag, cluster them
         print('K-means clustering ...', file=sys.stderr)
         nWords = sum([len(wordSet) for tag, wordSet in tagWord.items() if tag in allowedPOS])
+        if nCluster <= 1: # by percentage of #words
+            nCluster = math.ceil(nWords * nCluster)
         nClusterEachTag = { tag: math.ceil(len(tagWord[tag])*nCluster/nWords) for tag in tagWord.keys() if tag in allowedPOS }
         print(nClusterEachTag)
         with open(wordClusterFile + '.volc', 'w') as f, open(wordClusterFile + '.txt', 'w') as f2:

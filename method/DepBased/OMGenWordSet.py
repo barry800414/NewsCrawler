@@ -174,9 +174,9 @@ if __name__ == '__main__':
         for p in paramsIter:
             (hdWordCnt, opnWordCnt, tgWordCnt) = tom[t].genWordCnt(pTreeList, negPList, sentiDict,
                 p['keyTypeList'], p['opnNameList'], p['negSepList'])
-            printWordCnt(hdWordCnt, outFilePrefix + '_Topic%d_hdWord.txt' % t)
-            printWordCnt(opnWordCnt, outFilePrefix + '_Topic%d_opnWord.txt' % t)
-            printWordCnt(tgWordCnt, outFilePrefix + '_Topic%d_tgWord.txt' % t)
+            printWordCnt(hdWordCnt, outFilePrefix + '_T%d_hdW.txt' % t)
+            printWordCnt(opnWordCnt, outFilePrefix + '_T%d_opnW.txt' % t)
+            printWordCnt(tgWordCnt, outFilePrefix + '_T%d_tgW.txt' % t)
             cnt += 1
         assert cnt == 1
     
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     for p in paramsIter:
         (hdWordCnt, opnWordCnt, tgWordCnt) = om.genWordCnt(pTreeList, negPList, sentiDict,
                 p['keyTypeList'], p['opnNameList'], p['negSepList'])
-        printWordCnt(hdWordCnt, outFilePrefix + '_All_hdWord.txt')
-        printWordCnt(opnWordCnt, outFilePrefix + '_All_opnWord.txt')
-        printWordCnt(tgWordCnt, outFilePrefix + '_All_tgWord.txt')
+        printWordCnt(hdWordCnt, outFilePrefix + '_TAll_hdW.txt')
+        printWordCnt(opnWordCnt, outFilePrefix + '_TAll_opnW.txt')
+        printWordCnt(tgWordCnt, outFilePrefix + '_TAll_tgW.txt')
 

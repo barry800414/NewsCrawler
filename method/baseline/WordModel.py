@@ -191,12 +191,19 @@ if __name__ == '__main__':
     # load label news 
     with open(segLabelNewsJson, 'r') as f:
         labelNewsList = json.load(f)
+    # load model config
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
+
+    # get the set of all possible topic
+    topicSet = set([ln['statement_id'] for ln in labelNewsList])
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
+
     # sample document if neccessary
     labelNewsList = runSampleDoc(labelNewsList, config)
     # load volcabulary file
-    volcDict = loadVolcFileFromConfig(config['volc'])
+    topicVolcDict = loadVolcFileFromConfig(config['volc'], topicSet)
 
     # parameters:
     #print(config, file=sys.stderr)
@@ -206,13 +213,7 @@ if __name__ == '__main__':
     minCnt = config['minCnt']
     setting = config['setting']
     targetScore = config['setting']['targetScore'] 
-    
     paramsIter = ParameterGrid(config['params'])
-
-    # get the set of all possible topic
-    topicSet = set([ln['statement_id'] for ln in labelNewsList])
-    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
 
     # print first line of results
     ResultPrinter.printFirstLine()
@@ -228,7 +229,7 @@ if __name__ == '__main__':
             #    continue
             bestR = None
             for p in paramsIter:
-                (X, y, newVolcDict) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, volcDict)
+                (X, y, newVolcDict) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, topicVolcDict[t])
                 rsList = RunExp.runTask(X, y, newVolcDict, 'SelfTrainTest', p, topicId=t, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
@@ -241,7 +242,7 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, volcDict)
+            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, topicVolcDict['all'])
             rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:

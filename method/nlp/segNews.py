@@ -54,7 +54,7 @@ def segText(content, sep=SEP, new_sep=NEW_SEP,
         if len(s2) == 0: #if empty string, skip it
             continue
         
-        print('|%s|' % (s2))
+        #print('|%s|' % (s2))
         # segment the string by Stanford NLP segmenter
         result = sendSegmentRequest(s2)
         # remove punctuation
@@ -63,7 +63,7 @@ def segText(content, sep=SEP, new_sep=NEW_SEP,
         result = re.sub('[ ]+', ' ', result)
         # remove delimeter chars in front/end of string
         result = result.strip()
-        print('|%s|' % result)
+        #print('|%s|' % result)
         if len(result) == 0:
             continue
         if len(segText) != 0:
@@ -106,11 +106,11 @@ if __name__ == '__main__':
         removeRegexStr = TO_REMOVE
 
     cnt = 0
-    for newsId, news in newsDict.items():
+    for newsId, news in sorted(newsDict.items()):
         segLabelNews(news, sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
-        cnt =+ 1
-        if cnt % 10 == 0:
-            print('Progress: (%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
+        cnt += 1
+        if (cnt+1) % 10 == 0:
+            print('%cProgress: (%d/%d)' % (13, cnt+1, len(newsDict)), end='', file=sys.stderr)
 
     with open(outNewsJsonFile, 'w') as f:
         json.dump(newsDict, f, ensure_ascii=False, indent = 2)

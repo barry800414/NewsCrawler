@@ -93,13 +93,20 @@ class Volc:
     def __len__(self):
         return len(self.rVolc)
 
-    def getWord(self, index):
+    def getWord(self, index, usingJson=True):
         wStr = ''
-        for i, w in enumerate(self.rVolc[index]):
-            if i != len(self.rVolc[index]) - 1:
-                wStr = wStr + toStr(w, ensure_ascii=False) + ';'
-            else:
-                wStr = wStr + toStr(w, ensure_ascii=False)
+        if usingJson:
+            for i, w in enumerate(self.rVolc[index]):
+                if i != len(self.rVolc[index]) - 1:
+                    wStr = wStr + toStr(w, ensure_ascii=False) + ';'
+                else:
+                    wStr = wStr + toStr(w, ensure_ascii=False)
+        else:
+            for i, w in enumerate(self.rVolc[index]):
+                if i != len(self.rVolc[index]) - 1:
+                    wStr = wStr + w + ' '
+                else:
+                    wStr = wStr + w 
         return wStr
 
     def getWordList(self, index):
@@ -164,16 +171,25 @@ class Volc:
         return newVolc
 
 # load volcabulary files from configuration
-def loadVolcFileFromConfig(config):
+# return: topicVolcDict[t][n]: is the target 
+# volcabulary with name n (e.g. main, seedword, ...) in topic t
+def loadVolcFileFromConfig(config, topicSet):
     if config == None:
-        return None
-    volcDict = dict()
-    for name, filename in config.items():
-        v = Volc()
-        v.load(filename)
-        v.lock()
-        volcDict[name] = v
-    return volcDict
+        topicVolcDict = { t:None for t in topicSet }
+        topicVolcDict['all'] = None
+    else:
+        topicVolcDict = dict()
+        for topic, topicConfig in config.items():
+            try: topic = int(topic)
+            except: assert topic == 'all'
+            volcDict = dict()
+            for name, filename in topicConfig.items():
+                v = Volc()
+                v.load(filename)
+                v.lock()
+                volcDict[name] = v
+            topicVolcDict[topic] = volcDict
+    return topicVolcDict
 
 def testCase():
     v = Volc()

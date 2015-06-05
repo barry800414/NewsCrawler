@@ -98,7 +98,6 @@ class OneLayerDepModel():
                 dg.setNowWord(self.asw[topicId], self.aswType)
                 # go one step for searching dependencies (edges) which matches the rule
                 edgeList = dg.searchOneStep(keepDirection=False)
-                
                 # save all the searched depenencies for later usage
                 newsEdgeList.append(edgeList)
 
@@ -176,7 +175,7 @@ if __name__ == '__main__':
 
     # intialize the model
     oldm = initOLDM(labelNewsList, topicPhraseList)
-    toldm = { t: initOLDM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items()}
+    toldm = { t: initOLDM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() }
  
     # ============= Run for self-train-test ===============
     print('For each topic ... ', file=sys.stderr)
@@ -189,8 +188,9 @@ if __name__ == '__main__':
             (seedWordCnt, firstLayerWordCnt) = toldm[t].genWordCnt(allowedSeedWord, 
                     p['seedWordType']['type'], allowedFirstLayerWord, 
                     p['firstLayerType']['type'], allowedRel)
-            printWordCnt(seedWordCnt, outFilePrefix + '_Topic%d_SeedWord.txt' % t)
-            printWordCnt(firstLayerWordCnt, outFilePrefix + '_Topic%d_FirstLayerWord.txt' % t)
+
+            printWordCnt(seedWordCnt, outFilePrefix + '_T%d_sW.txt' % t)
+            printWordCnt(firstLayerWordCnt, outFilePrefix + '_T%d_flW.txt' % t)
             cnt += 1
         assert cnt == 1
                 
@@ -203,7 +203,7 @@ if __name__ == '__main__':
         (seedWordCnt, firstLayerWordCnt) = oldm.genWordCnt(allowedSeedWord, 
                 p['seedWordType']['type'], allowedFirstLayerWord, 
                 p['firstLayerType']['type'], allowedRel)
-        printWordCnt(seedWordCnt, outFilePrefix + '_All_SeedWord.txt')
-        printWordCnt(firstLayerWordCnt, outFilePrefix + '_All_FirstLayerWord.txt')
+        printWordCnt(seedWordCnt, outFilePrefix + '_TAll_sW.txt')
+        printWordCnt(firstLayerWordCnt, outFilePrefix + '_TAll_flW.txt')
     
     

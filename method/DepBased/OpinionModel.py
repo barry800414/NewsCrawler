@@ -225,7 +225,12 @@ if __name__ == '__main__':
         labelNewsList = json.load(f)
     # sample document if neccessary
     labelNewsList = runSampleDoc(labelNewsList, config)
-        
+    
+    # get the set of all possible topic
+    topicSet = set([ln['statement_id'] for ln in labelNewsList])
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
+
     # load pattern trees 
     pTreeList = TP.loadPatterns(patternFile)
     # load negation pattern file
@@ -233,7 +238,7 @@ if __name__ == '__main__':
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
     # load volcabulary file
-    volcDict = loadVolcFileFromConfig(config['volc'])
+    topicVolcDict = loadVolcFileFromConfig(config['volc'], topicSet)
     # load phrase file
     topicPhraseList = loadPhraseFileFromConfig(config['phrase'])
 
@@ -247,10 +252,6 @@ if __name__ == '__main__':
     
     paramsIter = ParameterGrid(config['params'])
 
-    # get the set of all possible topic
-    topicSet = set([ln['statement_id'] for ln in labelNewsList])
-    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
 
     ResultPrinter.printFirstLine()
 
@@ -271,7 +272,7 @@ if __name__ == '__main__':
             bestR = None
             for p in paramsIter:
                 (X, y, newVolcDict) = genXY(tom[t], p, preprocess, minCnt, pTreeList,
-                    negPList, sentiDict, volcDict)
+                    negPList, sentiDict, topicVolcDict[t])
                 rsList = RunExp.runTask(X, y, newVolcDict, 'SelfTrainTest', p, topicId=t, **setting)
                 bestR = keepBestResult(bestR, rsList, targetScore)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
@@ -285,7 +286,7 @@ if __name__ == '__main__':
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
             (X, y, newVolcDict) = genXY(om, p, preprocess, minCnt, pTreeList, 
-                    negPList, sentiDict, volcDict)
+                    negPList, sentiDict, topicVolcDict['all'])
             rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:

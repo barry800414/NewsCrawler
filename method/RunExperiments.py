@@ -726,6 +726,7 @@ class ML:
             parameters = {
                 'penalty': ('l1', 'l2'),
                 'C': [0.5, 1, 2],
+                'class_weight': ['auto']
             }
             clf = LogisticRegression()
         elif clfName == 'SVM':
@@ -740,7 +741,8 @@ class ML:
         elif clfName == 'LinearSVM' or clfName == 'LinearSVC':
             C = [math.pow(2, i) for i in range(-3,13,2)]
             parameters = {
-                    'C': C        
+                    'C': C,
+                    'class_weight': ['auto']
                 }
             clf = svm.LinearSVC()
         elif clfName == 'RandomForest': #depricated: RF does not support sparse matrix
