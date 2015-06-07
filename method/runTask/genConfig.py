@@ -92,36 +92,36 @@ defaultConfig={
 
 
 # generating configs for word clustering 
-volcFolder = './WordClustering/volc'
-topicList = [2, 3, 4, 5, 6, 13, 16, 'all']
+volcFolder = './WordClustering'
+topicList = [2, 3, 4, 5, 6, 13, 16, 'All']
 volcFileConfig = { "WM": dict(), "OLDM": dict(), "OM": dict() }
 
 # for WM
 c = volcFileConfig['WM']
-for type in ["c7852F"]:
+for type in ["c7852"]:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
-        c[type][t]['main'] = '%s/%s_WM_T%s.volc' % (volcFolder, type, str(t))
+        c[type][t]['main'] = '%s/WM_%s_T%s.volc' % (volcFolder, type, str(t))
 
 # for OLDM
 c = volcFileConfig['OLDM']
-for type in ['c7852F_NTUSD', 'c7852F_Tag']:
+for type in ['c7852_NTUSD', 'c7852_Tag']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
-        c[type][t]['seed'] = '%s/%s_OLDM_T%s_sW.volc' % (volcFolder, type, str(t))
-        c[type][t]['firstLayer'] = '%s/%s_OLDM_T%s_flW.volc' % (volcFolder, type, str(t))
+        c[type][t]['seed'] = '%s/OLDM_%s_T%s_sW.volc' % (volcFolder, type, str(t))
+        c[type][t]['firstLayer'] = '%s/OLDM_%s_T%s_flW.volc' % (volcFolder, type, str(t))
 
 # for OM
 c = volcFileConfig['OM']
-for type in ['c7852F']:
+for type in ['c7852']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
-        c[type][t]['holder'] = '%s/%s_OM_T%s_hdW.volc' % (volcFolder, type, str(t))
-        c[type][t]['opinion'] = '%s/%s_OM_T%s_opnW.volc' % (volcFolder, type, str(t))
-        c[type][t]['target'] = '%s/%s_OM_T%s_tgW.volc' % (volcFolder, type, str(t))
+        c[type][t]['holder'] = '%s/OM_%s_T%s_hdW.volc' % (volcFolder, type, str(t))
+        c[type][t]['opinion'] = '%s/OM_%s_T%s_opnW.volc' % (volcFolder, type, str(t))
+        c[type][t]['target'] = '%s/OM_%s_T%s_tgW.volc' % (volcFolder, type, str(t))
 
 #print(volcFileConfig)
 
@@ -149,9 +149,9 @@ iterConfig={
         { "path": ["params", "feature"], 
             "params": { "01": ["0/1"], "tfidf": ["tfidf"] } 
             },
-        #{ "path": ["volc"],
-        #    "params": volcFileConfig['WM']
-        #}
+        { "path": ["volc"],
+            "params": volcFileConfig['WM']
+        }
     ],
     "OLDM" :[
         { "path": ["preprocess"], 
@@ -214,8 +214,8 @@ iterConfig={
 }
 
 nameList= {
-    #"WM": [ "pN", "fN", "LinearSVM", "tf", "vN"],
-    "WM": [ "pN", "fN", "LinearSVM", "tf"],
+    "WM": [ "pN", "fN", "LinearSVM", "tf", "vN"],
+    #"WM": [ "pN", "fN", "LinearSVM", "tf"],
     "OLDM":  [ "pN", "fN", "LinearSVM", "NTUSD", "vN"],
     "OM": [ "pN", "fN", "LinearSVM", "H-T-HT", "negTrue", "vN"]
 }
@@ -241,6 +241,33 @@ def genConfig(defaultConfig, iterConfig, nameList, prefix):
             newConfig['taskName'] = newName
             configList.append( (newName, newConfig) )
     return configList
+
+
+def genSingleConfig(defaultConfig, iterConfig, nameList, prefix, modelName, selectedList):
+    assert len(nameList) == len(selectedList)
+    newConfig = copy.deepcopy(defaultConfig[modelName])
+    newNameList = copy.deepcopy(nameList)
+
+    for i in range(0, len(selectedList)):
+        pName = selectedList[i] 
+        if pName is None:
+            # keep default config
+            continue
+        path = iterConfig[i]['path']
+        paramsDict = iterConfig[i]['params']
+        if pName in paramsDict:
+            obj = newConfig
+            for j in range(0, len(path) - 1):
+                obj = obj[path[j]]
+            obj[path[-1]] = paramsDict[name]
+            newNameList[i] = pName
+        else:
+            print(name, ' not found !', file=sys.stderr)
+
+    newName = mergeName(prefix, newNameList)
+    newConfig['taskName'] = newName
+    return (newName, newConfig)
+
 
 def mergeName(prefix, nameList):
     outStr = str(prefix)

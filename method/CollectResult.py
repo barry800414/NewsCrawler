@@ -104,22 +104,25 @@ def printResultSummary(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, 
         print('%d, %f, %f, ' % (t, f1Rows[t][si], f3Rows[t][si]), file=outfile)
     print('All,         ,         , %f' % f2Row[si], file=outfile)
 
-def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, outfile=sys.stdout):
+def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName, framework, methodName, outfile=sys.stdout):
     si = colNameMap[scoreName]
-    print('TopicId', end='', file=outfile)
-    for t in topicList:
-        print(',', t, end='', file=outfile)
-    if f1Rows is not None:
-        print('\nSelfTrainTest', end='', file=outfile)
+    #print('TopicId', end='', file=outfile)
+    #for t in topicList:
+    #    print(',', t, end='', file=outfile)
+    
+    if framework == 'SelfTrainTest':
+        print(methodName, 'SelfTrainTest', sep=',', end='', file=outfile)
         for t in topicList:
             print(',', f1Rows[t][si], end='', file=outfile)
-    if f3Rows is not None:
-        print('\nLeaveOneTest', end='',file=outfile)
+        print('',file=outfile)
+    elif framework == 'LeaveOneTest':
+        print(methodName, 'LeaveOneTest', sep=',', end='',file=outfile)
         for t in topicList:
             print(',', f3Rows[t][si], end='', file=outfile)
-    if f2Row is not None:
-        print('\nAllTrainTest', end='',file=outfile)
-        print(',', f2Row[si], end='',file=outfile)
+        print('', file=outfile)
+    elif framework == 'AllTrainTest':
+        print(methodName, 'AllTrainTest',sep=',', end='',file=outfile)
+        print(',', f2Row[si],file=outfile)
 
 def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
     ResultPrinter.printFirstLine()
@@ -171,19 +174,21 @@ def getParamFromRow(row, colNameMap, extractColType):
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print('Usage:', sys.argv[0], 'targetScore ResultCSV outParamsFile printBestRow(0/1) [mergeRowKeyPrefixNum]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'targetScore framework methodName ResultCSV printBestRow(0/1) [mergeRowKeyPrefixNum]', file=sys.stderr)
         exit(-1)
     targetScore = sys.argv[1]
-    resultCSV = sys.argv[2]
-    outParamsFile = sys.argv[3]
-    printBR = int(sys.argv[4])
+    framework = sys.argv[2]
+    methodName = sys.argv[3]
+    resultCSV = sys.argv[4]
+    #outParamsFile = sys.argv[4]
+    printBR = int(sys.argv[5])
 
     dataType = ResultPrinter.getDataType()
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
-    if len(sys.argv) == 6:
-        keyPrefixNum = int(sys.argv[5])
+    if len(sys.argv) == 7:
+        keyPrefixNum = int(sys.argv[6])
         data = mergeRows(data, colNameMap, keyPrefixNum)
     #for d in data:
     #    print(d)
@@ -194,55 +199,59 @@ if __name__ == '__main__':
     # first framework (self-train-test)
     f1Rows = dict()
     f1TopicRows = dict()
-    for t in topicList:
-        newData = allowData(data, colNameMap, 'experimental settings', allow=set(['selfTrainTest']), type='string')
-        newData = allowData(newData, colNameMap, 'topicId', allow=set(['%d' % t]), type='string')
-        sortByColumn(newData, colNameMap, targetScore, reverse=True)
-        f1Rows[t] = newData[0]
-        f1TopicRows[t] = list()
-        for i in range(0, firstN):
-            if i < len(newData):
-                f1TopicRows[t].append(newData[i])
+    if framework == 'SelfTrainTest':
+        for t in topicList:
+            newData = allowData(data, colNameMap, 'experimental settings', allow=set(['selfTrainTest']), type='string')
+            newData = allowData(newData, colNameMap, 'topicId', allow=set(['%d' % t]), type='string')
+            sortByColumn(newData, colNameMap, targetScore, reverse=True)
+            f1Rows[t] = newData[0]
+            f1TopicRows[t] = list()
+            for i in range(0, firstN):
+                if i < len(newData):
+                    f1TopicRows[t].append(newData[i])
     
     # second framework (whole train-> whole test)
-    newData = allowData(data, colNameMap, 'experimental settings', allow=set(['allMixed']), type='string')
-    sortByColumn(newData, colNameMap, targetScore, reverse=True)
-    f2Row = newData[0]
-    f2Rows = list()
-    for i in range(0, firstN):
-        if i < len(newData):
-            f2Rows.append(newData[i])
+    f2Row = None
+    if framework == 'AllTrainTest':
+        newData = allowData(data, colNameMap, 'experimental settings', allow=set(['allMixed']), type='string')
+        sortByColumn(newData, colNameMap, targetScore, reverse=True)
+        f2Rows = list()
+        f2Row = newData[0]
+        for i in range(0, firstN):
+            if i < len(newData):
+                f2Rows.append(newData[i])
 
     # third framework (leave one test)
     f3Rows = dict()
     f3TopicRows = dict()
-    for t in topicList:
-        newData = allowData(data, colNameMap, 'experimental settings', allow=set(['Test on %d'% t]), type='string')
-        sortByColumn(newData, colNameMap, targetScore, reverse=True)
-        f3Rows[t] = newData[0]
-        f3TopicRows[t] = list()
-        for i in range(0, firstN):
-            if i < len(newData):
-                f3TopicRows[t].append(newData[i])
+    if framework == 'LeaveOneTest':
+        for t in topicList:
+            newData = allowData(data, colNameMap, 'experimental settings', allow=set(['Test on %d'% t]), type='string')
+            sortByColumn(newData, colNameMap, targetScore, reverse=True)
+            f3Rows[t] = newData[0]
+            f3TopicRows[t] = list()
+            for i in range(0, firstN):
+                if i < len(newData):
+                    f3TopicRows[t].append(newData[i])
 
     if printBR:
         printBestRows(topicList, f1Rows, f2Row, f3Rows)
-    printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore)
+    printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore, framework, methodName)
     extractColType = { 
         'model settings': 'dict', 
     }
 
-    if len(sys.argv) < 6:
+    if len(sys.argv) < 7:
         print('\n***** Please Note that the results are not averaged ******\n', file=sys.stderr)
 
     # get best N params of given model
     
-    (f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)
-    result = dict()
-    result['SelfTrainTest'] = f1Params
-    result['AllTrainTest'] = f2Params
-    result['LeaveOneTest'] = f3Params
+    #(f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)
+    #result = dict()
+    #result['SelfTrainTest'] = f1Params
+    #result['AllTrainTest'] = f2Params
+    #result['LeaveOneTest'] = f3Params
 
-    with open(outParamsFile, 'w') as f:
-        json.dump(result, f, indent=2)
+    #with open(outParamsFile, 'w') as f:
+    #    json.dump(result, f, indent=2)
     

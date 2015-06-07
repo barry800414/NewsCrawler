@@ -125,6 +125,7 @@ class WordModel:
             text = labelNews['news']['content_pos']
             for sent in text.split(sentSep):
                 for wt in sent.split(wordSep):
+                    #print(wt)
                     (word, tag) = wt.split(tagSep)
                     if word not in volc: # building volcabulary
                         volc.addWord(word)
@@ -242,7 +243,7 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, topicVolcDict['all'])
+            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, topicVolcDict['All'])
             rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:

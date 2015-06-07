@@ -51,6 +51,7 @@ if __name__ == '__main__':
                 cmd = "python3 %s %s %s %s %s %s > %s" % (pyMap[model], depFile, configFile, patternFile, negFile, dictFile, resultFile)
             
             print(cmd)
+            sender.putTask(cmd)
 
 
 if __name__ == '__main2__':

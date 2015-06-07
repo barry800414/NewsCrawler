@@ -41,7 +41,7 @@ def readWordVector(filename):
                 vector.append(float(entry[j]))
             vectors.append(vector)
             i = i + 1
-            if (i+1) % 10 == 0:
+            if (i+1) % 10000 == 0:
                 print('%cProgress: (%d/%d)' % (13, i+1, volcNum), end='', file=sys.stderr)
         print('', file=sys.stderr)
     assert len(volc) == len(vectors)

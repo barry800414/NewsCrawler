@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 import os
+from genConfig import *
 
-scoreFile = './results20150601.csv'
+scoreFile = './results20150607.csv'
 
 if __name__ == '__main__':
-    
-    cnt = 0
-    
-    for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:
-        for pre in [None, 'std', 'norm1', 'norm2', 'binary']:
-            prefix = '%s_%s_None' % (model, pre)
-            resultFile = '%s_results.csv' % (prefix)
-            paramFile = '%s_params.json' % (prefix)
-            #cmd = 'echo "%s" >> %s.nameList' % (prefix, scoreFile) 
-            cmd = 'python3 CollectResult.py testScore %s %s 0 6 >> %s' % (resultFile, paramFile, scoreFile)
-            os.system(cmd)
+    for model in ["WM", "OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
+        print(len(configList))
+        for name, config in configList:
+            cmd = 'python3 ./CollectResult.py testScore SelfTrainTest %s %s_results.csv 0 6 >> %s' %(name, name, scoreFile)
             print(cmd)
-            cnt += 1
-        for fSelect in ['L1C1', 'RF']:
-            prefix = '%s_std_%s' % (model, fSelect)
-            resultFile = '%s_results.csv' %(prefix)
-            paramFile = '%s_params.json' % (prefix)
-            #cmd = 'echo "%s" >> %s.nameList' % (prefix, scoreFile) 
-            cmd = 'python3 CollectResult.py testScore %s %s 0 6 >> %s' % (resultFile, paramFile, scoreFile)
             os.system(cmd)
+
+    for model in ["WM", "OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
+        print(len(configList))
+        for name, config in configList:
+            cmd = 'python3 ./CollectResult.py testScore LeaveOneTest %s %s_results.csv 0 6 >> %s' %(name, name, scoreFile)
             print(cmd)
-            cnt += 1
+            os.system(cmd)
+
+    for model in ["WM", "OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
+        print(len(configList))
+        for name, config in configList:
+            cmd = 'python3 ./CollectResult.py testScore AllTrainTest %s %s_results.csv 0 6 >> %s' %(name, name, scoreFile)
+            print(cmd)
+            os.system(cmd)
 

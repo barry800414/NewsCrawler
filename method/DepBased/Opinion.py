@@ -48,7 +48,7 @@ class Opinion():
             self.tg = self.tgW
         else:
             if self.tgW is not None:
-                self.tg = self.volc['target'][self.tgW] if self.tgW in self.volcDict['target'] else None
+                self.tg = self.volcDict['target'][self.tgW] if self.tgW in self.volcDict['target'] else None
 
     # negSep=True: divide opinion+/opinion- into to different tuple
     # |O|x|H|x|T|(x2)

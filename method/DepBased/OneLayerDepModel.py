@@ -59,7 +59,7 @@ class OneLayerDepModel():
                 if dg != None:
                     newsDTList.append(dg)
             self.corpusDTList.append((topicId, newsDTList))
-            if (i+1) % 10 == 0:
+            if (i+1) % 100 == 0:
                 print('%cIntializing the model... Progress: (%d/%d)' % (13, i+1, len(self.pln)), end='', file=sys.stderr)
         print('', file=sys.stderr)
     
@@ -297,7 +297,7 @@ if __name__ == '__main__':
 
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
-            (X, y, newVolcDict) = genXY(oldm, p, preprocess, minCnt, topicSet, sentiDict, topicVolcDict['all'])
+            (X, y, newVolcDict) = genXY(oldm, p, preprocess, minCnt, topicSet, sentiDict, topicVolcDict['All'])
             rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:

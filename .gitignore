@@ -12,3 +12,5 @@
 *.bin
 *.vector
 *.volc
+*.log
+*.error_log

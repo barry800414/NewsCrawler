@@ -33,6 +33,8 @@ def printTagStat(label, labelNewsList, indexList, tagList, sepRegexStr):
         sentRate = {tag:0.0 for tag in tagList}
         for tag in tagList:
             texts = re.findall('<%s>(.+?)</%s>' % (tag, tag), content)
+            #if len(texts) != 0:
+            #    print(texts)
             for text in texts:
                 if len(text.strip()) == 0:
                     continue
@@ -64,6 +66,8 @@ def locateSentencesInTag(content, tagList, sentiDict, sepRegexStr):
     fn = { tag:0 for tag in tagList }
     for tag in tagList:
         texts = re.findall('<%s>(.+?)</%s>' % (tag, tag), content)
+        if len(texts) != 0:
+            print(texts)
         for text in texts:
             if len(text.strip()) == 0:
                 continue
@@ -174,26 +178,7 @@ def printLocatingStat(labelNewsList, indexList, tagList, sentiDict, sepRegexStr)
     print('avgHitRate:', avgHitRate)
     
 
-if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage:', sys.argv[0], 'labelSubjectiveLabelNewsFile lexiconFile PunctuationFile', file=sys.stderr)
-        exit(-1)
-
-    labelNewsJsonFile = sys.argv[1]
-    lexiconFile = sys.argv[2]
-    punctFile = sys.argv[3]
-
-    with open(labelNewsJsonFile, 'r') as f:
-        labelNewsList = json.load(f)
-    sentiDict = readSentiDict(lexiconFile)
-    with open(punctFile, 'r') as f:
-        punct = json.load(f)
-
-    sepRegexStr = Punctuation.toRegexStr(punct['sep'])
-
-    tagList = ['a', 'ia', 'o', 'io']
-    
-    # find news with tags
+def getIndexOfLabelNewsWithLabel(labelNewsList, tagList):
     indexDict = { "agree": list(), "oppose": list(), "neutral": list() }
     labeledNewsNum = 0 
     for i, ln in enumerate(labelNewsList):
@@ -214,16 +199,39 @@ if __name__ == '__main__':
             labeledNewsNum += 1
             indexDict[label].append(i)
     print('#labeled news:', labeledNewsNum)
- 
-    allIndex = list()
+    return indexDict
 
-    print('label, <a>, <ia>, <o>, <io>, explicit, implicit')
+if __name__ == '__main__':
+    if len(sys.argv) != 4:
+        print('Usage:', sys.argv[0], 'labelSubjectiveLabelNewsFile lexiconFile PunctuationFile', file=sys.stderr)
+        exit(-1)
+
+    labelNewsJsonFile = sys.argv[1]
+    lexiconFile = sys.argv[2]
+    punctFile = sys.argv[3]
+
+    with open(labelNewsJsonFile, 'r') as f:
+        labelNewsList = json.load(f)
+    sentiDict = readSentiDict(lexiconFile)
+    with open(punctFile, 'r') as f:
+        punct = json.load(f)
+
+    sepRegexStr = Punctuation.toRegexStr(punct['sep'])
+
+    tagList = ['a', 'ia', 'o', 'io']
+    
+    # find news with tags
+    indexDict = getIndexOfLabelNewsWithLabel(labelNewsList, tagList)
+
+
+    #print('label, <a>, <ia>, <o>, <io>, explicit, implicit')
+    allIndex = list()
     for label, indexList in indexDict.items():
         printTagStat(label, labelNewsList, indexList, tagList, sepRegexStr)
         allIndex.extend(indexList)
 
-    print('---------------------')
-    printLocatingStat(labelNewsList, allIndex, tagList, sentiDict, sepRegexStr)
+    #print('---------------------')
+    #printLocatingStat(labelNewsList, allIndex, tagList, sentiDict, sepRegexStr)
 
 
 

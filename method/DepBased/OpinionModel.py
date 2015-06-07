@@ -41,7 +41,7 @@ class OpinionModel:
                     depTree = DT.DepTree(tdList)
                 newsDTList.append(depTree)
             corpusDTList.append(newsDTList)
-            if (i+1) % 10 == 0:
+            if (i+1) % 100 == 0:
                 print('%cGenerating dependency trees ... Progress:(%d/%d)' % (13, i+1, len(self.pln)), end='', file=sys.stderr)
         print('', file=sys.stderr)
         self.corpusDTList = corpusDTList
@@ -87,7 +87,7 @@ class OpinionModel:
                 docOpnCnt[self.volcDict['main'][key]] += 1
             opnCntList.append(opnCnt)
 
-            if (i+1) % 10 == 0:
+            if (i+1) % 100 == 0:
                 print('%cExtracting Opinions(tree pattern matching) ... Progress(%d/%d)' % (13, i+1, 
                     len(self.corpusDTList)), end='', file=sys.stderr) 
         print('', file=sys.stderr)
@@ -286,7 +286,7 @@ if __name__ == '__main__':
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
             (X, y, newVolcDict) = genXY(om, p, preprocess, minCnt, pTreeList, 
-                    negPList, sentiDict, topicVolcDict['all'])
+                    negPList, sentiDict, topicVolcDict['All'])
             rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
         if 'LeaveOneTest' in toRun:

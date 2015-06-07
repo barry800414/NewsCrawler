@@ -46,23 +46,39 @@ def tagText(text, sep=SEP, new_sep=NEW_SEP, to_remove=TO_REMOVE,
         if len(cleanSent) > 0: #if empty string, skipped
             tmp = dict()
             tmp['sent'] = cleanSent
-            # for debugging
-            '''
-            print(cleanSent, end=' ')
-            for c in cleanSent:
-                print(hex(ord(c)), end=' ')
-            print('')
-            '''
             # tag the sentence, return a string with tags
             response = sendTagRequest(cleanSent, seg=False)
             if response == None:
                 print('tagging error', file=sys.stderr)
                 continue
+
+            # post process
+            response = postProcess(response)
+            #print('|' + response + '|')
+
             if len(result) == 0:
                 result = response
             else:
                 result = result + new_sep + response
     return result
+
+def postProcess(response):
+    newStr = ''
+    for i, wt in enumerate(response.split(' ')):
+        tmp = wt.split('/')
+        if len(tmp) != 2:
+            print(wt)
+            continue
+        (w, t) = tmp
+        if w.strip() == ',': 
+            w = '，'
+        else: 
+            w = w.replace(',', '')
+        if i == 0: 
+            newStr = w + '/' + t
+        else: 
+            newStr = newStr + ' ' + w + '/' + t
+    return newStr
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -87,6 +103,8 @@ if __name__ == '__main__':
         removeRegexStr = TO_REMOVE
 
     cnt = 0
+    #tagText("我支持廢除死刑 ,, 但是應該要有終身監禁", sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
+
     for newsId, news in sorted(newsDict.items(), key=lambda x:x[0]):
         tagNews(news, sep=sepRegexStr, new_sep=NEW_SEP, to_remove=removeRegexStr)
         cnt += 1

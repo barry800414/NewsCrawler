@@ -176,12 +176,12 @@ class Volc:
 def loadVolcFileFromConfig(config, topicSet):
     if config == None:
         topicVolcDict = { t:None for t in topicSet }
-        topicVolcDict['all'] = None
+        topicVolcDict['All'] = None
     else:
         topicVolcDict = dict()
         for topic, topicConfig in config.items():
             try: topic = int(topic)
-            except: assert topic == 'all'
+            except: assert topic == 'All'
             volcDict = dict()
             for name, filename in topicConfig.items():
                 v = Volc()
