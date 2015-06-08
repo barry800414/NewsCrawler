@@ -4,12 +4,11 @@ import sys
 import json
 from collections import defaultdict
 
-import dataTool
 import TreePattern as TP
 import DepTree as DT
 import NegPattern as NP
 from Opinion import *
-from sentiDictSum import readSentiDict
+from misc import *
 
 # depParsedNews: dependency parsed news 
 # pTreeList: pattern tree list
@@ -36,11 +35,12 @@ def extractOpinions(depParsedNews, pTreeList, negPList=None):
                             depTree, pTree, r['mapping'])
                     if len(negCntDict) > 0:
                         r['neg'] = negCntDict
-                    del r['mapping']
                 
                 # convert to Opinion objects
                 for i in range(0, len(results)):
-                    results[i] = Opinion.genOpnFromDict(results[i])
+                    opn = Opinion.genOpnFromDict(results[i], None)
+                    opn.oriStr = depTree.getColoredStr(results[i]['mapping'].values()) # store the original string
+                    results[i] = opn
             opnDict[pTree.name].extend(results)
     return opnDict
 
@@ -49,17 +49,25 @@ def extractOpinions(depParsedNews, pTreeList, negPList=None):
 # opnCnt: a dictionary (opinion-type-name -> a dictionary (opnKey -> count))
 # keyType: 'HOT', 'HT', 'OT', 'HO', 'T', 'H'
 # return: opinion-type-name -> a dict to count occurence of each opinions
-def countOpinions(opinions, opnCnts, keyTypeList=['HOT'], sentiDict=None, negSepList=[False]):
+def countOpinions(opinions, opnCnts, opnStrs, keyTypeList=['HOT'], sentiDict=None, negSepList=[False]):
     for opnName, opns in opinions.items():
         if opnName not in opnCnts:
             opnCnts[opnName] = defaultdict(int)
+        if opnName not in opnStrs:
+            opnStrs[opnName] = dict()
 
         for opn in opns:
             for keyType in keyTypeList:
                 for negSep in negSepList:
-                    (key, value) = getOpnKeyValue(opn, keyType, sentiDict, negSep)
-                    opnCnts[opnName][key] += value
-    return opnCnts
+                    keyValue = getOpnKeyValue(opn, keyType, sentiDict, negSep)
+                    if keyValue is not None:
+                        (key, value) = keyValue                    
+                        opnCnts[opnName][key] += value
+                        if key not in opnStrs[opnName]:
+                            opnStrs[opnName][key] = list()
+                        opnStrs[opnName][key].append(opn.oriStr)
+
+    return (opnCnts, opnStrs)
 
 
 def getOpnKeyValue(opn, keyType, sentiDict=None, negSep=False):
@@ -79,52 +87,65 @@ def getOpnKeyValue(opn, keyType, sentiDict=None, negSep=False):
     elif keyType == 'T':
         return opn.getKeyT(sentiDict, negSep)
 
-def printOpnCnt(opnCnts, outfile=sys.stdout):
+def printOpnCnt(opnCnts, opnStrs=None, outfile=sys.stdout):
     for opnName, opnCnt in opnCnts.items():
-        print(opnName, file=outfile)
+        print('-----', opnName, '-----' , file=outfile)
         for key, cnt in sorted(opnCnt.items(), key = lambda x:x[1], reverse=True):
-            print(key, cnt, sep=',', file=outfile)
+            print(key, cnt, sep=':', file=outfile)
+            if opnStrs is not None:
+                for str in opnStrs[opnName][key]:
+                    print(str, end=',', file=outfile)
+                print('', file=outfile)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
-        #print('Usage:', sys.argv[0], 'depParsedLabelNewsJson phraseFile sentiDictFile', file=sys.stderr)
-        print('Usage:', sys.argv[0], 'DepParsedLabelNews PatternFile NegPatternFile SentiDictFile', file=sys.stderr)
+    if len(sys.argv) < 5:
+        print('Usage:', sys.argv[0], 'DepParsedLabelNews PatternFile NegPatternFile SentiDictFile [-negSep] [-keyType ...]', file=sys.stderr)
         exit(-1)
 
     parsedLabelNewsJsonFile = sys.argv[1] # dependency parsing
     patternFile = sys.argv[2]
     negPatternFile = sys.argv[3]
     sentiDictFile = sys.argv[4]
-    #phrasesJsonFile = sys.argv[4]
+    negSep = False
+    keyTypeList = list()
+    for i in range(5, len(sys.argv)):
+        if sys.argv[i] == '-negSep':
+            print('Negative separate', file=sys.stderr)
+            negSep = True
+        elif sys.argv[i] == '-keyType':
+            for j in range(i+1, len(sys.argv)):
+                if sys.argv[j][0] == '-':
+                    break
+                elif sys.argv[j] not in ["H", "HT", "HOT", "T", "OT", "HO"]:
+                    break
+                keyTypeList.append(sys.argv[j])
+            print('KeyTypeList:', keyTypeList, file=sys.stderr)
 
     # load label-news
     with open(parsedLabelNewsJsonFile, 'r') as f:
         labelNewsList = json.load(f)
-
+    # get the set of all possible topic
+    topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
     # load pattern trees 
     pTreeList = TP.loadPatterns(patternFile)
-
     # load negation pattern file
     negPList = NP.loadNegPatterns(negPatternFile)
-
-    # load phrases
-    #topicPhraseList = loadPhraseFile(phrasesJsonFile)
-
     # load sentiment dictionary
     sentiDict = readSentiDict(sentiDictFile)
 
-    # get the set of all possible topic
-    topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
-    labelNewsInTopic = dataTool.divideLabel(labelNewsList)
 
     for t in topicSet:
         with open('opinions_topic%d.txt' % (t), 'w') as f:
             opnCnts = dict()
+            opnStrs = dict()
             topicLabelNews = labelNewsInTopic[t]
             for i, labelNews in enumerate(topicLabelNews):
                 opnDict = extractOpinions(labelNews['news'], pTreeList, negPList)
-                if i % 10 == 0:
-                    print('Progress(%d/%d)' % (i+1, len(topicLabelNews)), file=sys.stderr) 
-                countOpinions(opnDict, opnCnts, keyTypeList=['HOT', 'HT', 'OT', 'HO', 'H', 'T'], sentiDict=sentiDict)
-            printOpnCnt(opnCnts, outfile=f)
+                if (i+1) % 10 == 0:
+                    print('%cTopic%d: Progress(%d/%d)' % (13, t, i+1, len(topicLabelNews)), end='',  file=sys.stderr)
+                countOpinions(opnDict, opnCnts, opnStrs, keyTypeList=keyTypeList, sentiDict=sentiDict, negSepList=[negSep])
+            #printOpnCnt(opnCnts, outfile=f)
+            printOpnCnt(opnCnts, opnStrs, outfile=f)
+        print('', file=sys.stderr)
 

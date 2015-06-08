@@ -1,0 +1,34 @@
+ [
+    {   
+        "rel": ["neg"], 
+        "neg_word": ["不", "沒", "沒有"], 
+        "opn_word": null, 
+        "opn_node_type": "gov", 
+        "opn_tag": null, 
+        "opn_type": ["opinion"] },
+    {   
+        "rel": ["advmod"], 
+        "neg_word": ["並不", "並非", "並未", "從不", "從來不", 
+            "從未", "毫不", "未", "無須", "無需", "並沒有", 
+            "不必", "不曾", "不夠", "不要", "決不", "尚未", "尚無"], 
+        "opn_word": null,
+        "opn_node_type": "gov", 
+        "opn_tag": null, 
+        "opn_type": ["opinion"] },
+    {   
+        "rel": ["dep"], 
+        "neg_word":["請勿"], 
+        "opn_word": null,
+        "opn_node_type": "gov", 
+        "opn_tag": null, 
+        "opn_type": ["opinion"] },
+    {   
+        "rel": ["mmod"], 
+        "neg_word": ["休想", "未曾", "無須", "永不"], 
+        "opn_node_type": "gov",
+        "opn_word": null,
+        "opn_tag": null, 
+        "opn_type": ["opinion"] }
+]
+
+

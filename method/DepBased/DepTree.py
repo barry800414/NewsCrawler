@@ -10,6 +10,7 @@ Last Update: 2015/03/08
 '''
 import json
 import networkx as nx
+from colorText import *
 
 class DepTree():
     # tdList: the list of typed dependencies
@@ -220,6 +221,18 @@ class DepTree():
     def getStr(self):
         return self.getSepStr(wordSep='')
 
+    # get colored string, the words(node ids) in opinion will be colored
+    def getColoredStr(self, nodeIds):
+        outStr = ''
+        nodeIdSet = set(nodeIds)
+        for n in sorted(self.t.nodes()):
+            if n in nodeIdSet:
+                w = ct2(self.t.node[n]['word'], WC.YELLOW)
+            else:
+                w = self.t.node[n]['word']
+            outStr += w
+
+        return outStr
     def __repr__(self):
         obj = dict()
         obj['nodes']= self.t.nodes(data=True)

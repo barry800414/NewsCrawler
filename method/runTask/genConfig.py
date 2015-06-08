@@ -277,15 +277,41 @@ def mergeName(prefix, nameList):
 
 
 if __name__ == '__main__':
+
+    # for single model
     for model in ["WM", "OLDM", "OM"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
+        print(len(configList))
+        for name, config in configList:
+            #with open(configFolder + name + '_config.json', 'w') as f:
+            #    json.dump(config, f, indent=2)
+            #print(name)
+            #print(config, '\n')
+            pass
+    
+    # for merged model
+    # WM+OLDM, WM+OM, WM is fixed
+    for model in ["OLDM", "OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model)
         print(len(configList))
         for name, config in configList:
             with open(configFolder + name + '_config.json', 'w') as f:
                 json.dump(config, f, indent=2)
             print(name)
-            #print(config, '\n')
-    
+            #print(config)
+
+    # WM and OLDM is fixed
+    for model in ["OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model)
+        print(len(configList))
+        for name, config in configList:
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
+            #print(config)
+
+
+
 if __name__ == '__main2__':
     cnt = 0
     # generate config first

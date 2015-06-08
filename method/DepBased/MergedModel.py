@@ -51,7 +51,7 @@ def getMergedXY(modelPickle, topic):
     volcDictList = list()
     for modelName, pickleDict in modelPickle.items():
         pickleObj = pickleDict[topic]
-        print(pickleObj.keys())
+        #print(pickleObj.keys())
         X = pickleObj['X']
         y = pickleObj['y']
         volcDict = pickleObj['volcDict']
@@ -108,6 +108,7 @@ if __name__ == '__main__':
     
     # print result of first Line
     ResultPrinter.printFirstLine()
+                
 
     # ============= Run for self-train-test ===============
     if 'SelfTrainTest' in toRun:

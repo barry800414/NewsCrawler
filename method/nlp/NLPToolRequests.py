@@ -138,7 +138,7 @@ def sendParseRequest(sentence, seg=False, draw=False, fileFolder=None,
 
 #s = "I hate this product, so I don't want to buy it."
 #s = "我反對核四"
-#print(sendParseRequest(s, seg=False, draw=True, fileName=s, fileFolder='/home/r02922010/codes/AgreementPrediction/method/nlp'))
+#print(sendDepParseRequest(s, seg=False, draw=True, fileName=s, fileFolder='/home/r02922010/codes/AgreementPrediction/method/nlp'))
 
 def sendTagRequest(sentence, seg=False):
     api_url = 'http://localhost:8000/pos'
