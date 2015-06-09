@@ -1,8 +1,11 @@
 
 import sys
 
+import numpy as np
 from RunExperiments import ResultPrinter
 from misc import *
+from ConfidenceInterval import *
+
 
 def readCSV(filename, dataType=None):
     with open(filename, 'r') as f:
@@ -58,15 +61,16 @@ def allowData(data, colNameMap, filterColumn, allow, type='string'):
 
 # merge the rows with the same setting, average the results
 # keyPrefixNum: the number of columns to be merged as key
-def mergeRows(data, colNameMap, keyPrefixNum):
+def mergeRows(data, colNameMap, keyPrefixNum, dataType):
     keyData = dict()
-    #print(len(data[0]))
+    # grouping data with same key
     for d in data:
         key = tuple(d[0:keyPrefixNum])
         if key not in keyData:
             keyData[key] = list()
         keyData[key].append(d)
     
+    # calculate mean, stdev, confidence interval for columns
     newData = list()
     for key, dList in keyData.items():
         #print('key:', key)
@@ -75,21 +79,43 @@ def mergeRows(data, colNameMap, keyPrefixNum):
         #    for d in dList:
         #        print(d)
         #    print('')
-        #assert len(dList) == 5
-        avgD = [0.0 for i in range(0, len(colNameMap) - keyPrefixNum)]
-        for d in dList:
-            #print(d[keyPrefixNum:len(colNameMap)])
-            for i, e in enumerate(d[keyPrefixNum:len(colNameMap)]):
-                if type(e) == int or type(e) == float:
-                    avgD[i] += e
-        for i in range(0, len(colNameMap) - keyPrefixNum):
-            avgD[i] /= len(dList)
-        #print('Average score:', avgD)
         newRow = list(key)
-        newRow.extend(avgD)
-        #print(newRow)
+        for i in range(0, len(colNameMap) - keyPrefixNum):
+            if dataType[i + keyPrefixNum] in ['int', 'float']:
+                data = [d[i + keyPrefixNum] for d in dList]
+                mean = np.mean(data)
+                stdev = np.std(data, ddof=1)
+                interval = calcConfidenceInterval(mean, stdev, len(data))
+                newRow.extend([mean, stdev, interval])
+            else:
+                newRow.append(None)
         newData.append(newRow)
-    return newData
+    
+    # update colNameMap
+    inverseMap = [name for name,i in sorted(colNameMap.items(), key=lambda x:x[1])]
+    newMap = dict()
+    nowIndex = 0
+    for i in range(0, len(colNameMap)):
+        if i < keyPrefixNum:
+            newMap[inverseMap[i]] = nowIndex
+            nowIndex += 1
+        else:
+            if dataType[i] in ['int', 'float']:
+                newMap[inverseMap[i]] = nowIndex
+                newMap[inverseMap[i] + '_stdev'] = nowIndex + 1
+                newMap[inverseMap[i] + '_interval'] = nowIndex + 2
+                nowIndex = nowIndex + 3
+            else:
+                newMap[inverseMap[i]] = nowIndex
+                nowIndex += 1
+
+    #for name, index in sorted(colNameMap.items(), key=lambda x:x[1]):
+    #    print(name, index)
+    #for name, index in sorted(newMap.items(), key=lambda x:x[1]):
+    #    print(name, index)
+    #print(len(newData[0]))
+
+    return (newData, newMap)
 
 def floatEq(f1, f2):
     return fabs(f1 - f2) < 1e-10
@@ -113,16 +139,28 @@ def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName,
     if framework == 'SelfTrainTest':
         print(methodName, 'SelfTrainTest', sep=',', end='', file=outfile)
         for t in topicList:
-            print(',', f1Rows[t][si], end='', file=outfile)
+            iname = scoreName + '_interval' 
+            if iname in colNameMap:
+                print(',%f+-%f' % (f1Rows[t][si], f1Rows[t][colNameMap[iname]]), end='', file=outfile)
+            else:
+                print(',', f1Rows[t][si], end='', file=outfile)
         print('',file=outfile)
     elif framework == 'LeaveOneTest':
         print(methodName, 'LeaveOneTest', sep=',', end='',file=outfile)
         for t in topicList:
-            print(',', f3Rows[t][si], end='', file=outfile)
+            iname = scoreName + '_interval' 
+            if iname in colNameMap:
+                print(',%f+-%f' % (f3Rows[t][si], f3Rows[t][colNameMap[iname]]), end='', file=outfile)
+            else:
+                print(',', f3Rows[t][si], end='', file=outfile)
         print('', file=outfile)
     elif framework == 'AllTrainTest':
         print(methodName, 'AllTrainTest',sep=',', end='',file=outfile)
-        print(',', f2Row[si],file=outfile)
+        iname = scoreName + '_interval' 
+        if iname in colNameMap:
+            print(',%f+-%f' % (f2Row[si], f2Row[colNameMap[iname]]), file=outfile)
+        else:
+            print(',', f2Row[si], file=outfile)
 
 def printBestRows(topicList, f1Rows, f2Row, f3Rows, outfile=sys.stdout):
     ResultPrinter.printFirstLine()
@@ -189,7 +227,7 @@ if __name__ == '__main__':
     
     if len(sys.argv) == 7:
         keyPrefixNum = int(sys.argv[6])
-        data = mergeRows(data, colNameMap, keyPrefixNum)
+        (data, colNameMap) = mergeRows(data, colNameMap, keyPrefixNum, dataType)
     #for d in data:
     #    print(d)
 
