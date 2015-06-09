@@ -5,45 +5,45 @@ import json
 from collections import defaultdict
 from ConstTree import ConstTree
 import LM
-import dataTool
+from misc import *
 
-def extractPhrases(newsDict, allowedPhrases=set(['NP', 'VP'])):
+# pCnt: dictionary for counting phrases
+def countPhrase(constNews, pCnt, pList, allowTag=set(['NP', 'VP'])):
+    skippedCnt = 0
+    contentConst = news['content_constituent']
+    for const in contentConst:
+        nodes = toNodes(const['nodes'])
+        edges = toEdges(const['edges'])
+        if nodes == None or edges == None: #FIXME
+            skippedCnt += 1
+            continue
+        tree = ConstTree(nodes, edges)
+        phraseTrees = tree.getPhraseTrees(allowedLabelSet=allowedTag)
+            
+        for t in phraseTrees:
+            p = t.getPhrase()
+            pStr = p.getSepStr()
+            pTag = p.getTag()
+            if (pStr, pTag) not in pCnt:
+                pList.append(p)
+                pCnt[(pStr, pTag)] = 1
+            else:
+                pCnt[(pStr, pTag)] += 1
+    return skippedCnt
+
+def extractPhrases(newsDict, allowedTag=set(['NP', 'VP'])):
     pCnt = dict()
     pList = list()
     cnt = 0
     skippedCnt = 0
     for newsId, news in newsDict.items():
-        contentConst = news['content_constituent']
-        for const in contentConst:
-            nodes = toNodes(const['nodes'])
-            edges = toEdges(const['edges'])
-            if nodes == None or edges == None: #FIXME
-                skippedCnt += 1
-                continue
-            tree = ConstTree(nodes, edges)
-            phraseTrees = tree.getPhraseTrees(allowedLabelSet=allowedPhrases)
-            
-            for t in phraseTrees:
-                p = t.getPhrase()
-                pStr = p.getSepStr()
-                pTag = p.getTag()
-                if (pStr, pTag) not in pCnt:
-                    pList.append(p)
-                    pCnt[(pStr, pTag)] = 1
-                else:
-                    pCnt[(pStr, pTag)] += 1
-                # for debugging
-                #ConstTree.printTree(t)
+        skippedCnt += countPhrase(news, pCnt, pList)
         cnt += 1
-        if cnt % 10 == 0:
-            print('Progress(%d/%d)' % (cnt, len(newsDict)), file=sys.stderr)
-        #if cnt == 2:
-        #    break
-    print('skippedCnt:', skippedCnt, file=sys.stderr)
-
+        if (cnt+1) % 10 == 0:
+            print('%cProgress(%d/%d)' % (13, cnt+1, len(newsDict)), file=sys.stderr)
+    print('SkippedCnt:', skippedCnt, file=sys.stderr)
     for p in pList:
         p.cnt = pCnt[(p.getSepStr(),p.getTag())]
-    
     return pList
 
 def toNodes(nodeLines):
@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     ###### extracting phrase ######
     
-    pList = extractPhrases(newsDict, allowedPhrases=set(['NP']))
+    pList = extractPhrases(newsDict, allowedTag=set(['NP']))
     corpus = LM.constParsedNewsDictToCorpus(newsDict)
     lm = LM.LM(corpus, n=2)
     with open('phrases_all.txt', 'w') as f:
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     topicNewsDict = dataTool.divideNewsByTopic(newsDict)
     for topicId, tNewsDict in topicNewsDict.items():
         print(topicId)
-        pList = extractPhrases(tNewsDict, allowedPhrases=set(['NP']))
+        pList = extractPhrases(tNewsDict, allowedTag=set(['NP']))
         corpus = LM.constParsedNewsDictToCorpus(tNewsDict)
         lm = LM.LM(corpus, n=2)
         with open('phrases_topic%d.txt' % topicId, 'w') as f:

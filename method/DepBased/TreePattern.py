@@ -14,7 +14,7 @@ class TreePattern():
         for i, n in enumerate(nodeList):
             self.p.add_node(i, 
                     tag=set(n['tag']) if n['tag'] != None else None, 
-                    word=set(n['word']) if n['tag'] != None else None,
+                    word=set(n['word']) if n['word'] != None else None,
                     output_as=n['output_as'])
         
         for e in edgeList:
