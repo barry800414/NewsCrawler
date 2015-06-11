@@ -56,11 +56,13 @@ def printStatInfo(labelNewsList):
 
 # merge news file, label file, and statement file to one object
 def mergeToLabelNews(labelList, newsDict, statDict, 
-        newsCol=["content","title"], statCol=["original", "seg"]):
+        newsCol=["content","title"], statCol=["original", "seg"], allowedStatIdSet=None):
     newList = list()
     for labelDict in labelList:
         newDict = dict(labelDict)
         statId = labelDict['statement_id']
+        if allowedStatIdSet is not None and statId not in allowedStatIdSet:
+            continue
         newsId = labelDict['news_id']
         if statId in statDict:
             sDict = dict()
@@ -105,23 +107,24 @@ if __name__ == "__main__":
 
     with open(labelJsonFile, 'r') as f:
         labelList = json.load(f)
-
     with open(newsJsonFile, 'r') as f:
         newsDict = json.load(f)
-    
     with open(statJsonFile, 'r') as f:
         tmpDict = json.load(f)
         statDict = dict()
         for key, value in tmpDict.items():
             statDict[int(key)] = value
-
     with open(configFile, 'r') as f:
         config = json.load(f)
 
-    
+    allowedStatIdSet = None
+    if 'allowedStatementIdSet' in config:
+        allowedStatIdSet = config['allowedStatementIdSet']
+
     labelNewsList = mergeToLabelNews(labelList, newsDict, statDict, 
             newsCol = config['news_column'], 
-            statCol = config['statement_column'])
+            statCol = config['statement_column'], 
+            allowedStatIdSet = allowedStatIdSet)
 
     with open(outFile, 'w') as f:
         json.dump(labelNewsList, f, ensure_ascii=False, indent=2)

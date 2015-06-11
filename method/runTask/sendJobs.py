@@ -24,22 +24,24 @@ pyMap = {
 }
 configFolder = './config/'
 taggedFile = './zhtNewsData/taggedLabelNewsFinal_long.json'
+#taggedFile = './zhtNewsData/taggedFilteredLabelNews_long.json'
 depFile = './zhtNewsData/DepParsedLabelNewsFinal_short.json'
+#depFile = './zhtNewsData/DepParsedFilteredLabelNewsFinal_short.json'
 labelNewsFile = './zhtNewsData/taggedLabelNewsFinal_long.json' #FIXME
+#labelNewsFile = './zhtNewsData/taggedFilteredLabelNews_long.json'
 
 #taggedDepFile = './zhtNewsData/taggedAndDepParsedLabelNews20150504.json'
 dictFile = './res/NTUSD_core.csv'
 negFile = './DepBased/negPattern.json'
 patternFile = './DepBased/my_pattern.json'
 
-scoreFile = './results20150601.csv'
-
-
 if __name__ == '__main__':
     sender = SendJob()
     
     # for single model
     for model in ["WM", "OLDM", "OM"]:
+    #for model in ["OLDM", "OM"]:
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + '_filtered')
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
         print(len(configList))
         for taskName, config in configList:
@@ -55,8 +57,10 @@ if __name__ == '__main__':
             #sender.putTask(cmd)
 
     # for mixed model 
-    WMPickleFile = 'WM_pN_fN_LinearSVM_tfidf_vN'
+    WMPickleFile = 'WM_pN_fN_MaxEnt_tf_vN'
+    #WMPickleFile = 'WM_filtered_pN_fN_LinearSVM_tf_c7852'
     for model in ["OLDM", "OM"]:
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_" + model + '_filtered')
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_" + model)
         print(len(configList))
         for taskName, config in configList:
@@ -64,14 +68,16 @@ if __name__ == '__main__':
             resultFile = '%s_results.csv' % (taskName)
             cmd = "python3 %s %s %s -WM %s -%s %s > %s" % (pyMap['merged'], labelNewsFile, configFile, 
                     WMPickleFile, model, taskName[len("WM_"):], resultFile)
-            
             print(cmd)
             sender.putTask(cmd)
    
     # for mixed model 
-    OLDMPickleFile = 'OLDM_pN_fN_LinearSVM_tag_vN'
+    OLDMPickleFile = 'OLDM_pN_fN_LinearSVM_NTUSD_c7852_NTUSD'
+    #OLDMPickleFile = 'OLDM_filtered_pN_fN_LinearSVM_NTUSD_c7852_NTUSD'
     for model in ["OM"]:
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_OLDM_" + model + '_filtered')
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_OLDM_" + model)
+
         print(len(configList))
         for taskName, config in configList:
             configFile = configFolder + taskName + '_config.json'

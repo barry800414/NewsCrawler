@@ -182,6 +182,8 @@ def getIndexOfLabelNewsWithLabel(labelNewsList, tagList):
     indexDict = { "agree": list(), "oppose": list(), "neutral": list() }
     labeledNewsNum = 0 
     for i, ln in enumerate(labelNewsList):
+        if ln['statement_id'] != 4:
+            continue
         content = ln['news']['content']
         label = ln['label']
         labeled = False

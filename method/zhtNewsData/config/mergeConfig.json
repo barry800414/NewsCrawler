@@ -1,5 +1,5 @@
 {
-    "statement_column": ["original", "pos"],
+    "statement_column": ["original"],
     "news_column": ["content_pos"]
 }
 

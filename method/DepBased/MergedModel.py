@@ -66,10 +66,12 @@ def getMergedXY(modelPickle, topic):
 def loadPickleFiles(pickleFilePrefix, topicSet):
     pickleDict = dict()
     for t in topicSet:
-        with open(pickleFilePrefix + '_SelfTrainTest_topic%d.pickle' % t, 'r+b') as f:
-            pickleDict[t] = pickle.load(f)
-    with open(pickleFilePrefix + '_AllTrainTest.pickle', 'r+b') as f:
-        pickleDict['all'] = pickle.load(f)
+        if type(t) == str and t == 'all':
+            with open(pickleFilePrefix + '_AllTrainTest.pickle', 'r+b') as f:
+                pickleDict['all'] = pickle.load(f)
+        else:
+            with open(pickleFilePrefix + '_SelfTrainTest_topic%d.pickle' % t, 'r+b') as f:
+                pickleDict[t] = pickle.load(f)
     return pickleDict
 
 if __name__ == '__main__':
@@ -81,22 +83,6 @@ if __name__ == '__main__':
     labelNewsJsonFile = sys.argv[1] # FIXME: to retrieve topicMap
     modelConfigFile = sys.argv[2]
 
-    # load labels and news 
-    with open(labelNewsJsonFile, 'r') as f:
-        labelNewsList = json.load(f)
-    topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
-    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
-
-    modelPickle = dict()
-    for i in range(3, len(sys.argv)):
-        if sys.argv[i][0] == '-' and len(sys.argv) > i:
-            name = sys.argv[i][1:]
-            modelPickle[name] = loadPickleFiles(sys.argv[i+1], topicSet)
-    
-    print(modelPickle.keys())
-    assert len(modelPickle) >= 2 # at least two model
-    
-
     # load model config
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
@@ -105,11 +91,31 @@ if __name__ == '__main__':
     taskName = config['taskName']
     setting = config['setting']
     targetScore = config['setting']['targetScore'] 
+
+    # load labels and news 
+    with open(labelNewsJsonFile, 'r') as f:
+        labelNewsList = json.load(f)
+    topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
+    topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+
+    toLoadTopicList = list()
+    if 'SelfTrainTest' in toRun:
+        toLoadTopicList.extend(list(topicSet))
+    if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
+        toLoadTopicList.append('all')
+
+    modelPickle = dict()
+    for i in range(3, len(sys.argv)):
+        if sys.argv[i][0] == '-' and len(sys.argv) > i:
+            name = sys.argv[i][1:]
+            modelPickle[name] = loadPickleFiles(sys.argv[i+1], toLoadTopicList)
+    
+    print(modelPickle.keys(), file=sys.stderr)
+    assert len(modelPickle) >= 2 # at least two model
     
     # print result of first Line
     ResultPrinter.printFirstLine()
                 
-
     # ============= Run for self-train-test ===============
     if 'SelfTrainTest' in toRun:
         print('Self-Train-Test...', file=sys.stderr)
@@ -122,7 +128,8 @@ if __name__ == '__main__':
             #    pickle.dump(bestR, f)
     
     # ============= Run for all-train-test ================
-    (X, y, volcDictList) = getMergedXY(modelPickle, 'all')
+    if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
+        (X, y, volcDictList) = getMergedXY(modelPickle, 'all')
     if 'AllTrainTest' in toRun:
         print('All-Train-Test ...', file=sys.stderr)
         bestR = None

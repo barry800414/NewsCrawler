@@ -205,8 +205,11 @@ def runSampleDoc(labelNewsList, config):
 
 
 
-def printWordCnt(wordCnt, filename):
+def printWordCnt(wordCnt, filename, printCnt=True):
     with open(filename, 'w') as f:
         sortedList = sorted(wordCnt.items(), key=lambda x:x[1], reverse=True)
         for word, cnt in sortedList:
-            print(word, cnt, sep=':', file=f)
+            if printCnt:
+                print(word, cnt, sep=':', file=f)
+            else:
+                print(word, file=f)

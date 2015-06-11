@@ -104,7 +104,7 @@ def printWordClusterListAsVolc(clusterList, outfile=sys.stdout):
 
 if __name__ == '__main__':
     if len(sys.argv) < 5:
-        print('Usage:', sys.argv[0], 'WordVector volcFile nCluster(nClusterPercentage) outWordClusterPrefix [-wt WordTagFile] [-v sentimentLexicon]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'WordVector(npy) volcFile nCluster(nClusterPercentage) outWordClusterPrefix [-wt WordTagFile] [-v sentimentLexicon]', file=sys.stderr)
         exit(-1)
 
     wordVectorFile = sys.argv[1]

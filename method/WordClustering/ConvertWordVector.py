@@ -1,6 +1,7 @@
 
 import sys
 import numpy as np
+import json
 from Volc import Volc
 import WordTag
 
@@ -63,7 +64,7 @@ def filterByWord(X, volc, wordSet):
             #if not np.array_equal(newX[oldNewMapping[volc[w]]],X[volc[w]]):
             #    print('fail')
     
-    #print(newX.shape, len(newVolc))
+    print('in:', newX.shape, len(newVolc))
     return (newX, newVolc)
 
 def readWordCnt(filename):
@@ -81,7 +82,7 @@ def readWordCnt(filename):
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         print('Converting word vector file(text, from word2vec tool) to volcabulary file(.volc) and numpy array file(.npy)', file=sys.stderr)
-        print('Usage:', sys.argv[0], 'InWordVectorFile(text) OutWordVectorFile(npy) outVolcFile [-wt inWordTagFile/-wc inWordCntFile minCnt]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'InWordVectorFile(text) OutWordVectorFile(npy) outVolcFile [-wt inWordTagFile/-wc inWordCntFile minCnt] [-es excludedWordSetFile]', file=sys.stderr)
         exit(-1)
 
     inWVFile = sys.argv[1]
@@ -91,32 +92,45 @@ if __name__ == '__main__':
     print('Reading word vector file ...', file=sys.stderr)
     (volc, vectors) = readWordVector(inWVFile)
     
-    wordSet = None
+    excludedWordFile = None
+    inWordTagFile = None
+    inWordCntFile = None
+    minCnt = None
     for i in range(4, len(sys.argv)):
+        if sys.argv[i] == '-es' and len(sys.argv) > i:
+            excludedWordFile = sys.argv[i+1]
         if sys.argv[i] == '-wt' and len(sys.argv) > i:
-            # if input word-tag file was given, then only the words and word vector
-            # in word-tag file are output 
             inWordTagFile = sys.argv[i+1]
-            with open(inWordTagFile, 'r') as f:
-                (wordTag, tagWord) = WordTag.loadWordTag(f)
-            wordSet = set(wordTag.keys())
-            print('#words in word tag file:', len(wordSet))
-            
-            #print(wordSet - set(volc.volc.keys()))
-            (newX, newVolc) = filterByWord(vectors, volc, wordSet)
-            print('#words in new volc:', len(newVolc))
-            break
         elif sys.argv[i] == '-wc' and len(sys.argv) > i + 1:
             inWordCntFile = sys.argv[i+1]
             minCnt = int(sys.argv[i+2])
-            wordCnt = readWordCnt(inWordCntFile)
-            wordSet = set([word for word, cnt in wordCnt.items() if cnt >= minCnt])
-            (newX, newVolc) = filterByWord(vectors, volc, wordSet)
-            print("#words in wordCnt file:", len(wordSet), '\tminCnt:', minCnt, '\t#word in final volc:', len(newVolc), file=sys.stderr) 
-            break
-        else:
-            newX = vectors
-            newVolc = volc
+
+    newX = vectors
+    newVolc = volc
+    if inWordTagFile is not None:
+        with open(inWordTagFile, 'r') as f:
+            (wordTag, tagWord) = WordTag.loadWordTag(f)
+        wordSet = set(wordTag.keys())
+        print('#words in word tag file:', len(wordSet))
+        
+        #print(wordSet - set(volc.volc.keys()))
+        (newX, newVolc) = filterByWord(vectors, volc, wordSet)
+        print('#words in new volc:', len(newVolc))
+
+    elif inWordCntFile is not None and minCnt is not None:
+        wordCnt = readWordCnt(inWordCntFile)
+        wordSet = set([word for word, cnt in wordCnt.items() if cnt >= minCnt])
+        (newX, newVolc) = filterByWord(vectors, volc, wordSet)
+        print("#words in wordCnt file:", len(wordSet), '\tminCnt:', minCnt, '\t#word in final volc:', len(newVolc), file=sys.stderr) 
+
+    print(newX.shape)
+    print(len(newVolc))
+    # print word not in word vector file
+    if excludedWordFile is not None:
+        excludedWordList = list(wordSet - set(newVolc.volc.keys()))
+        with open(excludedWordFile, 'w') as f:
+            json.dump(excludedWordList, f, ensure_ascii=False)
+    
     np.save(outWVFile, newX)
     newVolc.save(outVolcFile)
 

@@ -23,6 +23,7 @@ mergeTemplate = {
 # default config of each model
 defaultConfig={
         "WM": {
+            #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
             "minCnt": 2,
@@ -33,7 +34,7 @@ defaultConfig={
             "setting":{
                 "targetScore": "MacroF1",
                 "clfList": ["LinearSVM"],
-                "randSeedList": [1, 2, 3, 4, 5],
+                "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
@@ -42,6 +43,7 @@ defaultConfig={
             "volc": None
         },
         "OLDM": {
+            #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
             "minCnt": 2,
@@ -56,7 +58,7 @@ defaultConfig={
             "setting":{
                 "targetScore": "MacroF1",
                 "clfList": ["LinearSVM"],
-                "randSeedList": [1, 2, 3, 4, 5],
+                "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
@@ -66,6 +68,7 @@ defaultConfig={
             "phrase": None
         },
         "OM": {
+            #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": None,
             "minCnt": 2,
@@ -77,7 +80,7 @@ defaultConfig={
             "setting":{
                 "targetScore": "MacroF1",
                 "clfList": ["LinearSVM"],
-                "randSeedList": [1, 2, 3, 4, 5],
+                "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
@@ -85,9 +88,9 @@ defaultConfig={
             "volc": None,
             "phrase": None
         },
-        'WM_OLDM': mergeTemplate,
-        'WM_OM': mergeTemplate,
-        'WM_OLDM_OM': mergeTemplate
+        #'WM_OLDM': mergeTemplate,
+        #'WM_OM': mergeTemplate,
+        #'WM_OLDM_OM': mergeTemplate
 }
 
 
@@ -280,18 +283,20 @@ if __name__ == '__main__':
 
     # for single model
     for model in ["WM", "OLDM", "OM"]:
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
-        print(len(configList))
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + "_filtered")
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model )
+        #print(len(configList))
         for name, config in configList:
-            #with open(configFolder + name + '_config.json', 'w') as f:
-            #    json.dump(config, f, indent=2)
-            #print(name)
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
             #print(config, '\n')
             pass
     
     # for merged model
     # WM+OLDM, WM+OM, WM is fixed
     for model in ["OLDM", "OM"]:
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model + "_filtered")
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model)
         print(len(configList))
         for name, config in configList:
@@ -299,9 +304,11 @@ if __name__ == '__main__':
                 json.dump(config, f, indent=2)
             print(name)
             #print(config)
+            pass
 
     # WM and OLDM is fixed
     for model in ["OM"]:
+        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model + "_filtered")
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model)
         print(len(configList))
         for name, config in configList:
@@ -309,6 +316,7 @@ if __name__ == '__main__':
                 json.dump(config, f, indent=2)
             print(name)
             #print(config)
+            pass
 
 
 

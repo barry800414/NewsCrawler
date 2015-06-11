@@ -8,9 +8,9 @@ import LM
 from misc import *
 
 # pCnt: dictionary for counting phrases
-def countPhrase(constNews, pCnt, pList, allowTag=set(['NP', 'VP'])):
+def countPhrase(constNews, pCnt, pList, allowedTag=set(['NP', 'VP'])):
     skippedCnt = 0
-    contentConst = news['content_constituent']
+    contentConst = constNews['content_constituent']
     for const in contentConst:
         nodes = toNodes(const['nodes'])
         edges = toEdges(const['edges'])
@@ -37,10 +37,27 @@ def extractPhrases(newsDict, allowedTag=set(['NP', 'VP'])):
     cnt = 0
     skippedCnt = 0
     for newsId, news in newsDict.items():
-        skippedCnt += countPhrase(news, pCnt, pList)
+        skippedCnt += countPhrase(news, pCnt, pList, allowedTag)
         cnt += 1
         if (cnt+1) % 10 == 0:
-            print('%cProgress(%d/%d)' % (13, cnt+1, len(newsDict)), file=sys.stderr)
+            print('%cProgress(%d/%d)' % (13, cnt+1, len(newsDict)), end='',file=sys.stderr)
+    print('SkippedCnt:', skippedCnt, file=sys.stderr)
+    for p in pList:
+        p.cnt = pCnt[(p.getSepStr(),p.getTag())]
+    return pList
+
+
+def extractPhrasesFromLabelNewsList(labelNewsList, allowedTag=set(['NP', 'VP'])):
+    pCnt = dict()
+    pList = list()
+    cnt = 0
+    skippedCnt = 0
+    for labelNews in labelNewsList:
+        news = labelNews['news']
+        skippedCnt += countPhrase(news, pCnt, pList, allowedTag)
+        cnt += 1
+        if (cnt+1) % 10 == 0:
+            print('%cProgress(%d/%d)' % (13, cnt+1, len(labelNewsList)), end='', file=sys.stderr)
     print('SkippedCnt:', skippedCnt, file=sys.stderr)
     for p in pList:
         p.cnt = pCnt[(p.getSepStr(),p.getTag())]
