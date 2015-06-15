@@ -124,8 +124,8 @@ if __name__ == '__main__':
             (X, y, volcDictList) = getMergedXY(modelPickle, t)
             rsList = RunExp.runTask(X, y, volcDictList, 'SelfTrainTest', None, topicId=t, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore)
-            #with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
-            #    pickle.dump(bestR, f)
+            with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
+                pickle.dump(bestR, f)
     
     # ============= Run for all-train-test ================
     if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
@@ -135,8 +135,8 @@ if __name__ == '__main__':
         bestR = None
         rsList = RunExp.runTask(X, y, volcDictList, 'AllTrainTest', None, topicMap=topicMap, **setting)
         bestR = keepBestResult(bestR, rsList, targetScore)
-        #with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
-        #    pickle.dump(bestR, f)
+        with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
+            pickle.dump(bestR, f)
     
     # ============ Leave-One-Test ===============
     if 'LeaveOneTest' in toRun:
@@ -144,6 +144,6 @@ if __name__ == '__main__':
             bestR = None
             rsList = RunExp.runTask(X, y, volcDictList, 'LeaveOneTest', None, topicMap=topicMap, topicId=t, **setting)
             bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
-            #with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
-            #    pickle.dump(bestR, f)
+            with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
+                pickle.dump(bestR, f)
 

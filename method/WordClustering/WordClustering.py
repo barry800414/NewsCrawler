@@ -81,10 +81,22 @@ def getWordCluster(labels, volc):
 
 # print word clusters for human reading
 def printWordCluster(clusters, outfile=sys.stdout):
-    for key, words in sorted(clusters.items(), key=lambda x:x[0]):
-        for w in words:
-            print(w, end=',', file=outfile)
-        print('', file=outfile)
+    if type(clusters) == dict:
+        for key, words in sorted(clusters.items(), key=lambda x:x[0]):
+            for i, w in enumerate(words):
+                if i == len(words) - 1:
+                    print(w, end='', file=outfile)
+                else:
+                    print(w, end=',', file=outfile)
+            print('', file=outfile)
+    elif type(clusters) == list:
+        for key, words in enumerate(clusters):
+            for i, w in enumerate(words):
+                if i == len(words) - 1:
+                    print(w, end='', file=outfile)
+                else:
+                    print(w, end=',', file=outfile)
+            print('', file=outfile)
 
 def printWordClusterList(clusterList, outfile=sys.stderr):
     for clusters in clusterList:
@@ -92,10 +104,15 @@ def printWordClusterList(clusterList, outfile=sys.stderr):
 
 # print word clusters as volcabulary file
 def printWordClusterAsVolc(clusters, offset=0, outfile=sys.stdout):
-    for key, words in sorted(clusters.items(), key=lambda x:x[0]):
-        for w in words:
-            print(w, key+offset, sep=':', file=outfile)
-
+    if type(clusters) == dict:
+        for key, words in sorted(clusters.items(), key=lambda x:x[0]):
+            for w in words:
+                print(w, key+offset, sep=':', file=outfile)
+    elif type(clusters) == list:
+        for key, words in enumerate(clusters):
+            for w in words:
+                print(w, key+offset, sep=':', file=outfile)
+                
 def printWordClusterListAsVolc(clusterList, outfile=sys.stdout):
     offset = 0
     for clusters in clusterList:

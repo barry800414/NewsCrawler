@@ -13,13 +13,30 @@ class TreePattern():
         self.name = name
         for i, n in enumerate(nodeList):
             self.p.add_node(i, 
-                    tag=set(n['tag']) if n['tag'] != None else None, 
-                    word=set(n['word']) if n['word'] != None else None,
+                    tag=TreePattern.initAllowedSet(n['tag']), 
+                    word=TreePattern.initAllowedSet(n['word']),
                     output_as=n['output_as'])
         
         for e in edgeList:
             self.p.add_edge(e['from'], e['to'], 
-                    rel=set(e['rel']) if e['rel'] != None else None)
+                    rel=TreePattern.initAllowedSet(e['rel']))
+
+    def initAllowedSet(config):
+        if config is None:
+            # no configuration is specified, no constraint
+            return None
+        elif type(config) == list:
+            # list of words or list of tags
+            return set(config)
+        elif type(config) == str:
+            # filename to read the list of words or tags
+            allowedSet = set()
+            with open(config, 'r') as f:
+                line = f.readline()
+                entry = line.strip().split(',')
+                for e in entry:
+                    allowedSet.add(e.strip())
+            return allowedSet
 
     # using this pattern to match the dependency trees
     def match(self, depTree, returnMapping=True):

@@ -141,7 +141,7 @@ def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName,
         for t in topicList:
             iname = scoreName + '_interval' 
             if iname in colNameMap:
-                print(',%f+-%f' % (f1Rows[t][si], f1Rows[t][colNameMap[iname]]), end='', file=outfile)
+                print(',%f,%f' % (f1Rows[t][si], f1Rows[t][colNameMap[iname]]), end='', file=outfile)
             else:
                 print(',', f1Rows[t][si], end='', file=outfile)
         print('',file=outfile)
@@ -150,7 +150,7 @@ def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName,
         for t in topicList:
             iname = scoreName + '_interval' 
             if iname in colNameMap:
-                print(',%f+-%f' % (f3Rows[t][si], f3Rows[t][colNameMap[iname]]), end='', file=outfile)
+                print(',%f,%f' % (f3Rows[t][si], f3Rows[t][colNameMap[iname]]), end='', file=outfile)
             else:
                 print(',', f3Rows[t][si], end='', file=outfile)
         print('', file=outfile)
@@ -158,7 +158,7 @@ def printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, scoreName,
         print(methodName, 'AllTrainTest',sep=',', end='',file=outfile)
         iname = scoreName + '_interval' 
         if iname in colNameMap:
-            print(',%f+-%f' % (f2Row[si], f2Row[colNameMap[iname]]), file=outfile)
+            print(',%f,%f' % (f2Row[si], f2Row[colNameMap[iname]]), file=outfile)
         else:
             print(',', f2Row[si], file=outfile)
 
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     #    print(d)
 
     #topicList = [2, 3, 4, 5, 6, 13, 16]
-    topicList = [4]
+    topicList = [3, 4, 5, 13]
     firstN = 1
     # find the rows with best score 
     # first framework (self-train-test)

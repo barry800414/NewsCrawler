@@ -610,8 +610,7 @@ class DataTool:
         elif method in ['minmax', 'minMax']:
             if 'feature_range' in params:
                 print('Using MinMax scaling to', params['feature_range'], file=sys.stderr)
-                scaler = preprocessing.MinMaxScaler(params['feature_range'])
-                preX = scaler.fit_transform(X)
+                preX = DataTool.minMaxScaling(X, params['feature_range'])
                 success = True
         # normalization: transforming scaling each row(an instance) to fixed length 
         # (usually L1-norm or L2-norm to length 1)
@@ -634,6 +633,44 @@ class DataTool:
             assert 1 == 0
 
         return preX
+
+    # min max scaling for sparse matrix
+    # if matrix has negative value, then most of 0 value will not be changed
+    def minMaxScaling(X, feature_range=(0.0, 1.0)):
+        (rowNum, colNum) = X.shape
+        colIndex = X.indices
+        rowPtr = X.indptr
+        data = X.data
+
+        # traverse whole matrix to get min and max of the column
+        nowPos = 0
+        minOfCol = [0.0 for i in range(0, colNum)]
+        maxOfCol = [0.0 for i in range(0, colNum)]
+        for ri in range(0, rowNum):
+            for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
+                v = data[nowPos]
+                if v < minOfCol[ci]:
+                    minOfCol[ci] = float(v)
+                if v > maxOfCol[ci]:
+                    maxOfCol[ci] = float(v)
+                nowPos += 1
+
+        #print(minOfCol)
+        #print(maxOfCol)
+        nowPos = 0
+        interval = [maxOfCol[i] - minOfCol[i] for i in range(0, colNum)]
+        #print(interval)
+        minV, maxV = feature_range
+        for ri in range(0, rowNum):
+            for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
+                if not float_eq(interval[ci], 0.0):
+                    v = data[nowPos]
+                    v_std = (v - minOfCol[ci]) / interval[ci]
+                    v_scaled = v_std * (maxV - minV) + minV
+                    #print(v, v_std, v_scaled)
+                    data[nowPos] = v_scaled
+                nowPos += 1
+        return X
 
 # The class for providing function to do machine learning procedure
 class ML:

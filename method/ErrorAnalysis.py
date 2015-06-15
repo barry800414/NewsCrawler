@@ -5,50 +5,8 @@ import math
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
-
+from sklearn.metrics import confusion_matrix
 from misc import *
-
-
-
-# print Coefficients in classifier
-# clf: classifier
-# volc: volc -> index (dict) for each column (feature)
-# classMap: class-> text (dict)
-def printCoef(clf, volc, wVolc, classMap, sort=False, reverse=True, outfile=sys.stdout):
-    supportCoef = [MultinomialNB, LogisticRegression, LinearSVC]
-    if type(clf) in supportCoef:
-        print('Coefficients:', file=outfile)
-        
-        coef = clf.coef_
-        cNum = coef.shape[0] # class number
-        cList = clf.classes_
-        fNum = coef.shape[1] # feature number
-        print('featureNum:', fNum)
-        print('volc size:', len(volc))
-        # for each class, sort the vector
-        cValues = list()
-        for ci in range(0, cNum):
-            values = [(i, v) for i, v in enumerate(coef[ci])]
-            if sort:
-                values.sort(key=lambda x:x[1], reverse=reverse)
-            else:
-                values = [(i, v) for i, v in enumerate(coef[ci])]
-            cValues.append(values)
-
-        for ci in range(0, cNum):
-            print('Class %s' % classMap[cList[ci]], end=',', file=outfile)
-        print('', file=outfile)
-
-        for ri in range(0, fNum):
-            for ci in range(0, cNum):
-                (wIndex, value) = cValues[ci][ri]
-                print(volc.getWord(wIndex), value, sep=',', end=',', file=outfile)
-            print('', file=outfile)
-        
-        if wVolc != None:
-            printVolc(wVolc, outfile=outfile)
-    else:
-        return 
 
 # depricated
 def printIntercept(clf, classMap, outfile=sys.stderr):
@@ -97,9 +55,49 @@ def printCSRMatrix(m, volc, outfile=sys.stdout):
         print('(%d/%s):%.2f' % (ci, toStr(word, ensure_ascii=False), sumOfCol[ci]), file=outfile)
     #print('', file=outfile)
 
+# print Coefficients in classifier
+# clf: classifier
+# volc: volc -> index (dict) for each column (feature)
+# classMap: class-> text (dict)
+def printCoef(clf, volcDict, classMap, sort=False, reverse=True, outfile=sys.stdout):
+    supportCoef = [MultinomialNB, LogisticRegression, LinearSVC]
+    if type(clf) in supportCoef:
+        print('Coefficients:', file=outfile)
+        
+        coef = clf.coef_
+        cNum = coef.shape[0] # class number
+        cList = clf.classes_
+        fNum = coef.shape[1] # feature number
+        print('featureNum:', fNum)
+        print('main volc size:', getMainVolcSize(volcDict))
+        # for each class, sort the vector
+        cValues = list()
+        for ci in range(0, cNum):
+            values = [(i, v) for i, v in enumerate(coef[ci])]
+            if sort:
+                values.sort(key=lambda x:x[1], reverse=reverse)
+            else:
+                values = [(i, v) for i, v in enumerate(coef[ci])]
+            cValues.append(values)
+
+        for ci in range(0, cNum):
+            print('Class %s' % classMap[cList[ci]], end=',', file=outfile)
+        print('', file=outfile)
+
+        for ri in range(0, fNum):
+            for ci in range(0, cNum):
+                (wIndex, value) = cValues[ci][ri]
+                print(getWord(volcDict, wIndex), value, sep=',', end=',', file=outfile)
+            print('', file=outfile)
+        
+    else:
+        return 
+
+
+
 # X is CSR-Matrix
-def printXY(X, y, yPredict, volc, wVolc, classMap, outfile=sys.stdout):
-    assert X.shape[1] == len(volc)
+def printXY(X, y, yPredict, volcDict, classMap, outfile=sys.stdout):
+    assert X.shape[1] == getMainVolcSize(volcDict)
     
     (rowNum, colNum) = X.shape
     colIndex = X.indices
@@ -107,6 +105,8 @@ def printXY(X, y, yPredict, volc, wVolc, classMap, outfile=sys.stdout):
     data = X.data
     nowPos = 0
     
+    print('ConfusionMaxtrix: %s' % classMap, file=outfile)
+    print(confusion_matrix(y, yPredict), file=outfile)
     #sumOfCol = [0.0 for i in range(0, colNum)]
     docF = [0 for i in range(0, colNum)]
     print('label, predict', file=outfile)
@@ -114,7 +114,7 @@ def printXY(X, y, yPredict, volc, wVolc, classMap, outfile=sys.stdout):
         print('%s, %s, ' % (classMap[y[ri]], classMap[yPredict[ri]]), end=',', file=outfile)
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
             value = data[nowPos]
-            word = volc.getWord(ci)
+            word = getWord(volcDict, ci)
             print('(%d/%s):%.2f' % (ci, word, value), end=',', file=outfile)
             if math.fabs(value) > 1e-15:
                 docF[ci] += 1
@@ -122,11 +122,8 @@ def printXY(X, y, yPredict, volc, wVolc, classMap, outfile=sys.stdout):
         print('', file=outfile)
 
     for ci in range(0, colNum):
-        word = volc.getWord(ci)
+        word = getWord(volcDict, ci)
         print('(%d/%s):%.2f' % (ci, word, docF[ci]), file=outfile)
-
-    if wVolc != None:
-        printVolc(wVolc, outfile=outfile)
 
     #print('', file=outfile)
 
@@ -135,6 +132,24 @@ def printVolc(volc, outfile=sys.stdout):
     for i in range(0, len(volc)):
         print(i, volc.getWord(i), sep=',', file=outfile)
 
+def getWord(volcDict, index):
+    if type(volcDict) == dict:
+        return volcDict['main'].getWord(index)
+    elif type(volcDict) == list:
+        volcSize = [len(v['main']) for v in volcDict]
+        assert index < sum(volcSize)
+
+        for i in range(0, len(volcSize)):
+            if index >= volcSize[i]:
+                index = index - volcSize[i]
+            else:
+                return volcDict[i]['main'].getWord(index)
+
+def getMainVolcSize(volcDict):
+    if type(volcDict) == dict:
+        return len(volcDict['main'])
+    elif type(volcDict) == list:
+        return sum([len(v['main']) for v in volcDict])
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
@@ -152,14 +167,13 @@ if __name__ == '__main__':
 
     clf = p['clf']
     params = p['params']
-    volc = p['volc']
-    wVolc = p['wVolc']
+    volcDict = p['volcDict']
     result = p['result']
 
     with open(coeffCSV, 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), sep=',', file=f) 
-        printCoef(clf, volc, wVolc, i2Label, sort=True, reverse=True, outfile=f)
+        printCoef(clf, volcDict, i2Label, sort=True, reverse=True, outfile=f)
 
     '''
     with open(XCSV, 'w') as f:
@@ -176,10 +190,10 @@ if __name__ == '__main__':
         X = p['data']['XTrain']
         y = p['data']['yTrain']
         yPredict = clf.predict(X)
-        printXY(X, y, yPredict, volc, wVolc, i2Label, outfile=f)
+        printXY(X, y, yPredict, volcDict, i2Label, outfile=f)
         
         print('Testing Data:', file=f)
         X = p['data']['XTest']
         y = p['data']['yTest']
         yPredict = clf.predict(X)
-        printXY(X, y, yPredict, volc, wVolc, i2Label, outfile=f)
+        printXY(X, y, yPredict, volcDict, i2Label, outfile=f)

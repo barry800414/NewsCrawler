@@ -2,6 +2,7 @@
 import json
 import sys
 import random
+import math
 
 label2i = { "neutral" : 2, "oppose": 0, "agree" : 1 } 
 i2Label = ["oppose", "agree", "neutral"]
@@ -213,3 +214,10 @@ def printWordCnt(wordCnt, filename, printCnt=True):
                 print(word, cnt, sep=':', file=f)
             else:
                 print(word, file=f)
+
+
+def float_eq(a, b):
+    if math.fabs(a-b) < 1e-15:
+        return True
+    else:
+        return False
