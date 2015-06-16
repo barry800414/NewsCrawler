@@ -1,6 +1,7 @@
 
 import sys
 import math
+import pickle
 
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import LogisticRegression
@@ -87,7 +88,7 @@ def printCoef(clf, volcDict, classMap, sort=False, reverse=True, outfile=sys.std
         for ri in range(0, fNum):
             for ci in range(0, cNum):
                 (wIndex, value) = cValues[ci][ri]
-                print(getWord(volcDict, wIndex), value, sep=',', end=',', file=outfile)
+                print('(%d/%s)' % (wIndex, getWord(volcDict, wIndex)), value, sep=',', end=',', file=outfile)
             print('', file=outfile)
         
     else:
@@ -134,7 +135,7 @@ def printVolc(volc, outfile=sys.stdout):
 
 def getWord(volcDict, index):
     if type(volcDict) == dict:
-        return volcDict['main'].getWord(index)
+        return volcDict['main'].getWord(index, maxLength=15)
     elif type(volcDict) == list:
         volcSize = [len(v['main']) for v in volcDict]
         assert index < sum(volcSize)
@@ -143,7 +144,7 @@ def getWord(volcDict, index):
             if index >= volcSize[i]:
                 index = index - volcSize[i]
             else:
-                return volcDict[i]['main'].getWord(index)
+                return volcDict[i]['main'].getWord(index, maxLength=15)
 
 def getMainVolcSize(volcDict):
     if type(volcDict) == dict:
@@ -152,15 +153,13 @@ def getMainVolcSize(volcDict):
         return sum([len(v['main']) for v in volcDict])
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print('Usage:', sys.argv[0], 'pickle coeff_CSV X_csv', file=sys.stderr)
+    if len(sys.argv) != 3:
+        print('Usage:', sys.argv[0], 'pickle outFilePrefix', file=sys.stderr)
         exit(-1)
 
-    import pickle
     
     pickleFile = sys.argv[1]
-    coeffCSV = sys.argv[2]
-    XCSV = sys.argv[3]
+    outFilePrefix = sys.argv[2]
 
     with open(pickleFile, 'r+b') as f:
         p = pickle.load(f)
@@ -170,7 +169,7 @@ if __name__ == '__main__':
     volcDict = p['volcDict']
     result = p['result']
 
-    with open(coeffCSV, 'w') as f:
+    with open(outFilePrefix + '_coeff.csv', 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), sep=',', file=f) 
         printCoef(clf, volcDict, i2Label, sort=True, reverse=True, outfile=f)
@@ -182,7 +181,7 @@ if __name__ == '__main__':
         printCSRMatrix(X, volc, outfile=f)
     '''
 
-    with open(XCSV, 'w') as f:
+    with open(outFilePrefix + '_X.csv', 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), file=f)
         print('Results:', result, file=f)
