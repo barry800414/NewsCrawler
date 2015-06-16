@@ -16,6 +16,7 @@ def readCSV(filename, dataType=None):
         for line in f:
             entry = line.strip().split(',')
             if dataType != None:
+                print(len(entry))
                 assert len(dataType) == len(entry)
                 row = list()
                 for i, e in enumerate(entry):
@@ -23,8 +24,6 @@ def readCSV(filename, dataType=None):
                         row.append(int(e))
                     elif dataType[i] == 'float':
                         row.append(float(e))
-                    elif dataType[i] == 'dict':
-                        row.append(str2Var(e))
                     else:
                         row.append(e.strip())
             else:
@@ -89,14 +88,6 @@ def mergeRows(data, colNameMap, keyPrefixNum, dataType):
                 stdev = np.std(data, ddof=1)
                 interval = calcConfidenceInterval(mean, stdev, len(data))
                 newRow.extend([mean, stdev, interval])
-            elif dataType[i + keyPrefixNum] in ['dict']:
-                keyList = sorted(dList[0][i + keyPrefixNum].keys())
-                for key in keyList:
-                    data = [d[i + keyPrefixNum][key] for d in dList]
-                    mean = np.mean(data)
-                    stdev = np.std(data, ddof=1)
-                    interval = calcConfidenceInterval(mean, stdev, len(data))
-                    newRow.extend([mean, stdev, interval])
             else:
                 newRow.append(None)
         newData.append(newRow)
@@ -115,13 +106,6 @@ def mergeRows(data, colNameMap, keyPrefixNum, dataType):
                 newMap[inverseMap[i] + '_stdev'] = nowIndex + 1
                 newMap[inverseMap[i] + '_interval'] = nowIndex + 2
                 nowIndex = nowIndex + 3
-            elif dataType[i] in ['dict']:
-                keyList = sorted(dList[0][i].keys())
-                for key in keyList:
-                    newMap[key] = nowIndex
-                    newMap[key + '_stdev'] = nowIndex + 1
-                    newMap[key + '_interval'] = nowIndex + 2
-                    nowIndex = nowIndex + 3
             else:
                 newMap[inverseMap[i]] = nowIndex
                 nowIndex += 1
@@ -239,13 +223,13 @@ if __name__ == '__main__':
     printBR = int(sys.argv[5])
 
     dataType = ResultPrinter.getDataType()
+    print(dataType)
     (colNameMap, data) = readCSV(resultCSV, dataType)
     assert len(colNameMap) == len(dataType)
     
     if len(sys.argv) == 7:
         keyPrefixNum = int(sys.argv[6])
         (data, colNameMap) = mergeRows(data, colNameMap, keyPrefixNum, dataType)
-
     #for d in data:
     #    print(d)
 
@@ -260,15 +244,23 @@ if __name__ == '__main__':
         for t in topicList:
             newData = allowData(data, colNameMap, 'experimental settings', allow=set(['selfTrainTest']), type='string')
             newData = allowData(newData, colNameMap, 'topicId', allow=set(['%d' % t]), type='string')
-            #assert len(newData) == 1
+            sortByColumn(newData, colNameMap, targetScore, reverse=True)
             f1Rows[t] = newData[0]
+            f1TopicRows[t] = list()
+            for i in range(0, firstN):
+                if i < len(newData):
+                    f1TopicRows[t].append(newData[i])
     
     # second framework (whole train-> whole test)
     f2Row = None
     if framework == 'AllTrainTest':
         newData = allowData(data, colNameMap, 'experimental settings', allow=set(['allMixed']), type='string')
-        #assert len(newData) == 1
+        sortByColumn(newData, colNameMap, targetScore, reverse=True)
+        f2Rows = list()
         f2Row = newData[0]
+        for i in range(0, firstN):
+            if i < len(newData):
+                f2Rows.append(newData[i])
 
     # third framework (leave one test)
     f3Rows = dict()
@@ -276,11 +268,31 @@ if __name__ == '__main__':
     if framework == 'LeaveOneTest':
         for t in topicList:
             newData = allowData(data, colNameMap, 'experimental settings', allow=set(['Test on %d'% t]), type='string')
-            #assert len(newData) == 1
+            sortByColumn(newData, colNameMap, targetScore, reverse=True)
             f3Rows[t] = newData[0]
+            f3TopicRows[t] = list()
+            for i in range(0, firstN):
+                if i < len(newData):
+                    f3TopicRows[t].append(newData[i])
 
+    if printBR:
+        printBestRows(topicList, f1Rows, f2Row, f3Rows)
     printResultSummary2(topicList, f1Rows, f2Row, f3Rows, colNameMap, targetScore, framework, methodName)
+    extractColType = { 
+        'model settings': 'dict', 
+    }
 
     if len(sys.argv) < 7:
         print('\n***** Please Note that the results are not averaged ******\n', file=sys.stderr)
 
+    # get best N params of given model
+    
+    #(f1Params, f2Params, f3Params) = getBestParams(f1TopicRows, f2Rows, f3TopicRows, colNameMap, extractColType)
+    #result = dict()
+    #result['SelfTrainTest'] = f1Params
+    #result['AllTrainTest'] = f2Params
+    #result['LeaveOneTest'] = f3Params
+
+    #with open(outParamsFile, 'w') as f:
+    #    json.dump(result, f, indent=2)
+    

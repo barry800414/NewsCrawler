@@ -207,7 +207,7 @@ def genXY(om, params, preprocess, minCnt, pTreeList, negPList=None, sentiDict=No
     return (X, y, volcDict)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 6:
+    if len(sys.argv) < 6:
         print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile', file=sys.stderr)
         exit(-1)
 
@@ -216,7 +216,10 @@ if __name__ == '__main__':
     patternFile = sys.argv[3]
     negPatternFile = sys.argv[4]
     sentiDictFile = sys.argv[5]
-    
+    if len(sys.argv) == 7:
+        topicTargetFile = sys.argv[6]
+        #TODO
+
     # load model config
     with open(modelConfigFile, 'r') as f:
         config = json.load(f)
@@ -230,6 +233,8 @@ if __name__ == '__main__':
     topicSet = set([ln['statement_id'] for ln in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
     labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
+    newsIdList = { t:[ln['news_id'] for ln in labelNewsInTopic[t]] for t in topicSet }
+    newsIdList['All'] = [ln['news_id'] for ln in labelNewsList] 
 
     # load pattern trees 
     pTreeList = TP.loadPatterns(patternFile)
@@ -252,7 +257,6 @@ if __name__ == '__main__':
     
     paramsIter = ParameterGrid(config['params'])
 
-
     ResultPrinter.printFirstLine()
 
     # intialize the model
@@ -269,37 +273,25 @@ if __name__ == '__main__':
         for t in topicSet:
             #if t != 2:
             #    continue
-            bestR = None
             for p in paramsIter:
                 (X, y, newVolcDict) = genXY(tom[t], p, preprocess, minCnt, pTreeList,
                     negPList, sentiDict, topicVolcDict[t])
-                rsList = RunExp.runTask(X, y, newVolcDict, 'SelfTrainTest', p, topicId=t, **setting)
-                bestR = keepBestResult(bestR, rsList, targetScore)
+                expLog = RunExp.runTask(X, y, newVolcDict, newsIdList[t], 'SelfTrainTest', p, topicId=t, **setting)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
-                pickle.dump(bestR, f)
-    
+                pickle.dump(expLog, f)
     
     # ============= Run for all-train-test & leave-one-test ================
     print('All-Train-Test & Leave-One-Test ...', file=sys.stderr)
-    bestR = None # for all-train-test
-    bestR2 = {t:None for t in topicSet}  # for leave-one-test
     for p in paramsIter:
         if 'AllTrainTest' in toRun:
             (X, y, newVolcDict) = genXY(om, p, preprocess, minCnt, pTreeList, 
                     negPList, sentiDict, topicVolcDict['All'])
-            rsList = RunExp.runTask(X, y, newVolcDict, 'AllTrainTest', p, topicMap=topicMap, **setting)
-            bestR = keepBestResult(bestR, rsList, targetScore)
+            expLog = RunExp.runTask(X, y, newVolcDict, newsIdList['All'], 'AllTrainTest', p, topicMap=topicMap, **setting)
+            with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
+                pickle.dump(expLog, f)
         if 'LeaveOneTest' in toRun:
             for t in topicSet:
-                rsList = RunExp.runTask(X, y, newVolcDict, 'LeaveOneTest', p, topicMap=topicMap, topicId=t, **setting)
-                bestR2[t] = keepBestResult(bestR2[t], rsList, targetScore, topicId=t)
-    
-    if 'AllTrainTest' in toRun:
-        with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
-            pickle.dump(bestR, f)
-
-    if 'LeaveOneTest' in toRun:
-        for t in topicSet:
-            with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
-                pickle.dump(bestR2[t], f)
+                expLog = RunExp.runTask(X, y, newVolcDict, newsIdList['All'], 'LeaveOneTest', p, topicMap=topicMap, topicId=t, **setting)
+                with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
+                    pickle.dump(expLog, f)
 

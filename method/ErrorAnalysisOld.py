@@ -82,7 +82,7 @@ def printCoef(clf, volcDict, classMap, sort=False, reverse=True, outfile=sys.std
             cValues.append(values)
 
         for ci in range(0, cNum):
-            print('Class %s' % classMap[cList[ci]], end=',,', file=outfile)
+            print('Class %s' % classMap[cList[ci]], end=',', file=outfile)
         print('', file=outfile)
 
         for ri in range(0, fNum):
@@ -97,7 +97,7 @@ def printCoef(clf, volcDict, classMap, sort=False, reverse=True, outfile=sys.std
 
 
 # X is CSR-Matrix
-def printXY(X, y, yPredict, volcDict, classMap, newsIdList=None, outfile=sys.stdout):
+def printXY(X, y, yPredict, volcDict, classMap, outfile=sys.stdout):
     assert X.shape[1] == getMainVolcSize(volcDict)
     
     (rowNum, colNum) = X.shape
@@ -110,14 +110,9 @@ def printXY(X, y, yPredict, volcDict, classMap, newsIdList=None, outfile=sys.std
     print(confusion_matrix(y, yPredict), file=outfile)
     #sumOfCol = [0.0 for i in range(0, colNum)]
     docF = [0 for i in range(0, colNum)]
-    if newsIdList != None:
-        print('news id', end=',', file=outfile)
     print('label, predict', file=outfile)
     for ri in range(0, rowNum):
-        if newsIdList != None:
-            print(newsIdList[ri], end=',', file=outfile)
-
-        print(classMap[y[ri]], classMap[yPredict[ri]], sep=',', end='', file=outfile)
+        print('%s, %s, ' % (classMap[y[ri]], classMap[yPredict[ri]]), end=',', file=outfile)
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
             value = data[nowPos]
             word = getWord(volcDict, ci)
@@ -127,7 +122,6 @@ def printXY(X, y, yPredict, volcDict, classMap, newsIdList=None, outfile=sys.std
             nowPos += 1
         print('', file=outfile)
 
-    print('Document Frequency:', file=outfile)
     for ci in range(0, colNum):
         word = getWord(volcDict, ci)
         print('(%d/%s):%.2f' % (ci, word, docF[ci]), file=outfile)
@@ -169,41 +163,36 @@ if __name__ == '__main__':
 
     with open(pickleFile, 'r+b') as f:
         p = pickle.load(f)
-    
-    log0 = p['logList'][0]
-    clf = log0['clf']
+
+    clf = p['clf']
     params = p['params']
     volcDict = p['volcDict']
+    result = p['result']
 
     with open(outFilePrefix + '_coeff.csv', 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), sep=',', file=f) 
         printCoef(clf, volcDict, i2Label, sort=True, reverse=True, outfile=f)
 
-    X = p['data']['X']
-    y = p['data']['y']
-    trainIndex = log0['split']['trainIndex']
-    testIndex = log0['split']['testIndex']
-    valScore = log0['valScore']
-    testScore = log0['testScore']
-    newsIdList = p['newsIdList']
+    '''
+    with open(XCSV, 'w') as f:
+        print(clf, file=f)
+        print('Parameters:', toStr(params), sep=',', file=f) 
+        printCSRMatrix(X, volc, outfile=f)
+    '''
 
     with open(outFilePrefix + '_X.csv', 'w') as f:
         print(clf, file=f)
         print('Parameters:', toStr(params), file=f)
-        print('valScore:', valScore, file=f)
-        print('testScore:', testScore, file=f)
+        print('Results:', result, file=f)
         print('Training Data:', file=f)
-        XTrain = X[trainIndex]
-        yTrain = y[trainIndex]
-        newsIds = [newsIdList[i] for i in trainIndex]
-        yTrainPredict = log0['predict']['yTrainPredict']
-        printXY(XTrain, yTrain, yTrainPredict, volcDict, i2Label, newsIdList=newsIds, outfile=f)
+        X = p['data']['XTrain']
+        y = p['data']['yTrain']
+        yPredict = clf.predict(X)
+        printXY(X, y, yPredict, volcDict, i2Label, outfile=f)
         
         print('Testing Data:', file=f)
-        XTest = X[testIndex]
-        yTest = y[testIndex]
-        yTestPredict = log0['predict']['yTestPredict']
-        newsIds = [newsIdList[i] for i in testIndex]
-        printXY(XTest, yTest, yTestPredict, volcDict, i2Label, newsIdList=newsIds, outfile=f)
-
+        X = p['data']['XTest']
+        y = p['data']['yTest']
+        yPredict = clf.predict(X)
+        printXY(X, y, yPredict, volcDict, i2Label, outfile=f)

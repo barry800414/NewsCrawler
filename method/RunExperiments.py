@@ -36,17 +36,15 @@ Date: 2015/03/29
 
 # class for providing frameworks for running experiments
 class RunExp:
-    def selfTrainTest(X, y, clfList, scorerName, randSeed=1, testSize=0.2, 
-            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
+    def selfTrainTest(X, y, clfName, scorerName, randSeed=1, testSize=0.2, 
+            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
-
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
-
         # split data
-        (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
+        (XTrain, XTest, yTrain, yTest, trainIndex, testIndex) = DataTool.stratifiedSplitTrainTest(
                 X, y, randSeed, testSize)
         
         # do feature selection if config is given
@@ -57,14 +55,57 @@ class RunExp:
                 XTest = selector.transform(XTest)
             #print('Dimension:', XTest.shape, file=sys.stderr)
 
-        returnObj = list()
-        for clfName in clfList:
+        # training using validation
+        (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
+                yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
+        if XTest is None or yTest is None:
+            predict = { 'yTrainPredict': yTrainPredict }
+        else:
+            # testing 
+            yTestPredict = ML.test(XTest, clf)
+            # evaluation
+            testScore = Evaluator.evaluate(yTestPredict, yTest)
+            predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict } 
+            
+        # printing out results
+        ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], XTrain.shape[1]), 
+                clfName, scorerName, bestParam, randSeed, bestValScore, testScore, outfile=outfile)
+
+        # to save information of training process for further analysis
+        log = { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'valScore': bestValScore,
+                'predict': predict, 'testScore': testScore, 'split':{ 'trainIndex': trainIndex, 
+                    'testIndex': testIndex} }
+        return log
+
+    def selfTrainTestNFold(X, y, clfList, scorerName, randSeed=1, test_folds=10, 
+            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
+        # check data
+        if not DataTool.XyIsValid(X, y): #do nothing
+            return
+        # making scorer
+        scorer = Evaluator.makeScorer(scorerName)
+        # split data in N-fold
+        skf = StratifiedKFold(y, n_folds=test_folds, shuffle=True, random_state=randSeed)
+        resultList = list()
+        for train_index, test_index in skf:
+            XTrain, XTest = X[train_index], X[test_index]
+            yTrain, yTest = y[train_index], y[test_index]
+            # do feature selection if config is given
+            if fSelectIsBeforeClf(fSelectConfig) == True:
+                #print('before selection:', XTrain.shape, file=sys.stderr)
+                (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                        fSelectConfig['params'])
+                #print('after selection:', XTrain.shape, file=sys.stderr)
+                if XTest is not None:
+                    XTest = selector.transform(XTest)
+
             # training using validation
             (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
                     yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
-            
+        
+            # FIXME from here
             if XTest is None or yTest is None:
-                result = { 'valScore': bestValScore, scorerName: 0.0 }
+                result.append({ 'valScore': bestValScore, scorerName: 0.0 })
             else:
                 # testing 
                 yTestPredict = ML.test(XTest, clf)
@@ -72,111 +113,31 @@ class RunExp:
                 # evaluation
                 result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
                 result['valScore'] = bestValScore
+                resultList.append(result)
             
-            if modelDir is not None:
-                filename = dumpModel(modelDir, clf)
-            else:
-                filename = None
+        # average NFold results
+        result = Evaluator.avgNFoldResult(resultList)
 
-            # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
-                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
-                    result, filename, outfile=outfile)
+        # printing out results
+        ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
+            XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
+                result, outfile=outfile)
 
-            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
-                'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                    'XTest': XTest, 'yTest': yTest } } )
-        
-        return returnObj
-
-    def selfTrainTestNFold(X, y, clfList, scorerName, randSeed=1, test_folds=10, 
-            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
-        # check data
-        if not DataTool.XyIsValid(X, y): #do nothing
-            return
-
-        # making scorer
-        scorer = Evaluator.makeScorer(scorerName)
-
-        # split data in N-fold
-        skf = StratifiedKFold(y, n_folds=test_folds, shuffle=True, random_state=randSeed)
-        for clfName in clfList:
-            returnObj = list()
-            resultList = list()
-            for train_index, test_index in skf:
-                XTrain, XTest = X[train_index], X[test_index]
-                yTrain, yTest = y[train_index], y[test_index]
-        
-                # do feature selection if config is given
-                if fSelectIsBeforeClf(fSelectConfig) == True:
-                    print('before selection:', XTrain.shape, file=sys.stderr)
-                    (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
-                            fSelectConfig['params'])
-                    print('after selection:', XTrain.shape, file=sys.stderr)
-                    if XTest is not None:
-                        XTest = selector.transform(XTest)
-
-                # training using validation
-                (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
-                        yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
-                
-                if XTest is None or yTest is None:
-                    resultList.append({ 'valScore': bestValScore, scorerName: 0.0 })
-                else:
-                    # testing 
-                    yTestPredict = ML.test(XTest, clf)
-
-                    # evaluation
-                    result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
-                    result['valScore'] = bestValScore
-                    resultList.append(result)
-                
-                if modelDir is not None:
-                    filename = dumpModel(modelDir, clf)
-                else:
-                    filename = None
-            
-            # average NFold results
-            result = Evaluator.avgNFoldResult(resultList)
-
-            # printing out results
-            ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
-                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
-                    result, filename, outfile=outfile)
-
-            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
-                'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                    'XTest': XTest, 'yTest': yTest } } )
+        returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
+            'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
+                'XTest': XTest, 'yTest': yTest } } )
         
         return returnObj
 
 
-    def allTrainTest(X, y, topicMap, clfList, scorerName, randSeed=1, testSize=0.2, 
-            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout, modelDir=None):
+    def allTrainTest(X, y, topicMap, clfName, scorerName, randSeed=1, testSize=0.2, 
+            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
 
-        # divide data according to the topic
-        (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
-
-        # split data for each topic, merge data into one training data and testing data
-        topicXTrain = dict()
-        topicXTest = dict()
-        topicyTrain = dict()
-        topicyTest = dict()
-        for topic in topicList:
-            nowX = topicX[topic]
-            nowy = topicy[topic]
-            # split data
-            (XTrain, XTest, yTrain, yTest) = DataTool.stratifiedSplitTrainTest(
-                    nowX, nowy, randSeed, testSize)
-            topicXTrain[topic] = XTrain
-            topicXTest[topic] = XTest
-            topicyTrain[topic] = yTrain
-            topicyTest[topic] = yTest
-        (XTrain, XTest, yTrain, yTest, trainMap, testMap) = DataTool.mergeData(
-                topicXTrain, topicXTest, topicyTrain, topicyTest, topicList)
+        (XTrain, XTest, yTrain, yTest, trainMap, testMap, trainIndex, 
+                testIndex) = DataTool.topicStratifiedSplitTrainTest(X, y, topicMap, randSeed, testSize)
 
         # do feature selection if config is given
         if fSelectIsBeforeClf(fSelectConfig) == True:
@@ -186,171 +147,109 @@ class RunExp:
                 XTest = selector.transform(XTest)
             #print('Dimension:', XTest.shape, file=sys.stderr)
 
-        returnObj = list()
         # training using validation
-        for clfName in clfList:
-            #print('In Cross Validation... ', end='', file=sys.stderr)
-            (clf, bestParam, bestValScore, yTrainPredict) = ML.topicTrain(XTrain, 
-                    yTrain, clfName, scorerName, trainMap, randSeed=randSeed, n_folds=3)
-            #print('Done', file=sys.stderr)
+        (clf, bestParam, bestValScore, yTrainPredict) = ML.topicTrain(XTrain, 
+                yTrain, clfName, scorerName, trainMap, randSeed=randSeed, n_folds=3)
 
-            if XTest is None or yTest is None:
-                result = { 'valScore': bestValScore, scorerName: 0.0 }
-            else:
-                # testing 
-                scorer = Evaluator.makeScorer(scorerName, testMap)
+        if XTest is None or yTest is None:
+            predict = { 'yTrainPredict': yTrainPredict }
+        else:
+            # testing 
+            scorer = Evaluator.makeScorer(scorerName, testMap)
+            yTestPredict = ML.test(XTest, clf)
+            # evaluation
+            (topicScores, testScore) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap)
+            predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict } 
+        
+        # printing out results
+        ResultPrinter.print(prefix + ", allMixed", "%d %d" % (X.shape[0], XTrain.shape[1]), 
+                clfName, scorerName, bestParam, randSeed, bestValScore, testScore, outfile=outfile)
+        
+        # to save information of training process for further analysis
+        log = { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'valScore': bestValScore, 
+                'predict': predict, 'testScore': testScore, 'split': { 'trainIndex': trainIndex, 
+                    'testIndex': testIndex, 'trainMap': trainMap, 'testMap': testMap } }
+        return log
 
-                #print('In testing... ', end='', file=sys.stderr)
-                yTestPredict = ML.test(XTest, clf)
-
-                # evaluation
-                (topicResults, avgR) = Evaluator.topicEvaluate(yTestPredict, yTest, testMap, scorerName=scorerName)
-                avgR['valScore'] = bestValScore
-                #print('Done', file=sys.stderr)
-
-            if modelDir is not None:
-                filename = dumpModel(modelDir, clf)
-            else:
-                filename = None
-
-            # printing out results
-            ResultPrinter.print(prefix + ", allMixed", "%d %d" % (X.shape[0], 
-                XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
-                avgR, filename, outfile=outfile)
-            
-            returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
-                'result': avgR, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                    'XTest': XTest, 'yTest': yTest } } )
-
-        return returnObj
-
-    def leaveOneTest(X, y, topicMap, clfList, scorerName, testTopic=None, randSeed=1, 
-            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout, modelDir=None):
+    def leaveOneTest(X, y, topicMap, clfName, scorerName, testTopic, randSeed=1, 
+            n_folds=3, fSelectConfig=None, prefix='', outfile=sys.stdout):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
-
         # making scorer
         scorer = Evaluator.makeScorer(scorerName)
-
         # divide data according to the topic
-        (topicList, topicX, topicy) = DataTool.divideDataByTopic(X, y, topicMap)
-
+        (topicList, topicX, topicy, topicIndex) = DataTool.divideDataByTopic(X, y, topicMap)
+        
         # N-1 topics are as training data, 1 topic is testing
         # if the test topic id is given, then only test it
-        if testTopic is None:
-            testTopic = list(topicList)
-       
+        (XTrain, XTest, yTrain, yTest, trainIndex, testIndex) = DataTool.leaveOneTestSplit(
+                topicX, topicy, topicList, topicIndex, testTopic)
 
-        returnObj = dict()
-        for topic in testTopic:
-            returnObj[topic] = list()
-            (XTrain, XTest, yTrain, yTest, trainMap, 
-                    testMap) = DataTool.leaveOneTestSplit(topicX, topicy, topicList, topic)
+        # do feature selection if config is given
+        if fSelectIsBeforeClf(fSelectConfig) == True:
+            (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
+                    fSelectConfig['params'])
+            if XTest is not None:
+                XTest = selector.transform(XTest)
+        
+        # training using validation
+        (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
+                yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
+            
+        if XTest is None or yTest is None:
+            predict = { 'yTrainPredict': yTrainPredict }
+        else:
+            # testing 
+            yTestPredict = ML.test(XTest, clf)
+            # evaluation
+            testScore = Evaluator.evaluate(yTestPredict, yTest)
+            predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict }
 
-            # do feature selection if config is given
-            if fSelectIsBeforeClf(fSelectConfig) == True:
-                (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
-                        fSelectConfig['params'])
-                if XTest is not None:
-                    XTest = selector.transform(XTest)
-                #print('Dimension:', XTest.shape, file=sys.stderr)
-            for clfName in clfList:
-                # training using validation
-                #print('In Cross Validation... ', end='', file=sys.stderr)
-                (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
-                        yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
-                #print('Done', file=sys.stderr)
-                
-                if XTest is None or yTest is None:
-                    result = { 'valScore': bestValScore, scorerName: 0.0 }
-                else:
-                    # testing 
-                    #print('In testing... ', end='', file=sys.stderr)
-                    yTestPredict = ML.test(XTest, clf)
-
-                    # evaluation
-                    result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
-                    result['valScore'] = bestValScore
-                    #print('Done', file=sys.stderr)
-
-                if modelDir is not None:
-                    filename = dumpModel(modelDir, clf)
-                else:
-                    filename = None
-
-                # printing out results
-                ResultPrinter.print(prefix + ", Test on %d " % topic, "%d %d" % (
-                    X.shape[0], XTrain.shape[1]), clfName, bestParam, scorerName,
-                    randSeed, result, filename, outfile=outfile)
-                returnObj[topic].append( { 'clfName': clfName, 'clf': clf, 
-                    'param': bestParam, 'result': result, 'data':{'XTrain': XTrain, 
-                        'yTrain': yTrain, 'XTest': XTest, 'yTest': yTest }  } )
-        return returnObj
+        # printing out results
+        ResultPrinter.print(prefix + ", Test on %d " % testTopic, "%d %d" % (X.shape[0], XTrain.shape[1]), 
+                clfName, scorerName, bestParam, randSeed, bestValScore, testScore, outfile=outfile)
+        log = { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'valScore': bestValScore, 
+                'predict': predict, 'testScore': testScore, 'split':{ 'trainIndex': trainIndex, 
+                    'testIndex': testIndex }} 
+        return log
     
     # higher layer function for running task
     # taskType: SelfTrainTest, AllTrainTest, LeaveOneTest
-    def runTask(X, y, volcDict, taskType, params, clfList, randSeedList, testSize, n_folds, 
+    # newsIdList: just for record the model
+    def runTask(X, y, volcDict, newsIdList, taskType, params, clfName, randSeedList, testSize, n_folds, 
         targetScore, fSelectConfig, topicMap=None, topicId=None):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
-        rsList = list()
+        expLog = { 'data': { 'X': X, 'y': y } , 'volcDict': volcDict, 'params': params, 'newsIdList': newsIdList }
+        logList = list()
         for randSeed in randSeedList:
             if taskType == 'SelfTrainTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 # FIXME: only support self train test now
                 if testSize <= 1.0:
-                    rs = RunExp.selfTrainTest(X, y, clfList, targetScore, 
-                            randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
-                            fSelectConfig=fSelectConfig, prefix=prefix)
+                    log = RunExp.selfTrainTest(X, y, clfName, targetScore, randSeed, testSize, 
+                            n_folds, fSelectConfig, prefix)
                 else:
-                    rs = RunExp.selfTrainTestNFold(X, y, clfList, targetScore, 
-                        randSeed=randSeed, test_folds=testSize, n_folds=n_folds, 
-                        fSelectConfig=fSelectConfig, prefix=prefix)
-
-                if rs is None:
-                    return None
-                for r in rs:
-                    r['volcDict'] = volcDict
-                    r['X'] = X
-                    r['y'] = y
-                    r['params'] = params
-
+                    log = RunExp.selfTrainTestNFold(X, y, clfName, targetScore, randSeed, 
+                            testSize, n_folds, fSelectConfig, prefix=prefix)
             elif taskType == 'AllTrainTest': 
                 prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
-                rs = RunExp.allTrainTest(X, y, topicMap, clfList, targetScore, 
-                        randSeed=randSeed, testSize=testSize, n_folds=n_folds, 
-                        fSelectConfig=fSelectConfig, prefix=prefix)
-                if rs is None:
-                    return None
-                for r in rs:
-                    r['volcDict'] = volcDict
-                    r['X'] = X
-                    r['y'] = y
-                    r['params'] = params
-
+                log = RunExp.allTrainTest(X, y, topicMap, clfName, targetScore, randSeed, testSize, 
+                        n_folds, fSelectConfig, prefix=prefix)
+                
             elif taskType == 'LeaveOneTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
-                rs = RunExp.leaveOneTest(X, y, topicMap, clfList, targetScore, 
-                        randSeed=randSeed, testTopic=[topicId], n_folds=n_folds,
-                        fSelectConfig=fSelectConfig, prefix=prefix)
-                if rs is None:
-                    return None
-                for r in rs[topicId]:
-                    r['volc'] = volcDict
-                    r['X'] = X
-                    r['y'] = y
-                    r['params'] = params
-            rsList.append(rs)
-
-        return rsList
-
+                log = RunExp.leaveOneTest(X, y, topicMap, clfName, targetScore, 
+                        topicId, randSeed, n_folds, fSelectConfig, prefix=prefix)
+            logList.append(log)
+        expLog['logList'] = logList
+        return expLog
 
 def dumpModel(dir, clf):
     tmpF = tempfile.NamedTemporaryFile(mode='w+b', dir=dir, prefix='clf', delete=False)
     with tmpF.file as f:
         pickle.dump(clf, f)
     return tmpF.name
-        
 
 # The class for providing functions to manipulate data
 class DataTool:
@@ -370,7 +269,7 @@ class DataTool:
             topicX[t] = X[index[t]]
             topicy[t] = y[index[t]]
         
-        return (list(topics), topicX, topicy)
+        return (list(topics), topicX, topicy, index)
 
     def divideYByTopic(y, topicMap):
         assert len(y) == len(topicMap)
@@ -389,7 +288,7 @@ class DataTool:
 
     # In order to prevent 0 cases in training or testing data (s.t. evaluation 
     # metric is illed-defined), we first get the expected number of instance first
-    def stratifiedSplitTrainTest(X, y, randSeed=1, testSize=0.2):
+    def stratifiedSplitTrainTest(X, y, randSeed=1, testSize=0.2, originalIndex = None):
         assert X.shape[0] == len(y)
         assert testSize >= 0.0 and testSize < 1.0
         #print('testSize:', testSize)
@@ -426,19 +325,55 @@ class DataTool:
         yTrain = y[trainIndex]
         yTest = y[testIndex]
         
+        # if original index (of X) is given, then mapping trainIndex 
+        # and testIndex into original index
+        if originalIndex is not None:
+            trainIndex = [originalIndex[i] for i in trainIndex]
+            testIndex = [originalIndex[i] for i in testIndex]
+
         #print('y:', y)
         #print('yTrain:', yTrain)
         #print('yTest:', yTest)
         
-        return (XTrain, XTest, yTrain, yTest)
+        return (XTrain, XTest, yTrain, yTest, trainIndex, testIndex)
+
+    def topicStratifiedSplitTrainTest(X, y, topicMap, randSeed, testSize):
+        # divide data according to the topic
+        (topicList, topicX, topicy, topicIndex) = DataTool.divideDataByTopic(X, y, topicMap)
+
+        # split data for each topic, merge data into one training data and testing data
+        topicXTrain = dict()
+        topicXTest = dict()
+        topicyTrain = dict()
+        topicyTest = dict()
+        topicTrainIndex = dict()
+        topicTestIndex = dict()
+        for topic in topicList:
+            nowX = topicX[topic]
+            nowy = topicy[topic]
+            index = topicIndex[topic]
+            # split data
+            (XTrain, XTest, yTrain, yTest, trainIndex, testIndex) = DataTool.stratifiedSplitTrainTest(
+                    nowX, nowy, randSeed, testSize, originalIndex = index)
+            topicXTrain[topic] = XTrain
+            topicXTest[topic] = XTest
+            topicyTrain[topic] = yTrain
+            topicyTest[topic] = yTest
+            topicTrainIndex[topic] = trainIndex
+            topicTestIndex[topic] = testIndex
+        (XTrain, XTest, yTrain, yTest, trainMap, testMap, trainIndex, testIndex) = DataTool.mergeData(
+                topicXTrain, topicXTest, topicyTrain, topicyTest, topicTrainIndex, topicTestIndex, topicList)
+        return (XTrain, XTest, yTrain, yTest, trainMap, testMap, trainIndex, testIndex)
 
     # merge topicX and topicy 
-    def mergeData(topicXTrain, topicXTest, topicyTrain, topicyTest, topicList):
+    def mergeData(topicXTrain, topicXTest, topicyTrain, topicyTest, topicTrainIndex, topicTestIndex, topicList):
         assert len(topicList) != 0
         XTrainList = list()
         XTestList = list()
         yTrainList = list()
         yTestList = list()
+        trainIndex = list()
+        testIndex = list()
         trainMap = list()
         testMap = list()
         for t in topicList:
@@ -448,6 +383,8 @@ class DataTool:
             XTestList.append(topicXTest[t])
             yTrainList.append(topicyTrain[t])
             yTestList.append(topicyTest[t])
+            trainIndex.extend(topicTrainIndex[t])
+            testIndex.extend(topicTestIndex[t])
             trainMap.extend([t for i in range(0, len(topicyTrain[t]))])
             testMap.extend([t for i in range(0, len(topicyTest[t]))])
         
@@ -462,21 +399,22 @@ class DataTool:
         yTrain = np.concatenate(yTrainList, axis=0)
         yTest = np.concatenate(yTestList, axis=0)
 
-        return (XTrain, XTest, yTrain, yTest, trainMap, testMap) 
+        return (XTrain, XTest, yTrain, yTest, trainMap, testMap, trainIndex, testIndex) 
 
-    def leaveOneTestSplit(topicX, topicy, topicList, testTopic):
+    def leaveOneTestSplit(topicX, topicy, topicList, topicIndex, testTopic):
         XTrainList = list()
         yTrainList = list()
-        trainMap = list()
+        trainIndex = list()
         for t in topicList:
             if t == testTopic:
                 XTest = topicX[t]
                 yTest = topicy[t]
+                testIndex = list(topicIndex[t])
             else:
                 XTrainList.append(topicX[t])
                 yTrainList.append(topicy[t])
-                trainMap.extend([t for i in range(0, len(topicy[t]))])
-        
+                trainIndex.extend(topicIndex[t])
+
         # concatenate XTrain Matrix
         xType = type(XTrainList[0])
         if xType == matrix: #dense
@@ -486,8 +424,7 @@ class DataTool:
         # concatenate yTrain vector
         yTrain = np.concatenate(yTrainList, axis=0)
 
-        testMap = [testTopic for i in range(0, len(yTest))]
-        return (XTrain, XTest, yTrain, yTest, trainMap, testMap)
+        return (XTrain, XTest, yTrain, yTest, trainIndex, testIndex)
 
     # for each topic, do stratified K fold, and then merge them
     def topicStratifiedKFold(yTrain, trainMap, n_folds, randSeed=1):
@@ -846,7 +783,7 @@ def topicGSCV_oneTask(clf, params, scorerName, k, train, test, XTrain, yTrain, f
     yPredict = clf.predict(XTrain[test])
     #print('yPredict:', len(yPredict))
     #print('yTrain[test]:', len(yTrain[test]))
-    (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK, scorerName=scorerName)
+    (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK)
     return {'params': params, 'avgR': avgR, 'k': k }
 
 
@@ -857,7 +794,7 @@ scorerMap = {"Accuracy" : "accuracy", "MacroF1": macroF1Scorer,
 
 # The class for providing function to evaluate results
 class Evaluator:
-    def topicEvaluate(yPredict, yTrue, topicMap, topicWeights=None, scorerName='MacroF1'):
+    def topicEvaluate(yPredict, yTrue, topicMap, topicWeights=None):
         assert len(yTrue) == len(yPredict) and len(yTrue) == len(topicMap)
         length = len(yTrue)
 
@@ -880,7 +817,7 @@ class Evaluator:
         topicResults = dict()
         for t in topicSet:
             assert len(topicyTrue[t]) == len(topicyPredict[t]) and len(topicyTrue[t]) != 0
-            r = Evaluator.evaluate(topicyTrue[t], topicyPredict[t], scorerName)
+            r = Evaluator.evaluate(topicyTrue[t], topicyPredict[t])
             topicResults[t] = r
     
         # calculate average metric for all topics
@@ -890,23 +827,20 @@ class Evaluator:
         
         return (topicResults, avgR)
 
-    def evaluate(yPredict, yTrue, scorerName='MacroF1'):
-        if scorerName == 'Accuracy':
-            # accuracy 
-            #print('In accu ...', file=sys.stderr)
-            score = accuracy_score(yTrue, yPredict)
-        elif scorerName == 'F1':
-            # f1 scores
-            #print('In F1 ...', file=sys.stderr)
-            score = f1_score(yTrue, yPredict, average='binary')
-        elif scorerName == 'MacroF1':
-            #print('In MacroF1 score ...', file=sys.stderr) 
-            score = f1_score(yTrue, yPredict, average='macro')
-        elif scorerName == "MacroR":
-            # average recall (macro recall)
-            #print('In Macro recall ...', file=sys.stderr)
-            score = recall_score(yTrue, yPredict, average='macro')
-        return { scorerName: score }
+    def evaluate(yPredict, yTrue):
+        # accuracy 
+        accu = accuracy_score(yTrue, yPredict)
+        # f1 score for each class (not binary)
+        f1List = f1_score(yTrue, yPredict, average=None)
+        # macroF1
+        macroF1 = sum(f1List) / len(f1List)
+        # average recall (macro recall)
+        #recall = recall_score(yTrue, yPredict, average='macro')
+        result = { 'Accuracy': accu, 'MacroF1': macroF1 }
+        for i, f1 in enumerate(f1List):
+            name = 'F1_' + i2Label[i]
+            result[name] = f1
+        return result
     
     def avgNFoldResult(resultList):
         avgScore = defaultdict(float)
@@ -938,26 +872,23 @@ class Evaluator:
     def topicMacroF1Scorer(yTrue, yPredict, **kwargs):
         assert 'topicMap' in set(kwargs.keys())
         topicMap = kwargs['topicMap']
-        (topicResult, avgR) = Evaluator.topicEvaluate(yPredict, yTrue, topicMap, scorerName=scorerName)
+        (topicResult, avgR) = Evaluator.topicEvaluate(yPredict, yTrue, topicMap)
         return avgR['MacroF1']
 
 class ResultPrinter:
     def printFirstLine(outfile=sys.stdout):
         print('topicId, model settings, column source,'
           ' experimental settings, classifier, scorer, dimension,'
-          ' parameters, randSeed, valScore, testScore,'
-          ' modelPath(pickle)', file=outfile)
+          ' parameters, randSeed, valScore, testScore', file=outfile)
 
     def getDataType():
         return ('str', 'str', 'str', 'str', 'str', 'str', 'str', 
-                'str', 'int', 'float', 'float', 'str')
+                'str', 'int', 'float', 'dict')
     
-    def print(prefix, Xshape, clfName, params, scorerName, randSeed, 
-            result, filename, outfile):
-        paramStr = toStr("%s" % params)
-        print(prefix, clfName, scorerName, Xshape, paramStr, randSeed, 
-                result['valScore'], result[scorerName], filename, sep=',', 
-                file=outfile)
+    def print(prefix, Xshape, clfName, scorerName, params, randSeed, 
+            valScore, testScore, outfile):
+        print(prefix, clfName, scorerName, Xshape, toStr(params), randSeed, 
+                valScore, toStr(testScore), sep=',', file=outfile)
 
 # nowBestR: now best result
 def keepBestResult(nowBestR, nextRSList, scorerName, largerIsBetter=True, topicId=None):
