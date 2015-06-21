@@ -14,7 +14,7 @@ class Opinion():
         self.opnW = opinion 
         self.hdW = holder
         self.tgW = target
-        # word(no sentiDict) or index(with sentiDict)
+        # word(if no sentiDict) or index(with sentiDict)
         self.opn = opinion
         self.hd = holder
         self.tg = target
@@ -51,7 +51,7 @@ class Opinion():
                 self.tg = self.volcDict['target'][self.tgW] if self.tgW in self.volcDict['target'] else None
 
     # negSep=True: divide opinion+/opinion- into to different tuple
-    # |O|x|H|x|T|(x2)
+    # |O|x|H|x|T|
     def getKeyHOT(self, negSep=False):
         if self.opn == None or self.hd == None or self.tg == None:
             return None
@@ -65,12 +65,14 @@ class Opinion():
             #key = 'HOT_%s_%s_%s' % (self.hd, self.opn, self.tg)
             return (key, self.sign)
 
-    # |H|x|T|(x2)
-    def getKeyHT(self, sentiDict, negSep=False):
+    # |H|x|T|(x2 or x3)
+    def getKeyHT(self, sentiDict, negSep=False, ignoreNeutral=False):
         if self.hd == None or self.opn == None or self.tg == None or sentiDict == None:
             return None
         sign = self.getSign(sentiDict)
         if negSep:
+            if ignoreNeutral and sign == 0:
+                return None
             key = ('HT', self.hd, 'sign' + str(sign), self.tg)
             #key = 'HT_%s_^%d_%s' % (self.hd, sign, self.tg)
             return (key, 1)
@@ -80,7 +82,7 @@ class Opinion():
             return (key, sign)
 
 
-    # |H|x|T|(x2)
+    # |H|x|O|
     def getKeyHO(self, negSep=False):
         if self.hd == None or self.opn == None or self.tg == None:
             return None
@@ -94,12 +96,14 @@ class Opinion():
             return (key, self.sign)
 
 
-    # |H|(x2)
-    def getKeyH(self, sentiDict, negSep=False):
+    # |H|(x2 or x3)
+    def getKeyH(self, sentiDict, negSep=False, ignoreNeutral=False):
         if self.hd == None or self.opn == None or sentiDict == None:
             return None
         sign = self.getSign(sentiDict)
         if negSep:
+            if ignoreNeutral and sign == 0:
+                return None
             key = ('H', self.hd, 'sign' + str(sign))
             #key = 'H_%s^%d' % (self.hd, sign)
             return (key, 1)
@@ -108,7 +112,7 @@ class Opinion():
             #key = 'H_%s' % (self.hd)
             return (key, sign)
     
-    # |O|x|T|(x2)
+    # |O|x|T|
     def getKeyOT(self, negSep=False):
         if self.opn == None or self.tg == None:
             return None
@@ -121,12 +125,14 @@ class Opinion():
             #key = 'OT_%s_%s' % (self.opn, self.tg)
             return (key, self.sign)
 
-    # |T|(x2)
-    def getKeyT(self, sentiDict, negSep=False):
+    # |T|(x2 or x3)
+    def getKeyT(self, sentiDict, negSep=False, ignoreNeutral=False):
         if self.opn == None or self.tg == None or sentiDict == None:
             return None
         sign = self.getSign(sentiDict)
         if negSep:
+            if ignoreNeutral and sign == 0:
+                return None
             key = ('T', self.tg, 'sign' + str(sign))
             #key = 'T_%s^%d' % (self.tg, sign)
             return (key, 1)

@@ -13,6 +13,7 @@ from sklearn.grid_search import ParameterGrid
 from RunExperiments import *
 from misc import *
 from Volc import *
+import WordGraph
 
 '''
 This is the improved version of WordModel
@@ -27,7 +28,8 @@ Date: 2015/05/04
 '''
 
 class WordModel:
-    def genXY(self, labelNewsList, feature='tf', volcDict=None, allowedPOS=None, minCnt=0):
+    def genXY(self, labelNewsList, feature='tf', volcDict=None, allowedPOS=None, 
+            minCnt=0, wordGraph=None, wgParams=None):
         self.setVolcDict(volcDict)
         volc = self.volcDict['main']
         IDF = None
@@ -39,8 +41,8 @@ class WordModel:
         (DF, volc) = WordModel.calcDF(labelNewsList, volc=volc)
         
         # remove the words whose document frequency <= threshold
-        if minCnt != None:
-            DF = volc.shrinkVolcByDocF(DF, minCnt)
+        #if minCnt != None:
+        #    DF = volc.shrinkVolcByDocF(DF, minCnt)
         
         # calcualte IDF if necessary
         if feature == 'tfidf' or feature == 'tf-idf':
@@ -54,6 +56,18 @@ class WordModel:
         
         # generate X
         X = toMatrix(newsTFIDF, volc, matrixType='csr')
+        # if word graph is given, then run word graph propagation algorithm
+        if wordGraph is not None and wgParams is not None:
+            print('Doing word graph propagation ...', file=sys.stderr)
+            nWordsPerDoc = [len(tfidf) for tfidf in newsTFIDF]
+            X = WordGraph.runWordGraphProp(X, wordGraph, wgParams['beta'], wgParams['step'], 
+                    wgParams['method'], wgParams['value'], nWordsPerDoc)
+
+        # remove the words whose document frequency <= threshold
+        if minCnt != None:
+            DF = countDFByCSRMatrix(X)
+            X = shrinkCSRMatrixByDF(X, DF, minCnt)
+            DF = volc.shrinkVolcByDocF(DF, minCnt)
 
         # get y
         y = np.array(getLabels(labelNewsList))
@@ -117,7 +131,6 @@ class WordModel:
     def calcDF(labelNewsList, sentSep=",", wordSep=" ", tagSep='/', volc=None):
         if volc == None:
             volc = Volc()
-
         # calculating docuemnt frequency
         docF = defaultdict(int)
         for labelNews in labelNewsList:
@@ -127,9 +140,10 @@ class WordModel:
                 for wt in sent.split(wordSep):
                     #print(wt)
                     (word, tag) = wt.split(tagSep)
-                    if word not in volc: # building volcabulary
+                    if word not in volc and not volc.lockVolc: # building volcabulary
                         volc.addWord(word)
-                    wordIdSet.add(volc[word])
+                        wordIdSet.add(volc[word])
+
             for word in wordIdSet:
                 docF[word] += 1
         return (docF, volc)
@@ -169,11 +183,11 @@ def initWM():
     return WordModel()
 
 # generate word model features
-def genXY(labelNewsList, wm, params, preprocess, minCnt, volcDict):
+def genXY(labelNewsList, wm, params, preprocess, minCnt, volcDict, wordGraph, wgParams):
     print('generating word features...', file=sys.stderr)
     p = params
     (X, y) = wm.genXY(labelNewsList, feature=p['feature'], volcDict=volcDict, 
-            allowedPOS=p['allowedPOS'], minCnt=minCnt)
+            allowedPOS=p['allowedPOS'], minCnt=minCnt, wordGraph=wordGraph, wgParams=wgParams)
     if preprocess != None:
         X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volcDict = wm.getVolcDict()
@@ -205,8 +219,13 @@ if __name__ == '__main__':
 
     # sample document if neccessary
     labelNewsList = runSampleDoc(labelNewsList, config)
+
     # load volcabulary file
     topicVolcDict = loadVolcFileFromConfig(config['volc'], topicSet)
+    # load word graph
+    (topicWordGraph, wgVolcDict, topicWGParams) = WordGraph.loadWordGraphFromConfig(config['wordGraph'], topicSet)
+    if config['wordGraph'] is not None:
+        topicVolcDict = wgVolcDict
 
     # parameters:
     #print(config, file=sys.stderr)
@@ -229,7 +248,8 @@ if __name__ == '__main__':
         print('Self-Train-Test...', file=sys.stderr)
         for t in topicSet:
             for p in paramsIter:
-                (X, y, newVolcDict) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, topicVolcDict[t])
+                (X, y, newVolcDict) = genXY(labelNewsInTopic[t], wm, p, preprocess, minCnt, 
+                        topicVolcDict[t], topicWordGraph[t], topicWGParams[t])
                 expLog = RunExp.runTask(X, y, newVolcDict, newsIdList[t], 'SelfTrainTest', p, topicId=t, **setting)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
                 pickle.dump(expLog, f)
@@ -237,7 +257,7 @@ if __name__ == '__main__':
     # ============= Run for all-train-test & leave-one-test ================
     for p in paramsIter:
         if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
-            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, topicVolcDict['All'])
+            (X, y, newVolcDict) = genXY(labelNewsList, wm, p, preprocess, minCnt, topicVolcDict['All'], topicWordGraph['All'], topicWGParams['All'])
         
         if 'AllTrainTest' in toRun:
             expLog = RunExp.runTask(X, y, newVolcDict, newsIdList['All'], 'AllTrainTest', p, topicMap=topicMap, **setting)

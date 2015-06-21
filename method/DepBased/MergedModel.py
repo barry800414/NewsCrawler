@@ -52,8 +52,8 @@ def getMergedXY(modelPickle, topic):
     for modelName, pickleDict in modelPickle.items():
         pickleObj = pickleDict[topic]
         #print(pickleObj.keys())
-        X = pickleObj['X']
-        y = pickleObj['y']
+        X = pickleObj['data']['X']
+        y = pickleObj['data']['y']
         volcDict = pickleObj['volcDict']
         print(modelName, X.shape, sep=':', file=sys.stderr)
         mX = X if mX is None else DataTool.hstack(mX, X)
@@ -97,6 +97,9 @@ if __name__ == '__main__':
         labelNewsList = json.load(f)
     topicSet = set([labelNews['statement_id'] for labelNews in labelNewsList])
     topicMap = [ labelNewsList[i]['statement_id'] for i in range(0, len(labelNewsList)) ]
+    labelNewsInTopic = divideLabelNewsByTopic(labelNewsList)
+    newsIdList = { t:[ln['news_id'] for ln in labelNewsInTopic[t]] for t in topicSet }
+    newsIdList['All'] = [ln['news_id'] for ln in labelNewsList] 
 
     toLoadTopicList = list()
     if 'SelfTrainTest' in toRun:
@@ -122,28 +125,23 @@ if __name__ == '__main__':
         for t in topicSet:
             bestR = None
             (X, y, volcDictList) = getMergedXY(modelPickle, t)
-            rsList = RunExp.runTask(X, y, volcDictList, 'SelfTrainTest', None, topicId=t, **setting)
-            bestR = keepBestResult(bestR, rsList, targetScore)
+            expLog = RunExp.runTask(X, y, volcDictList, newsIdList[t], 'SelfTrainTest', None, topicId=t, **setting)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
-                pickle.dump(bestR, f)
+                pickle.dump(expLog, f)
     
     # ============= Run for all-train-test ================
     if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
         (X, y, volcDictList) = getMergedXY(modelPickle, 'all')
     if 'AllTrainTest' in toRun:
         print('All-Train-Test ...', file=sys.stderr)
-        bestR = None
-        rsList = RunExp.runTask(X, y, volcDictList, 'AllTrainTest', None, topicMap=topicMap, **setting)
-        bestR = keepBestResult(bestR, rsList, targetScore)
+        expLog = RunExp.runTask(X, y, volcDictList, newsIdList['All'], 'AllTrainTest', None, topicMap=topicMap, **setting)
         with open('%s_AllTrainTest.pickle' %(taskName), 'w+b') as f:
-            pickle.dump(bestR, f)
+            pickle.dump(expLog, f)
     
     # ============ Leave-One-Test ===============
     if 'LeaveOneTest' in toRun:
         for t in topicSet:
-            bestR = None
-            rsList = RunExp.runTask(X, y, volcDictList, 'LeaveOneTest', None, topicMap=topicMap, topicId=t, **setting)
-            bestR = keepBestResult(bestR, rsList, targetScore, topicId=t)
+            expLog = RunExp.runTask(X, y, volcDictList, newsIdList['All'], 'LeaveOneTest', None, topicMap=topicMap, topicId=t, **setting)
             with open('%s_LeaveOneTest_topic%d.pickle' %(taskName, t), 'w+b') as f:
-                pickle.dump(bestR, f)
+                pickle.dump(expLog, f)
 

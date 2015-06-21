@@ -2,12 +2,55 @@
 import sys
 import math
 import heapq
-import time
+import codecs
 
 import numpy as np
 from scipy.sparse import csr_matrix, linalg, identity
 from scipy.spatial.distance import pdist, cosine
-from ConvertWordVector import *
+from scipy.io import mmwrite, mmread
+from Volc import *
+
+# read word vector(text file) from word2vec tool
+def readWordVector(filename):
+    volc = Volc()
+    with codecs.open(filename, 'r', encoding='utf-8') as f:
+        line = f.readline()
+        entry = line.strip().split(' ')
+        volcNum = int(entry[0])
+        dim = int(entry[1])
+        vectors = list()
+        i = 0
+        while True:
+            try:
+                line = f.readline()
+                if not line:
+                    break
+            except Exception as e:
+                print('\nAt line %d' % i, e)
+                line = f.readline()
+                volcNum = volcNum - 1
+                i = i + 1
+                continue
+            
+            entry = line.strip().split(' ')
+            if len(entry) != dim + 1:
+                print(line)
+                print(len(entry))
+            assert len(entry) == dim + 1
+            assert entry[0].strip() not in volc
+            volc.addWord(entry[0].strip())
+            vector = list()
+            for j in range(1, len(entry)):
+                vector.append(float(entry[j]))
+            vectors.append(vector)
+            i = i + 1
+            if (i+1) % 10000 == 0:
+                print('%cProgress: (%d/%d)' % (13, i+1, volcNum), end='', file=sys.stderr)
+        print('', file=sys.stderr)
+    assert len(volc) == len(vectors)
+    vectors = np.array(vectors, dtype=np.float64)
+    return (volc, vectors)
+
 
 ## ----------- For building word-word transition matrix from word vector matrix ---------- ##
 
@@ -34,7 +77,7 @@ def __calcCosDist(X, i, nWords):
         scipy.spatial.distance.cosine(u, v)[source]
 
 def getTargetEdgeNum(nWords, method, methodValue):
-    if method == 'TopN':
+    if method == 'TopK':
         assert methodValue > 0.0
         num = int(nWords * methodValue)
     elif method == 'Percent':
@@ -44,7 +87,7 @@ def getTargetEdgeNum(nWords, method, methodValue):
 
 # get list of selected edges by given method
 def getEdgeList(dist, nWords, method, methodValue):
-    if method in ['TopN', 'Percent']:
+    if method in ['TopK', 'Percent']:
         targetNum = getTargetEdgeNum(nWords, method, methodValue)
         edgeList = list()
         index = 0
@@ -123,10 +166,12 @@ def wordProp(S, W, beta, step):
         for i in range(0, step):
             sw = beta * sw * W
             F = F + sw
+            print(i+1, end=' ', file=sys.stderr)
+        print('', file=sys.stderr)
     return F
 
 # filter the values in csr_matrix by given threshold
-def filterByThreshold(V, threshold, smaller=True):
+def filterByThreshold(V, threshold, smallerBeFiltered=True):
     (rowNum, colNum) = V.shape
     colIndex = V.indices
     rowPtr = V.indptr
@@ -140,7 +185,7 @@ def filterByThreshold(V, threshold, smaller=True):
     for ri in range(0, rowNum):
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
             value = data[nowPos]
-            if (smaller and value >= threshold) or (not smaller and value <= threshold):
+            if (smallerBeFiltered and value >= threshold) or (not smallerBeFiltered and value <= threshold):
                 rows.append(ri)
                 cols.append(ci)
                 newData.append(data[nowPos])
@@ -183,6 +228,33 @@ def selectTopK(V, kList, largerIsBetter=True):
     newV = csr_matrix((newData, (rows, cols)), shape=V.shape)
     return newV
 
+
+## ----------- For running word graph propagation alorithm completely ---------- ##
+# S: 1xN or MxN sparse matrix : bag-of-word vector(1xN)/ bag-of-word vector of M doc (MxN)
+# W: NxN sparse matrix : word-word transition prob
+# beta: damping factor
+# step: number of steps to diffuse word information
+# selectMethod: method to select/filter words with low value (TopK, Threshold)
+# selectValue: parameter corresponds to selectMethod
+# nWordsPerDoc: # words in original feature matrix(for counting expected K for each doc
+# return F: feature matrix after word graph propagation
+def runWordGraphProp(S, W, beta, step, selectMethod, selectValue, nWordsPerDoc=None):
+    assert selectMethod in ['TopK', 'Threshold']
+    print('Word propagation ... ', file=sys.stderr)
+    F = wordProp(S, W, beta, step)
+    print('Selecting words ...', file=sys.stderr)
+    if selectMethod == 'TopK':
+        assert selectValue >= 0.0
+        assert nWordsPerDoc is not None and len(nWordsPerDoc) == F.shape[0]
+        kList = [round(selectValue * nWords) for nWords in nWordsPerDoc]
+        F = selectTopK(F, kList)
+    elif selectMethod == 'Threshold':
+        assert selectValue >= 0.0
+        F = filterByThreshold(F, selectValue)
+    return F
+
+
+
 # print word and its value in feature vector
 def printFeatureVector(V, volc, sortByValue=True, reverse=True):
     (rowNum, colNum) = V.shape
@@ -205,7 +277,50 @@ def printFeatureVector(V, volc, sortByValue=True, reverse=True):
     for ci, w, v in cwvList:
         print(ci, w, v)
 
+
+def loadWordGraphFromConfig(config, topicSet):
+    files = dict() # prevent repeated loading (filename -> wordgraph
+    if config == None:
+        topicWordGraph = { t:None for t in topicSet }
+        topicWordGraph['All'] = None
+        topicVolcDict = { t:None for t in topicSet }
+        topicVolcDict['All'] = None
+        wgParams = { t:None for t in topicSet }
+        wgParams['All'] = None
+    else:
+        topicWordGraph = dict()
+        topicVolcDict = dict()
+        wgParams = dict()
+        for topic, topicConfig in config.items():
+            try: topic = int(topic)
+            except: assert topic == 'All'
+            
+            # params
+            wgParams[topic] = topicConfig['params']
+
+            # word graph file
+            filename = topicConfig['filename']
+            if filename in files:
+                topicWordGraph[topic] = files[filename]
+            else:
+                wordGraph = mmread(filename).tocsr() # a csr_matrix
+                files[filename] = wordGraph
+                topicWordGraph[topic] = wordGraph
+            
+            # volc
+            volcDict = dict()
+            for name, filename in topicConfig['volcFile'].items():
+                v = Volc()
+                v.load(filename)
+                v.lock()
+                volcDict[name] = v
+            topicVolcDict[topic] = volcDict
+
+    return (topicWordGraph, topicVolcDict, wgParams)
+
 def test(W, volc):
+
+    import time
     # test case
     data = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     rows = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -241,9 +356,9 @@ def test(W, volc):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print('Usage:', sys.argv[0], 'WordVectorFile SelectMethod value [OutWordMatrix OutVolcFile]', file=sys.stderr)
+        print('Usage:', sys.argv[0], 'WordVectorFile SelectMethod value [OutWordMatrix [OutVolcFile]]', file=sys.stderr)
         print('\t- WordVectorFile: word vector file from word2vec tool', file=sys.stderr)
-        print('\t- SelectMethod: method of selecting edges (TopN: N*#word, Percent: p*#word^2, Threshold: threshold of cosine similarity)', file=sys.stderr)
+        print('\t- SelectMethod: method of selecting edges (TopK: N*#word, Percent: p*#word^2, Threshold: threshold of cosine similarity)', file=sys.stderr)
         exit(-1)
 
     WVFile = sys.argv[1]
@@ -256,10 +371,12 @@ if __name__ == '__main__':
     #printWordGraph(W, volc)
     
     # volc & W is the word graph
-    if len(sys.argv) == 6:
+    if len(sys.argv) == 5:
         wordGraphFile = sys.argv[4]
+        mmwrite(wordGraphFile, W)
+
+    if len(sys.argv) == 6:
         volcFile = sys.argv[5]
-        np.save(wordGraphFile, W)
         volc.save(volcFile)
 
 

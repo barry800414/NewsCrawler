@@ -23,27 +23,35 @@ pyMap = {
         "merged": "./DepBased/MergedModel.py",
 }
 configFolder = './config/'
-taggedFile = './zhtNewsData/taggedLabelNewsFinal_long.json'
+
+taggedFile = './zhtNewsData/taggedLabelNewsTwoClass_long.json'
+depFile = './zhtNewsData/DepParsedLabelNewsTwoClass_short.json'
+labelNewsFile = './zhtNewsData/taggedLabelNewsTwoClass_long.json' #FIXME
+
 #taggedFile = './zhtNewsData/taggedFilteredLabelNews_long.json'
-depFile = './zhtNewsData/DepParsedLabelNewsFinal_short.json'
 #depFile = './zhtNewsData/DepParsedFilteredLabelNewsFinal_short.json'
-labelNewsFile = './zhtNewsData/taggedLabelNewsFinal_long.json' #FIXME
 #labelNewsFile = './zhtNewsData/taggedFilteredLabelNews_long.json'
+
+#taggedFile = './zhtNewsData/taggedLabelNewsFinal_long.json'
+#depFile = './zhtNewsData/DepParsedLabelNewsFinal_short.json'
+#labelNewsFile = './zhtNewsData/taggedLabelNewsFinal_long.json' #FIXME
 
 #taggedDepFile = './zhtNewsData/taggedAndDepParsedLabelNews20150504.json'
 dictFile = './res/NTUSD_core.csv'
 negFile = './DepBased/negPattern.json'
 patternFile = './DepBased/my_pattern.json'
 
+suffix = '_TwoClass'
+#suffix = ''
+
 if __name__ == '__main__':
     sender = SendJob()
     
     # for single model
-    for model in ["WM", "OLDM", "OM"]:
-    #for model in ["OLDM", "OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + '_filtered')
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model)
-        print(len(configList))
+    #for model in ["WM", "OLDM", "OM"]:
+    for model in ["OM"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
+        print(model, len(configList))
         for taskName, config in configList:
             configFile = configFolder + taskName + '_config.json'
             resultFile = '%s_results.csv' % (taskName)
@@ -53,31 +61,30 @@ if __name__ == '__main__':
                 cmd = "python3 %s %s %s %s > %s" %(pyMap[model], depFile, configFile, dictFile, resultFile) 
             elif model == 'OM':
                 cmd = "python3 %s %s %s %s %s %s > %s" % (pyMap[model], depFile, configFile, patternFile, negFile, dictFile, resultFile)
-            #print(cmd)
-            #sender.putTask(cmd)
+            print(cmd)
+            sender.putTask(cmd)
 
     # for mixed model 
-    WMPickleFile = 'WM_pN_fN_MaxEnt_tf_vN'
+    #WMPickleFile = 'WM_TwoClass_pN_fN_MaxEnt_01_vN'
+    WMPickleFile = 'WM_None_fN_MaxEnt_tf_vN'
     #WMPickleFile = 'WM_filtered_pN_fN_LinearSVM_tf_c7852'
     for model in ["OLDM", "OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_" + model + '_filtered')
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_" + model)
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_" + model + suffix)
         print(len(configList))
         for taskName, config in configList:
             configFile = configFolder + taskName + '_config.json'
             resultFile = '%s_results.csv' % (taskName)
             cmd = "python3 %s %s %s -WM %s -%s %s > %s" % (pyMap['merged'], labelNewsFile, configFile, 
                     WMPickleFile, model, taskName[len("WM_"):], resultFile)
-            print(cmd)
-            sender.putTask(cmd)
+            #print(cmd)
+            #sender.putTask(cmd)
    
     # for mixed model 
-    OLDMPickleFile = 'OLDM_pN_fN_LinearSVM_NTUSD_c7852_NTUSD'
+    #OLDMPickleFile = 'OLDM_TwoClass_pN_fN_MaxEnt_tag_vN'
+    OLDMPickleFile = 'OLDM_pN_fN_MaxEnt_tag_vN'
     #OLDMPickleFile = 'OLDM_filtered_pN_fN_LinearSVM_NTUSD_c7852_NTUSD'
     for model in ["OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_OLDM_" + model + '_filtered')
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_OLDM_" + model)
-
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = "WM_OLDM_" + model + suffix)
         print(len(configList))
         for taskName, config in configList:
             configFile = configFolder + taskName + '_config.json'
@@ -85,10 +92,9 @@ if __name__ == '__main__':
             cmd = "python3 %s %s %s -WM %s -OLDM %s -%s %s > %s" % (pyMap['merged'], labelNewsFile, configFile, 
                     WMPickleFile, OLDMPickleFile, model, taskName[len("WM_OLDM_"):], resultFile)
 
-            print(cmd)
-            sender.putTask(cmd)
+            #print(cmd)
+            #sender.putTask(cmd)
    
-
 
 if __name__ == '__main2__':
     for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:
@@ -117,7 +123,7 @@ if __name__ == '__main2__':
             
             
             paramFile = '%s_params.json' % (prefix)
-            #cmd += '; echo "%s" >> %s; python3 CollectResult.py testScore %s %s 0 6 >> %s' % (prefix, scoreFile, resultFile, paramFile, scoreFile)
+            cmd += '; echo "%s" >> %s; python3 CollectResult.py testScore %s %s 0 6 >> %s' % (prefix, scoreFile, resultFile, paramFile, scoreFile)
             cmd = 'echo "%s" >> %s.1; python3 CollectResult.py testScore %s %s 0 6 >> %s' % (prefix, scoreFile, resultFile, paramFile, scoreFile)
             os.system(cmd)
             print(cmd)

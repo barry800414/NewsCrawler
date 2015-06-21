@@ -719,12 +719,13 @@ class ML:
                     'class_weight': ['auto']
                 }
             clf = svm.LinearSVC()
-        elif clfName == 'RandomForest': #depricated: RF does not support sparse matrix
-            estNum = [5, 10, 15, 20]
+        elif clfName == 'RandomForest' or clfName == 'RF': #depricated: RF does not support sparse matrix
+            estNum = [5, 10, 20, 40, 80]
             minSampleSplit = [1, 2]
             parameters = {
                     "n_estimators": estNum,
-                    "min_samples_split": minSampleSplit
+                    "min_samples_split": minSampleSplit,
+                    "class_weight": ['auto']
                 }
             clf = RandomForestClassifier()
         else:
@@ -786,11 +787,15 @@ def topicGSCV_oneTask(clf, params, scorerName, k, train, test, XTrain, yTrain, f
     (topicResults, avgR) = Evaluator.topicEvaluate(yPredict, yTrain[test], foldTopicMapAtK)
     return {'params': params, 'avgR': avgR, 'k': k }
 
+def macroF1Score(yTrue, yPredict):
+    f1List = f1_score(yTrue, yPredict, average=None)
+    return np.sum(f1List) / len(f1List)
 
-macroF1Scorer = make_scorer(f1_score, average='macro')
+macroF1Scorer = make_scorer(macroF1Score)
 macroRScorer = make_scorer(recall_score, average='macro')
-scorerMap = {"Accuracy" : "accuracy", "MacroF1": macroF1Scorer, 
-        "F1": "f1", "MacroR": macroRScorer } 
+scorerMap = {"Accuracy" : "accuracy", "MacroF1": macroF1Scorer, "MacroR": macroRScorer } 
+
+
 
 # The class for providing function to evaluate results
 class Evaluator:

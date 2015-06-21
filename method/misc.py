@@ -4,6 +4,9 @@ import sys
 import random
 import math
 
+import numpy as np
+from scipy.sparse import csr_matrix 
+
 label2i = { "neutral" : 2, "oppose": 0, "agree" : 1 } 
 i2Label = ["oppose", "agree", "neutral"]
 
@@ -221,3 +224,44 @@ def float_eq(a, b):
         return True
     else:
         return False
+
+# count document frequency of each column
+def countDFByCSRMatrix(X):  
+    (rowNum, colNum) = X.shape
+    colIndex = X.indices
+    rowPtr = X.indptr
+    
+    DF = [0 for i in range(0, colNum)]
+    for ri in range(0, rowNum):
+        for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
+            DF[ci] += 1
+    return DF
+
+def shrinkCSRMatrixByDF(X, DF, minCnt=0):
+    colMapping = dict()
+    for i, df in enumerate(DF):
+        if df >= minCnt:
+            colMapping[i] = len(colMapping)
+
+    (rowNum, colNum) = X.shape
+    colIndex = X.indices
+    rowPtr = X.indptr
+    data = X.data
+
+    newRows = list()
+    newCols = list()
+    newData = list()
+    nowPos = 0
+    for ri in range(0, rowNum):
+        for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
+            if ci in colMapping:
+                newRows.append(ri)
+                newCols.append(colMapping[ci])
+                newData.append(data[nowPos])
+            nowPos += 1
+
+    newX = csr_matrix((newData, (newRows, newCols)), shape=(rowNum, len(colMapping)), dtype=np.float64)
+    return newX
+
+        
+

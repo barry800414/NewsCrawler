@@ -67,13 +67,14 @@ class OpinionModel:
     # sentiDict: sentiment dictionary
     # negSepList: the list of boolean flag to indicate whether negation pattern is represented separated
     def genXY(self, pTreeList, negPList, sentiDict, volcDict, 
-            keyTypeList, opnNameList, negSepList, minCnt):
+            keyTypeList, opnNameList, negSepList, ignoreNeutral, minCnt):
         self.pTL = pTreeList
         self.nPL = negPList
         self.kTL = keyTypeList
         self.opnNL = opnNameList
         self.sD = sentiDict
         self.nSL = negSepList
+        self.iN = ignoreNeutral
         self.minCnt = minCnt 
         self.setVolcDict(volcDict)
         
@@ -126,7 +127,7 @@ class OpinionModel:
             for opn in opns:
                 for keyType in self.kTL:
                     for negSep in self.nSL:
-                        keyValue = OpinionModel.getOpnKeyValue(opn, keyType, self.sD, negSep)
+                        keyValue = OpinionModel.getOpnKeyValue(opn, keyType, self.sD, negSep, self.iN)
                         if keyValue != None:
                             (key, value) = keyValue
                             opnCnt[key] += value
@@ -165,22 +166,22 @@ class OpinionModel:
         return opnDict
 
     # get key of opinion object
-    def getOpnKeyValue(opn, keyType, sentiDict=None, negSep=False):
+    def getOpnKeyValue(opn, keyType, sentiDict=None, negSep=False, ignoreNeutral=False):
         if keyType == 'HT' or keyType == 'T' or keyType == 'H':
             assert sentiDict != None
         
         if keyType == 'HOT':
             return opn.getKeyHOT(negSep)
         elif keyType == 'HT':
-            return opn.getKeyHT(sentiDict, negSep)
+            return opn.getKeyHT(sentiDict, negSep, ignoreNeutral)
         elif keyType == 'H':
-            return opn.getKeyH(sentiDict, negSep)
+            return opn.getKeyH(sentiDict, negSep, ignoreNeutral)
         elif keyType == 'HO':
             return opn.getKeyHO(negSep)
         elif keyType == 'OT':
             return opn.getKeyOT(negSep)
         elif keyType == 'T':
-            return opn.getKeyT(sentiDict, negSep)
+            return opn.getKeyT(sentiDict, negSep, ignoreNeutral)
 
     def printOpnCnt(opnCnts, outfile=sys.stdout):
         for opnName, opnCnt in opnCnts.items():
@@ -197,9 +198,8 @@ def initOM(labelNewsList, topicPhraseList=None):
 def genXY(om, params, preprocess, minCnt, pTreeList, negPList=None, sentiDict=None, volcDict=None):
     print('generating opinion model features ...', file=sys.stderr)
     p = params
-    (X, y) = om.genXY(pTreeList, negPList, sentiDict, volcDict, 
-                p['keyTypeList'], p['opnNameList'], p['negSepList'], 
-                minCnt)
+    (X, y) = om.genXY(pTreeList, negPList, sentiDict, volcDict, p['keyTypeList'], 
+            p['opnNameList'], p['negSepList'], p['ignoreNeutral'], minCnt)
     if preprocess != None:
         X = DataTool.preprocessX(X, preprocess['method'], preprocess['params'])
     volcDict = om.getVolcDict()

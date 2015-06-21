@@ -5,47 +5,33 @@ import json
 
 configFolder = './config/'
 
-mergeTemplate = {
-    "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-    "preprocess": None,
-    "minCnt": 2,
-    "taskName": "OM_all_norm1",
-    "setting":{
-        "targetScore": "MacroF1",
-        "clfList": ["LinearSVM"],
-        "randSeedList": [1, 2, 3, 4, 5],
-        "testSize": 0.2,
-        "n_folds": 3,
-        "fSelectConfig": None
-    }
-}
-
 # default config of each model
 defaultConfig={
         "WM": {
             #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": None,
+            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
-                "feature": ["tf"],
+                "feature": ["tfidf"],
                 "allowedPOS": [["VA", "VV", "NN", "NR", "AD", "JJ"]]
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["LinearSVM"],
+                "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
             },
             "fSelectConfig": None,
-            "volc": None
+            "volc": None,
+            "wordGraph": None
         },
         "OLDM": {
             #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": None,
+            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
                 "seedWordType": [
@@ -57,7 +43,7 @@ defaultConfig={
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["LinearSVM"],
+                "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
@@ -65,43 +51,41 @@ defaultConfig={
             },
             "fSelectConfig": None,
             "volc": None,
-            "phrase": None
+            "phrase": None,
         },
         "OM": {
             #"toRun": ["SelfTrainTest"],
             "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": None,
+            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
                 "keyTypeList": [["H", "T", "HT"]],
                 "opnNameList": [None],
-                "negSepList": [[True]]
+                "negSepList": [[True]],
+                "ignoreNeutral": [False]
             },
             "setting":{
                 "targetScore": "MacroF1",
-                "clfList": ["LinearSVM"],
+                "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
             },
             "volc": None,
-            "phrase": None
+            "phrase": None,
         },
-        #'WM_OLDM': mergeTemplate,
-        #'WM_OM': mergeTemplate,
-        #'WM_OLDM_OM': mergeTemplate
 }
 
 
 # generating configs for word clustering 
-volcFolder = './WordClustering'
+volcFolder = './WordClustering/volc'
 topicList = [2, 3, 4, 5, 6, 13, 16, 'All']
 volcFileConfig = { "WM": dict(), "OLDM": dict(), "OM": dict() }
 
 # for WM
 c = volcFileConfig['WM']
-for type in ["c7852"]:
+for type in ["c7852", "c7852_Gov"]:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
@@ -109,7 +93,7 @@ for type in ["c7852"]:
 
 # for OLDM
 c = volcFileConfig['OLDM']
-for type in ['c7852_NTUSD', 'c7852_Tag']:
+for type in ['c7852_NTUSD', 'c7852_Tag', 'c7852_NTUSD_Gov', 'c7852_Tag_Gov']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
@@ -118,61 +102,72 @@ for type in ['c7852_NTUSD', 'c7852_Tag']:
 
 # for OM
 c = volcFileConfig['OM']
-for type in ['c7852']:
+for type in ['c7852', 'c7852_Gov']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
         c[type][t]['holder'] = '%s/OM_%s_T%s_hdW.volc' % (volcFolder, type, str(t))
         c[type][t]['opinion'] = '%s/OM_%s_T%s_opnW.volc' % (volcFolder, type, str(t))
         c[type][t]['target'] = '%s/OM_%s_T%s_tgW.volc' % (volcFolder, type, str(t))
-
 #print(volcFileConfig)
+
+# generate configs for word graph
+wgFolder = './WordClustering/wordGraph'
+wgConfig = dict()
+for topK in [5, 10, 20]:
+    for beta in [0.25, 0.5, 0.75]:
+        for step in [10]:
+            for selectTopK in [5, 10, 20]:
+                name = 'Top%d-beta%d-step%d-select%d' % (topK, int(beta * 100), step, selectTopK)
+                wgConfig[name] = dict()
+                for t in topicList:
+                    wgConfig[name][t] = { 
+                            "filename": "%s/wg7852_top%s.mtx" % (wgFolder, topK),
+                            "volcFile": { "main": "%s/news7852Final.volc" % (wgFolder) },
+                            "params": {
+                                "beta": beta,
+                                "step": step,
+                                "method": "TopK",
+                                "value": selectTopK
+                            }
+                        }
+#for k, v in wgConfig.items():
+#    print(k, v)
 
 # configuration for search parameters (one parameter a time)
 iterConfig={
     "WM": [
         { "path": ["preprocess"], 
             "params": {"None": None,
-                       "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
                        "binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                       "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                       "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
 
-        { "path": ["setting", "fSelectConfig"],
-            "params": { "RF": { "method": "RF", "params": dict() },
-                        "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
-                }
-            },
-
-        { "path": ["setting", "clfList"], 
-            "params": { "MaxEnt": ["MaxEnt"] }
+        { "path": ["setting", "clfName"], 
+            "params": { "RF": "RF" }
             },
         
         { "path": ["params", "feature"], 
-            "params": { "01": ["0/1"], "tfidf": ["tfidf"] } 
+            "params": { "01": ["0/1"], } 
             },
         { "path": ["volc"],
             "params": volcFileConfig['WM']
+        },
+        { "path": ["wordGraph"],
+            "params": wgConfig,
         }
     ],
     "OLDM" :[
         { "path": ["preprocess"], 
             "params": {"None": None,
-                       "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
                        "binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                       "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                       "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
 
-        { "path": ["setting", "fSelectConfig"],
-            "params": { "RF": { "method": "RF", "params": dict() },
-                    "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
-                }
-            },
-
-        { "path": ["setting", "clfList"], 
-            "params": { "MaxEnt": ["MaxEnt"] }
+        { "path": ["setting", "clfName"], 
+            "params": { "RF": "RF" }
             },
             
         { "path": ["params", "firstLayerType"],
@@ -186,19 +181,13 @@ iterConfig={
     "OM":[  
         { "path": ["preprocess"], 
             "params": { "None": None,
-                        "std":    { "method": "std", "params": { "with_mean": False, "with_std": True }}, 
                         "binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "norm1":  { "method": "norm", "params": { "norm": "l1" }}
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
-        { "path": ["setting", "fSelectConfig"],
-            "params": { "RF": { "method": "RF", "params": dict() },
-                    "L1C1": { "method": "LinearSVC", "params": {"C": 1.0}}
-                }
-            },
 
-        { "path": ["setting", "clfList"], 
-            "params": { "MaxEnt": ["MaxEnt"] }
+        { "path": ["setting", "clfName"], 
+            "params": { "RF": "RF" }
             },
 
         { "path": ["params", "keyTypeList"], 
@@ -209,20 +198,22 @@ iterConfig={
         { "path": ["params", "negSepList"], 
             "params": { "negFalse": [[False]], "negBoth": [[True, False]]}
             },
+        
+        { "path": ["params", "ignoreNeutral"],
+            "params": { "iN": True }
+        },
+
         { "path": ["volc"],
             "params": volcFileConfig['OM']
         }
-
     ]
 }
 
 nameList= {
-    "WM": [ "pN", "fN", "LinearSVM", "tf", "vN"],
-    #"WM": [ "pN", "fN", "LinearSVM", "tf"],
-    "OLDM":  [ "pN", "fN", "LinearSVM", "NTUSD", "vN"],
-    "OM": [ "pN", "fN", "LinearSVM", "H-T-HT", "negTrue", "vN"]
+    "WM": [ "binary", "MaxEnt", "tfidf", "N", "N"], #pre, clf, feature, volc, wg
+    "OLDM":  [ "binary", "MaxEnt", "NTUSD", "N"], #pre, clf, feature, volc
+    "OM": [ "binary", "MaxEnt", "H-T-HT", "negTrue", "N", "N"] # pre, clf, feature, neg, ignoreNeutral, volc
 }
-
 
 
 def genConfig(defaultConfig, iterConfig, nameList, prefix):
@@ -230,7 +221,7 @@ def genConfig(defaultConfig, iterConfig, nameList, prefix):
     for i in range(0, len(iterConfig)):
         path = iterConfig[i]["path"]
         params = iterConfig[i]["params"]
-        for pName, p in params.items():
+        for pName, p in sorted(params.items()):
             newConfig = copy.deepcopy(defaultConfig)
             newNameList = copy.deepcopy(nameList)
             
@@ -280,12 +271,12 @@ def mergeName(prefix, nameList):
 
 
 if __name__ == '__main__':
+    suffix = '_TwoClass'
 
     # for single model
     for model in ["WM", "OLDM", "OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + "_filtered")
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model )
-        #print(len(configList))
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
+        print(model, len(configList))
         for name, config in configList:
             with open(configFolder + name + '_config.json', 'w') as f:
                 json.dump(config, f, indent=2)
@@ -296,25 +287,23 @@ if __name__ == '__main__':
     # for merged model
     # WM+OLDM, WM+OM, WM is fixed
     for model in ["OLDM", "OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model + "_filtered")
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model)
-        print(len(configList))
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model + suffix)
+        print("WM_"+ model, len(configList))
         for name, config in configList:
-            with open(configFolder + name + '_config.json', 'w') as f:
-                json.dump(config, f, indent=2)
-            print(name)
+            #with open(configFolder + name + '_config.json', 'w') as f:
+            #    json.dump(config, f, indent=2)
+            #print(name)
             #print(config)
             pass
 
     # WM and OLDM is fixed
     for model in ["OM"]:
-        #configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model + "_filtered")
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model)
-        print(len(configList))
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model + suffix)
+        print("WM_OLDM_"+ model, len(configList))
         for name, config in configList:
-            with open(configFolder + name + '_config.json', 'w') as f:
-                json.dump(config, f, indent=2)
-            print(name)
+            #with open(configFolder + name + '_config.json', 'w') as f:
+            #    json.dump(config, f, indent=2)
+            #print(name)
             #print(config)
             pass
 

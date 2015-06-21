@@ -46,11 +46,11 @@ class Volc:
                 print(w, i, sep=':', file=f)
 
     # the vocabulary will not be locked
-    def copy(self):
+    def copy(self, lock=True):
         newVolc = Volc()
         newVolc.volc = dict(self.volc)
         newVolc.rVolc = list(self.rVolc)
-        #newVolc.lockVolc = self.lockVolc
+        newVolc.lockVolc = lock
         newVolc.OOVDim = self.OOVDim
         return newVolc
 
