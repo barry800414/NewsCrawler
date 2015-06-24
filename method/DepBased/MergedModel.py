@@ -9,9 +9,9 @@ import numpy as np
 from scipy.sparse import csr_matrix, hstack
 from sklearn.grid_search import ParameterGrid
 
-import WordModel as WM
-import OneLayerDepModel as OLDM
-import OpinionModel as OM
+#import WordModel as WM
+#import OneLayerDepModel as OLDM
+#import OpinionModel as OM
 import TreePattern as TP
 import NegPattern as NP
 from PhraseDepTree import loadPhraseFile

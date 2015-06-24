@@ -207,17 +207,16 @@ def genXY(om, params, preprocess, minCnt, pTreeList, negPList=None, sentiDict=No
     return (X, y, volcDict)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 6:
-        print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile TreePatternFile NegPatternFile SentiDictFile', file=sys.stderr)
+    if len(sys.argv) < 5:
+        print('Usage:', sys.argv[0], 'DepParsedLabelNews ModelConfigFile NegPatternFile SentiDictFile', file=sys.stderr)
         exit(-1)
 
     depParsedLabelNewsJsonFile = sys.argv[1]
     modelConfigFile = sys.argv[2]
-    patternFile = sys.argv[3]
-    negPatternFile = sys.argv[4]
-    sentiDictFile = sys.argv[5]
-    if len(sys.argv) == 7:
-        topicTargetFile = sys.argv[6]
+    negPatternFile = sys.argv[3]
+    sentiDictFile = sys.argv[4]
+    if len(sys.argv) == 6:
+        topicTargetFile = sys.argv[5]
         #TODO
 
     # load model config
@@ -237,7 +236,7 @@ if __name__ == '__main__':
     newsIdList['All'] = [ln['news_id'] for ln in labelNewsList] 
 
     # load pattern trees 
-    pTreeList = TP.loadPatterns(patternFile)
+    pTreeList = TP.loadPatterns(config['treePattern'])
     # load negation pattern file
     negPList = NP.loadNegPatterns(negPatternFile)
     # load sentiment dictionary

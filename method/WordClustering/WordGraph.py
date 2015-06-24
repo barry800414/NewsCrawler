@@ -166,7 +166,7 @@ def wordProp(S, W, beta, step):
         for i in range(0, step):
             sw = beta * sw * W
             F = F + sw
-            print(i+1, end=' ', file=sys.stderr)
+            print('%cProgress:(%d/%d)' % (13, i+1, step), end='', file=sys.stderr)
         print('', file=sys.stderr)
     return F
 

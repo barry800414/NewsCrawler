@@ -250,7 +250,8 @@ if __name__ == '__main__':
     #    print(d)
 
     #topicList = [2, 3, 4, 5, 6, 13, 16]
-    topicList = [3, 4, 5, 13]
+    topicList = [2, 3, 4, 5, 13]
+    #topicList = [4]
     firstN = 1
     # find the rows with best score 
     # first framework (self-train-test)

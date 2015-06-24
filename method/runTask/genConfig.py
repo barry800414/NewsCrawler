@@ -8,8 +8,8 @@ configFolder = './config/'
 # default config of each model
 defaultConfig={
         "WM": {
-            #"toRun": ["SelfTrainTest"],
-            "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
@@ -17,7 +17,8 @@ defaultConfig={
                 "allowedPOS": [["VA", "VV", "NN", "NR", "AD", "JJ"]]
             },
             "setting":{
-                "targetScore": "MacroF1",
+                #"targetScore": "MacroF1",
+                "targetScore": "Accuracy",
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
@@ -29,8 +30,8 @@ defaultConfig={
             "wordGraph": None
         },
         "OLDM": {
-            #"toRun": ["SelfTrainTest"],
-            "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
@@ -38,11 +39,12 @@ defaultConfig={
                     {"type": "tag", "allow": ["NR","NN","NP"]}
                 ],
                 "firstLayerType": [ 
-                    {"type": "word", "allow": "NTUSD_core"} 
+                    {"type": "tag", "allow": ["VV","JJ","VA"]}
                 ]
             },
             "setting":{
-                "targetScore": "MacroF1",
+                #"targetScore": "MacroF1",
+                "targetScore": "Accuracy",
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
@@ -54,8 +56,8 @@ defaultConfig={
             "phrase": None,
         },
         "OM": {
-            #"toRun": ["SelfTrainTest"],
-            "toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "minCnt": 2,
             "params":{ 
@@ -65,13 +67,15 @@ defaultConfig={
                 "ignoreNeutral": [False]
             },
             "setting":{
-                "targetScore": "MacroF1",
+                #"targetScore": "MacroF1",
+                "targetScore": "Accuracy",
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
                 "testSize": 0.2,
                 "n_folds": 3,
                 "fSelectConfig": None
             },
+            "treePattern": "./DepBased/my_pattern.json",
             "volc": None,
             "phrase": None,
         },
@@ -80,12 +84,13 @@ defaultConfig={
 
 # generating configs for word clustering 
 volcFolder = './WordClustering/volc'
-topicList = [2, 3, 4, 5, 6, 13, 16, 'All']
+topicList = [2, 3, 4, 5, 13, 'All']
 volcFileConfig = { "WM": dict(), "OLDM": dict(), "OM": dict() }
 
 # for WM
 c = volcFileConfig['WM']
-for type in ["c7852", "c7852_Gov"]:
+#for type in ["c7852", "c7852_Gov"]:
+for type in ["c7852"]:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
@@ -93,7 +98,8 @@ for type in ["c7852", "c7852_Gov"]:
 
 # for OLDM
 c = volcFileConfig['OLDM']
-for type in ['c7852_NTUSD', 'c7852_Tag', 'c7852_NTUSD_Gov', 'c7852_Tag_Gov']:
+#for type in ['c7852_NTUSD', 'c7852_Tag', 'c7852_NTUSD_Gov', 'c7852_Tag_Gov']:
+for type in ['c7852_NTUSD', 'c7852_Tag']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
@@ -102,7 +108,8 @@ for type in ['c7852_NTUSD', 'c7852_Tag', 'c7852_NTUSD_Gov', 'c7852_Tag_Gov']:
 
 # for OM
 c = volcFileConfig['OM']
-for type in ['c7852', 'c7852_Gov']:
+#for type in ['c7852', 'c7852_Gov']:
+for type in ['c7852']:
     c[type] = dict()
     for t in topicList:
         c[type][t] = dict()
@@ -153,7 +160,8 @@ iterConfig={
             },
         { "path": ["volc"],
             "params": volcFileConfig['WM']
-        },
+            #}
+            },
         { "path": ["wordGraph"],
             "params": wgConfig,
         }
@@ -171,7 +179,7 @@ iterConfig={
             },
             
         { "path": ["params", "firstLayerType"],
-            "params": { "tag": [{"type": "tag", "allow": ["VV","JJ","VA"]}] }
+            "params": { "NTUSD": [{"type": "word", "allow": "NTUSD_core"}] }
             },
         { "path": ["volc"],
             "params": volcFileConfig['OLDM']
@@ -194,25 +202,25 @@ iterConfig={
             "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
                 "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]]}
             },
-
-        { "path": ["params", "negSepList"], 
-            "params": { "negFalse": [[False]], "negBoth": [[True, False]]}
-            },
         
         { "path": ["params", "ignoreNeutral"],
-            "params": { "iN": True }
+            "params": { "iN": [True] }
         },
 
         { "path": ["volc"],
             "params": volcFileConfig['OM']
+        },
+
+        { "path": ["treePattern"],
+            "params": { "OLDM": "./DepBased/my_pattern_OLDM.json" }
         }
     ]
 }
 
 nameList= {
     "WM": [ "binary", "MaxEnt", "tfidf", "N", "N"], #pre, clf, feature, volc, wg
-    "OLDM":  [ "binary", "MaxEnt", "NTUSD", "N"], #pre, clf, feature, volc
-    "OM": [ "binary", "MaxEnt", "H-T-HT", "negTrue", "N", "N"] # pre, clf, feature, neg, ignoreNeutral, volc
+    "OLDM":  [ "binary", "MaxEnt", "Tag", "N"], #pre, clf, feature, volc
+    "OM": [ "binary", "MaxEnt", "H-T-HT", "N", "N", "v1"] # pre, clf, feature, neg, ignoreNeutral, volc, patternFile
 }
 
 
@@ -272,6 +280,9 @@ def mergeName(prefix, nameList):
 
 if __name__ == '__main__':
     suffix = '_TwoClass'
+    suffix = '_5T_Merged'
+    #suffix = '_4T'
+    #suffix = '_Filtered_5T_Merged'
 
     # for single model
     for model in ["WM", "OLDM", "OM"]:
@@ -284,15 +295,16 @@ if __name__ == '__main__':
             #print(config, '\n')
             pass
     
+    suffix = '_5T_Merged_withWG'
     # for merged model
     # WM+OLDM, WM+OM, WM is fixed
     for model in ["OLDM", "OM"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model + suffix)
         print("WM_"+ model, len(configList))
         for name, config in configList:
-            #with open(configFolder + name + '_config.json', 'w') as f:
-            #    json.dump(config, f, indent=2)
-            #print(name)
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
             #print(config)
             pass
 
@@ -301,9 +313,9 @@ if __name__ == '__main__':
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model + suffix)
         print("WM_OLDM_"+ model, len(configList))
         for name, config in configList:
-            #with open(configFolder + name + '_config.json', 'w') as f:
-            #    json.dump(config, f, indent=2)
-            #print(name)
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
             #print(config)
             pass
 
