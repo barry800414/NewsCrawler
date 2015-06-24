@@ -139,37 +139,37 @@ class OneLayerDepModel():
             corpusEdgeList.append(newsEdgeList)
 
         # build the volcabulary for pair
-        wordIndexSet = set()
+        sWIndexSet = set()
+        fWIndexSet = set()
         pairCntList = list()
         docF = defaultdict(int) # doc frequency for each pair
+        pairSet = set()
         for newsEdgeList in corpusEdgeList:
-            pairCnt = self.extractPairs(newsEdgeList, wordIndexSet)
+            pairCnt = self.extractPairs(newsEdgeList, sWIndexSet, fWIndexSet)
             for key in pairCnt.keys():
                 docF[self.volcDict['main'][key]] += 1
+            pairSet.update(set(pairCnt.key()))
             pairCntList.append(pairCnt)
 
         if wordGraph is not None and wgParams is not None:
             print('Doing word graph propagation ...', file=sys.stderr)
             print('# word index:', len(wordIndexSet), file=sys.stderr)
-            nWords = len(self.volcDict['seed'])
-            (S, mapping) = self.genIndexMatrix(wordIndexSet, nWords)
-            # doing word propagation for each word in pairs
-            # notice that this may be time consuming & need huge memory     
-            nWordsPerDoc = [1 for i in range(0, len(wordIndexSet))]
-            F = WordGraph.runWordGraphProp(S, wordGraph, wgParams['beta'], 
-                    wgParams['step'], wgParams['method'], wgParams['value'], 
-                    nWordsPerDoc)
-            # for each document, update new pair count 
+            # sAdjWordSet[i] is the adjacent word index set of word index i
+            sAdjWIndexSet = getAdjWordIndexSet(wordGraph, sWIndexSet)
+            fAdjWIndexSet = getAdjWordIndexSet(wordGraph, fWIndexSet)
+            (ssSim, sMap) = calcAllPairSim(sAdjWIndexSet)
+            (ffSim, fMap) = calcAllPairSim(fAdjWIndexSet)
+            propPairMap = propPair(pairSet, ssSim, sMap, ffSim, fMap, wgParams['method'], wgParams['value'])
             newPairCntList = list()
-            for i, pairCnt in enumerate(pairCntList):
+            for pairCnt in pairCntList:
                 newPairCnt = defaultdict(float)
-                for (si, fi), cnt in pairCnt.items():
-                    # add new propagated pairs 
-                    self.addNewPropPair(newPairCnt, cnt, F, si, fi, mapping)
+                for pair, cnt in pairCnt.items():
+                    propPairValue = propPairMap[pair]
+                    for newPair, value in propPairValue.items():
+                        newPairCnt[newPair] += cnt * value
                 newPairCntList.append(newPairCnt)
-                print(i+1, file=sys.stderr)
             pairCntList = newPairCntList
-
+                    
         # if the doc frequency of that pair is less than or equal 
         # to minCnt, then discard it
         #print('Pair volc size:', len(volc), end='', file=sys.stderr)
@@ -207,7 +207,7 @@ class OneLayerDepModel():
 
         return (X, y)
 
-    def extractPairs(self, newsEdgeList, wordIndexSet):
+    def extractPairs(self, newsEdgeList, sWIndexSet, fWIndexSet):
         pairCnt = defaultdict(int)
         sVolc = self.volcDict['seed']
         fVolc = self.volcDict['firstLayer']
@@ -219,8 +219,8 @@ class OneLayerDepModel():
                     if sW not in sVolc or eW not in fVolc:
                         continue
                     pair = (sVolc[sW], fVolc[eW])
-                    wordIndexSet.add(sVolc[sW])
-                    wordIndexSet.add(fVolc[eW])
+                    sWIndexSet.add(sVolc[sW])
+                    fWIndexSet.add(fVolc[eW])
                 else:
                     pair = (sW, eW)
                 if pair not in mainVolc:
@@ -257,6 +257,18 @@ class OneLayerDepModel():
                 prob = data[nowPos]
                 newPairCnt[(ri, ci)] += cnt * prob
                 nowPos += 1
+
+# F: sparse matrix (NxN)
+# wordIndexSet: set of word index to retrieve adjacent word indexes
+def getAdjWordIndexSet(F, wordIndexSet)
+    (colIndex, rowPtr) = F.indices, F.indptr
+    adjWordIndexSet = dict()
+    for ri in wordIndexSet:
+        adjWordIndexSet[ri] = set(colIndex[rowPtr[ri]:rowPtr[ri+1]])
+    return adjWordIndexSet
+
+def calcAllPairSim(adjWIndexSet):
+    pass
 
 # add a set of word to volcabulary
 def addWordSetToVolc(wordSet, volc):
