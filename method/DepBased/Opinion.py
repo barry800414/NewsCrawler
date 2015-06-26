@@ -27,6 +27,13 @@ class Opinion():
         opn = d['opinion'] if 'opinion' in d else None
         hd = d['holder'] if 'holder' in d else None
         tg = d['target'] if 'target' in d else None
+        # return None if word not in volcabulary
+        if (opn is not None) and (volcDict['opinion'] is not None) and (opn not in volcDict['opinion']):
+            return None
+        if (hd is not None) and (volcDict['holder'] is not None) and (hd not in volcDict['holder']):
+            return None
+        if (tg is not None) and (volcDict['target'] is not None) and (tg not in volcDict['target']):
+            return None
         negCnt = d['neg']['opinion'] if 'neg' in d and 'opinion' in d['neg'] else 0
         return Opinion(opn, hd, tg, negCnt, volcDict)
 

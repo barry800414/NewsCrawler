@@ -159,10 +159,12 @@ class OpinionModel:
                         del r['mapping']
                 
                 # convert to Opinion objects
+                opnList = list()
                 for i in range(0, len(results)):
-                    results[i] = Opinion.genOpnFromDict(results[i], self.volcDict)
-
-                opnDict[pTree.name].extend(results)
+                    opn = Opinion.genOpnFromDict(results[i], self.volcDict)
+                    if opn is not None:
+                        opnList.append(opn)
+                opnDict[pTree.name].extend(opnList)
         return opnDict
 
     # get key of opinion object

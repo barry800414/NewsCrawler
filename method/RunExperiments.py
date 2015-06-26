@@ -76,9 +76,9 @@ class RunExp:
                 'predict': predict, 'testScore': testScore, 'split':{ 'trainIndex': trainIndex, 
                     'testIndex': testIndex} }
         return log
-
-    def selfTrainTestNFold(X, y, clfList, scorerName, randSeed=1, test_folds=10, 
-            n_folds=3, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
+    
+    def selfTrainTestNFold(X, y, clfName, scorerName, randSeed=1, test_folds=10,
+            n_folds=10, fSelectConfig=None, prefix='',outfile=sys.stdout, modelDir=None):
         # check data
         if not DataTool.XyIsValid(X, y): #do nothing
             return
@@ -86,10 +86,12 @@ class RunExp:
         scorer = Evaluator.makeScorer(scorerName)
         # split data in N-fold
         skf = StratifiedKFold(y, n_folds=test_folds, shuffle=True, random_state=randSeed)
-        resultList = list()
-        for train_index, test_index in skf:
-            XTrain, XTest = X[train_index], X[test_index]
-            yTrain, yTest = y[train_index], y[test_index]
+        logs = list()
+        testScoreList = list()
+        valScoreList = list()
+        for trainIndex, testIndex in skf:
+            XTrain, XTest = X[trainIndex], X[testIndex]
+            yTrain, yTest = y[trainIndex], y[testIndex]
             # do feature selection if config is given
             if fSelectIsBeforeClf(fSelectConfig) == True:
                 #print('before selection:', XTrain.shape, file=sys.stderr)
@@ -102,32 +104,32 @@ class RunExp:
             # training using validation
             (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
                     yTrain, clfName, scorer, randSeed=randSeed, n_folds=n_folds)
-        
-            # FIXME from here
+            valScoreList.append(bestValScore)
             if XTest is None or yTest is None:
-                result.append({ 'valScore': bestValScore, scorerName: 0.0 })
+                predict = { 'yTrainPredict': yTrainPredict }
             else:
                 # testing 
                 yTestPredict = ML.test(XTest, clf)
-
                 # evaluation
-                result = Evaluator.evaluate(yTestPredict, yTest, scorerName)
-                result['valScore'] = bestValScore
-                resultList.append(result)
+                testScore = Evaluator.evaluate(yTestPredict, yTest)
+                testScoreList.append(testScore)
+                predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict } 
             
+            # to save information of training process for further analysis
+            log = { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'valScore': bestValScore,
+                    'predict': predict, 'testScore': testScore, 'split':{ 'trainIndex': trainIndex, 
+                    'testIndex': testIndex} }
+            logs.append(log)
+ 
         # average NFold results
-        result = Evaluator.avgNFoldResult(resultList)
+        avgValScore = np.mean(valScoreList)
+        avgTestScore = Evaluator.avgNFoldResult(testScoreList)
 
         # printing out results
-        ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], 
-            XTrain.shape[1]), clfName, bestParam, scorerName, randSeed, 
-                result, outfile=outfile)
+        ResultPrinter.print(prefix + ', selfTrainTest', "%d %d" % (X.shape[0], XTrain.shape[1]), 
+                clfName, scorerName, bestParam, randSeed, avgValScore, avgTestScore, outfile=outfile)
 
-        returnObj.append( { 'clfName': clfName, 'clf': clf, 'param': bestParam, 
-            'result': result, 'data':{'XTrain': XTrain, 'yTrain': yTrain, 
-                'XTest': XTest, 'yTest': yTest } } )
-        
-        return returnObj
+        return logs
 
 
     def allTrainTest(X, y, topicMap, clfName, scorerName, randSeed=1, testSize=0.2, 
@@ -162,7 +164,7 @@ class RunExp:
             predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict } 
         
         # printing out results
-        ResultPrinter.print(prefix + ", allMixed", "%d %d" % (X.shape[0], XTrain.shape[1]), 
+        ResultPrinter.print(prefix + ", AllTrainTest", "%d %d" % (X.shape[0], XTrain.shape[1]), 
                 clfName, scorerName, bestParam, randSeed, bestValScore, testScore, outfile=outfile)
         
         # to save information of training process for further analysis
@@ -207,7 +209,7 @@ class RunExp:
             predict = { 'yTrainPredict': yTrainPredict, 'yTestPredict': yTestPredict }
 
         # printing out results
-        ResultPrinter.print(prefix + ", Test on %d " % testTopic, "%d %d" % (X.shape[0], XTrain.shape[1]), 
+        ResultPrinter.print(prefix + ", LeaveOneTest" % testTopic, "%d %d" % (X.shape[0], XTrain.shape[1]), 
                 clfName, scorerName, bestParam, randSeed, bestValScore, testScore, outfile=outfile)
         log = { 'clfName': clfName, 'clf': clf, 'param': bestParam, 'valScore': bestValScore, 
                 'predict': predict, 'testScore': testScore, 'split':{ 'trainIndex': trainIndex, 
@@ -236,12 +238,14 @@ class RunExp:
                 prefix = "%s, %s, %s" % ('all', toStr(params), toStr(["content"]))
                 log = RunExp.allTrainTest(X, y, topicMap, clfName, targetScore, randSeed, testSize, 
                         n_folds, fSelectConfig, prefix=prefix)
+                logList.append(log)
                 
             elif taskType == 'LeaveOneTest':
                 prefix = "%s, %s, %s" % (topicId, toStr(params), toStr(["content"]))
                 log = RunExp.leaveOneTest(X, y, topicMap, clfName, targetScore, 
                         topicId, randSeed, n_folds, fSelectConfig, prefix=prefix)
             logList.append(log)
+
         expLog['logList'] = logList
         return expLog
 
@@ -615,7 +619,13 @@ class ML:
         # make cross validation iterator 
         #print(' n_folds:', n_folds, end='', file=sys.stderr) 
         kfold = cross_validation.StratifiedKFold(yTrain, n_folds=n_folds, 
-                shuffle=True, random_state=randSeed)
+                    shuffle=True, random_state=randSeed)
+
+        #if XTrain.shape[0] > 150:
+        #    kfold = cross_validation.StratifiedKFold(yTrain, n_folds=n_folds, 
+        #            shuffle=True, random_state=randSeed)
+        #else:
+        #    kfold = cross_validation.LeaveOneOut(XTrain.shape[0])
 
         # get classifier and parameters to try
         (clf, parameters) = ML.__genClfAndParams(clfName)
@@ -697,14 +707,16 @@ class ML:
             }
             clf = MultinomialNB()
         elif clfName == 'MaxEnt' or clfName == 'LogReg':
+            C = [math.pow(2, i) for i in range(-15,5,1)]
             parameters = {
-                'penalty': ('l1', 'l2'),
-                'C': [0.5, 1, 2],
-                'class_weight': ['auto']
+                'penalty': ['l2',],
+                'C': C,
+                'class_weight': ['auto'],
+                'dual': [True, False],
             }
             clf = LogisticRegression()
         elif clfName == 'SVM':
-            C = [math.pow(2, i) for i in range(-1,11,2)]
+            C = [math.pow(2, i) for i in range(-15,5,2)]
             gamma = [math.pow(2, i) for i in range(-11,-1,2)]
             parameters = {
                     'kernel': ('rbf', ), 
@@ -713,10 +725,12 @@ class ML:
                 }
             clf = svm.SVC()
         elif clfName == 'LinearSVM' or clfName == 'LinearSVC':
-            C = [math.pow(2, i) for i in range(-3,13,2)]
+            C = [math.pow(2, i) for i in range(-19,5,2)]
             parameters = {
                     'C': C,
-                    'class_weight': ['auto']
+                    'class_weight': ['auto'],
+                    'loss': ['squared_hinge'],
+                    'dual': [True, False]
                 }
             clf = svm.LinearSVC()
         elif clfName == 'RandomForest' or clfName == 'RF': #depricated: RF does not support sparse matrix
@@ -734,9 +748,39 @@ class ML:
 
         return (clf, parameters) 
 
+    def genClf(config):
+        clfName = config['clfName']
+        params = config['params']
+        if clfName == 'NaiveBayes':
+            clf = MultinomialNB(**params)
+        elif clfName == 'MaxEnt' or clfName == 'LogReg':
+            clf = LogisticRegression(**params)
+        elif clfName == 'SVM':
+            clf = svm.SVC(**params)
+        elif clfName == 'LinearSVM' or clfName == 'LinearSVC':
+            clf = svm.LinearSVC(**params)
+        elif clfName == 'RandomForest' or clfName == 'RF': #depricated: RF does not support sparse matrix
+            clf = RandomForestClassifier(**params)
+        else:
+            print('Classifier name cannot be identitified', file=sys.stderr)
+            return None
+        return clf
+
+    # only applicable for SelfTrainTest ?
+    def genCV(config, y):
+        cvType = config['cvType']
+        params = config['params']
+        if cvType in ['kFold', 'KFold']:
+            cv = cross_validation.StratifiedKFold(y, **params)
+        elif cvType in ['LOO', 'LeaveOneTest']:
+            cv = cross_validation.LeaveOneTest(len(y), **params) 
+        else:
+            print('CV Type cannot be found', file=sys.stderr)
+        return cv
+
     # feature selection 
     # FIXME: for the method using classifier, the target score is Accuracy (rather than MacroF1)
-    def fSelect(XTrain, yTrain, method, params, clf=None, scorer=None):
+    def fSelect(XTrain, yTrain, method, params):
         if method in ["chi", "chi-square"]:
             if 'top_k' in params:
                 print('Selecting features with top %d chi-square value ...' % params['top_k'], file=sys.stderr) 
@@ -747,9 +791,17 @@ class ML:
                 selector = SelectPercentile(chi2, percentile=params['percentage']).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ["rfe", "RFE", 'RecursiveFeatureElimination']:
-            if 'n_features_to_select' in params and 'step' in params:
-                print('Selecting features using RecursiveFeatureElimination (with original classifier) ...', file=sys.stderr)
+            if 'clfConfig' in params and 'n_features_to_select' in params and 'step' in params:
+                print('Selecting features using RecursiveFeatureElimination ...', file=sys.stderr)
                 selector = RFE(clf, params['n_features_to_select'], step=params['step']).fit(XTrain, yTrain)
+                newX = selector.transform(XTrain)
+        elif method in ["rfecv", "RFECV"]:  # only applicable to SelfTrainTest
+            if 'clfConfig' in params and 'cvConfig' in params and 'step' in params:
+                print('Selecting features using RecursiveFeatureElimination and CrossValidation ...', file=sys.stderr)
+                clf = ML.genClf(params['clfConfig'])
+                cv = ML.genCV(params['cvConfig']) 
+                scorer = Evaluator.makeScorer(params['scorerName'])
+                selector = RFECV(clf, step=params['step'], cv=cv, scoring=scorer).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ['LinearSVM', 'LinearSVC']:
             if 'C' in params:
@@ -762,19 +814,13 @@ class ML:
             newX = selector.transform(XTrain)
         return (newX, selector)
 
-    # using cross-validation to do feature selection
-    def fSelectCV(XTrain, yTrain, clfName, params):
-        pass
-        #return (clfGS.best_estimator_, clfGS.best_params_, )
-
 def fSelectIsBeforeClf(fSelectConfig):
     if fSelectConfig == None or 'method' not in fSelectConfig:
         return None
     method = fSelectConfig['method']
-    if method in ["chi", "chi-square", 'LinearSVM', 'LinearSVC', 'rf', 'RF', 'RandomForest']:
+    if method in ["chi", "chi-square", 'LinearSVM', 'LinearSVC', 'rf', 'RF', 'RandomForest', 
+            "rfe", "RFE", 'RecursiveFeatureElimination', 'rfecv', 'RFECV']:
         return True
-    elif method in ["rfe", "RFE", 'RecursiveFeatureElimination']:
-        return False
     else:
         return None
 

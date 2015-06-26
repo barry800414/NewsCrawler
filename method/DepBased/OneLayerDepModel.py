@@ -147,10 +147,10 @@ class OneLayerDepModel():
 
         # if the doc frequency of that pair is less than or equal 
         # to minCnt, then discard it
-        #print('Pair volc size:', len(volc), end='', file=sys.stderr)
+        print('Pair volc size:', len(self.volcDict['main']), end='', file=sys.stderr)
         if self.minCnt != None:
             docF = self.volcDict['main'].shrinkVolcByDocF(docF, self.minCnt)
-        #print('-> ', len(volc), file=sys.stderr)
+        print('-> ', len(self.volcDict['main']), file=sys.stderr)
 
         # converting all extraced dependencies to features X
         # Here the features are the word counts from each seed word, 

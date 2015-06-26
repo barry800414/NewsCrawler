@@ -13,7 +13,7 @@ from PhraseDepTree import *
 from RunExperiments import *
 from Volc import *
 from misc import *
-import WordGraph
+import WordProp
 
 '''
 This codes implements the OneLayerDepModel for stance classification.
@@ -139,37 +139,33 @@ class OneLayerDepModel():
             corpusEdgeList.append(newsEdgeList)
 
         # build the volcabulary for pair
-        sWIndexSet = set()
-        fWIndexSet = set()
+        wordIndexSet = set()
         pairCntList = list()
         docF = defaultdict(int) # doc frequency for each pair
         pairSet = set()
         for newsEdgeList in corpusEdgeList:
-            pairCnt = self.extractPairs(newsEdgeList, sWIndexSet, fWIndexSet)
+            pairCnt = self.extractPairs(newsEdgeList, wordIndexSet)
             for key in pairCnt.keys():
                 docF[self.volcDict['main'][key]] += 1
-            pairSet.update(set(pairCnt.key()))
+            pairSet.update(set(pairCnt.keys()))
             pairCntList.append(pairCnt)
 
         if wordGraph is not None and wgParams is not None:
             print('Doing word graph propagation ...', file=sys.stderr)
-            print('# word index:', len(wordIndexSet), file=sys.stderr)
-            # sAdjWordSet[i] is the adjacent word index set of word index i
-            sAdjWIndexSet = getAdjWordIndexSet(wordGraph, sWIndexSet)
-            fAdjWIndexSet = getAdjWordIndexSet(wordGraph, fWIndexSet)
-            (ssSim, sMap) = calcAllPairSim(sAdjWIndexSet)
-            (ffSim, fMap) = calcAllPairSim(fAdjWIndexSet)
-            propPairMap = propPair(pairSet, ssSim, sMap, ffSim, fMap, wgParams['method'], wgParams['value'])
+            print('# word index:', len(wordIndexSet), '#pairs:', len(pairSet), file=sys.stderr)
+            adjList = WordProp.getAdjList(wordGraph, allowedSet=wordIndexSet)
             newPairCntList = list()
-            for pairCnt in pairCntList:
+            for i, pairCnt in enumerate(pairCntList):
                 newPairCnt = defaultdict(float)
-                for pair, cnt in pairCnt.items():
-                    propPairValue = propPairMap[pair]
-                    for newPair, value in propPairValue.items():
-                        newPairCnt[newPair] += cnt * value
+                for (si, fi), cnt in pairCnt.items():
+                    self.addNewPropPair(newPairCnt, cnt, adjList, si, fi, pairSet)
                 newPairCntList.append(newPairCnt)
+                if (i+1) % 50 == 0:
+                    print('%cPair propagation (%d/%d) ' % (13, i+1, len(pairCntList)), end='', file=sys.stderr)
+            print('', file=sys.stderr)
             pairCntList = newPairCntList
-                    
+            
+            
         # if the doc frequency of that pair is less than or equal 
         # to minCnt, then discard it
         #print('Pair volc size:', len(volc), end='', file=sys.stderr)
@@ -207,7 +203,7 @@ class OneLayerDepModel():
 
         return (X, y)
 
-    def extractPairs(self, newsEdgeList, sWIndexSet, fWIndexSet):
+    def extractPairs(self, newsEdgeList, wordIndexSet):
         pairCnt = defaultdict(int)
         sVolc = self.volcDict['seed']
         fVolc = self.volcDict['firstLayer']
@@ -219,8 +215,8 @@ class OneLayerDepModel():
                     if sW not in sVolc or eW not in fVolc:
                         continue
                     pair = (sVolc[sW], fVolc[eW])
-                    sWIndexSet.add(sVolc[sW])
-                    fWIndexSet.add(fVolc[eW])
+                    wordIndexSet.add(sVolc[sW])
+                    wordIndexSet.add(fVolc[eW])
                 else:
                     pair = (sW, eW)
                 if pair not in mainVolc:
@@ -241,14 +237,19 @@ class OneLayerDepModel():
     # cnt: the original count
     # F is a csr_matrix, each row represents the propogated result(words) of each word
     # si, fi are two original word index 
-    # mapping is the mapping map original index to F's index
-    # invMapping is the mapping map F's index to original index
-    def addNewPropPair(self, newPairCnt, cnt, F, si, fi, mapping):
-        si = mapping[si]
-        fi = mapping[fi]
+    def addNewPropPair(self, newPairCnt, cnt, adjList, si, fi, pairSet):
+        sAdjList = adjList[si]
+        fAdjList = adjList[fi]
+        for newSi, p1 in sAdjList:
+            for newFi, p2 in fAdjList:
+                if (newSi, newFi) in pairSet:
+                    newPairCnt[(newSi, newFi)] += cnt * p1 * p2
+
+        '''
         m = F.getrow(si).transpose() * F.getrow(fi)
         (rowNum, colNum) = m.shape
         (colIndex, rowPtr, data) = m.indices, m.indptr, m.data
+        print(len(data))
         nowPos = 0
         propPair = list()
         # traverse whole matrix 
@@ -257,18 +258,7 @@ class OneLayerDepModel():
                 prob = data[nowPos]
                 newPairCnt[(ri, ci)] += cnt * prob
                 nowPos += 1
-
-# F: sparse matrix (NxN)
-# wordIndexSet: set of word index to retrieve adjacent word indexes
-def getAdjWordIndexSet(F, wordIndexSet)
-    (colIndex, rowPtr) = F.indices, F.indptr
-    adjWordIndexSet = dict()
-    for ri in wordIndexSet:
-        adjWordIndexSet[ri] = set(colIndex[rowPtr[ri]:rowPtr[ri+1]])
-    return adjWordIndexSet
-
-def calcAllPairSim(adjWIndexSet):
-    pass
+        '''
 
 # add a set of word to volcabulary
 def addWordSetToVolc(wordSet, volc):
@@ -334,7 +324,7 @@ if __name__ == '__main__':
     # load volcabulary file
     topicVolcDict = loadVolcFileFromConfig(config['volc'], topicSet)
     # load word graph
-    (topicWordGraph, wgVolcDict, topicWGParams) = WordGraph.loadWordGraphFromConfig(config['wordGraph'], topicSet)
+    (topicWordGraph, wgVolcDict, topicWGParams) = WordProp.loadWordGraphFromConfig(config['wordGraph'], topicSet)
     if config['wordGraph'] is not None:
         topicVolcDict = wgVolcDict
     # load phrase file
@@ -353,17 +343,16 @@ if __name__ == '__main__':
 
     # intialize the model
     if 'AllTrainTest' in toRun or 'LeaveOneTest' in toRun:
-        #oldm = initOLDM(labelNewsList, topicPhraseList)
-        pass
+        oldm = initOLDM(labelNewsList, topicPhraseList)
     if 'SelfTrainTest' in toRun:
-        toldm = { t: initOLDM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items() if t==3}
+        toldm = { t: initOLDM(ln, topicPhraseList) for t, ln in labelNewsInTopic.items()}
  
     # ============= Run for self-train-test ===============
     if 'SelfTrainTest' in toRun:
         print('Self-Train-Test...', file=sys.stderr)
         for t in topicSet:
-            if t != 3:
-                continue
+            #if t != 4:
+            #    continue
             for p in paramsIter:
                 (X, y, newVolcDict) = genXY(toldm[t], p, preprocess, minCnt, topicSet, sentiDict, topicVolcDict[t], 
                         topicWordGraph[t], topicWGParams[t])

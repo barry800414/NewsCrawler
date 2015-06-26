@@ -105,11 +105,14 @@ class Volc:
                     wStr += ' ...'
                     break
         else:
+            # if there is only one word in that index, return original type
+            if len(self.rVolc[index]) == 1:
+                return self.rVolc[index][0]
             for i, w in enumerate(self.rVolc[index]):
                 if i != len(self.rVolc[index]) - 1:
-                    wStr = wStr + w + ' '
+                    wStr = wStr + str(w) + ' '
                 else:
-                    wStr = wStr + w 
+                    wStr = wStr + str(w) 
                 if maxLength > 0 and len(wStr) >= maxLength:
                     wStr += ' ...'
                     break

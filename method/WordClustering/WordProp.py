@@ -97,6 +97,7 @@ def selectTopK(V, edgeNum, largerIsBetter=True):
     newData = list()
     nowPos = 0
     heap = list()
+    print('#EdgeNum:', edgeNum, file=sys.stderr)
     # for each row, select k best values
     for ri in range(0, rowNum):
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
@@ -109,10 +110,10 @@ def selectTopK(V, edgeNum, largerIsBetter=True):
                 heapq.heappush(heap, (value, (ri, ci)))
             nowPos += 1
         
-        for v, (i, j) in heap:
-            rows.append(i)
-            cols.append(j)
-            newData.append(v)
+    for v, (i, j) in heap:
+        rows.append(i)
+        cols.append(j)
+        newData.append(v)
 
     newV = csr_matrix((newData, (rows, cols)), shape=V.shape)
     return newV
@@ -185,17 +186,20 @@ def loadWordGraphFromConfig(config, topicSet):
 
     return (topicWordGraph, topicVolcDict, wgParams)
 
-def getAdjList(F, volc):
+def getAdjList(F, allowedSet=None, volc=None):
     adjList = dict()
-    assert F.shape[0] == len(volc)
+    if volc is not None:
+        assert F.shape[0] == len(volc)
     (rowNum, colNum) = F.shape
     (colIndex, rowPtr, data) = F.indices, F.indptr, F.data
     nowPos = 0
     for ri in range(0, rowNum):
-        fromW = volc.getWord(ri, usingJson=False)
+        fromW = volc.getWord(ri, usingJson=False) if volc is not None else ri
+        if allowedSet is not None and ri not in allowedSet:
+            continue
         adjList[fromW] = list()
         for ci in colIndex[rowPtr[ri]:rowPtr[ri+1]]:
-            toW = volc.getWord(ci, usingJson=False)
+            toW = volc.getWord(ci, usingJson=False) if volc is not None else ci
             value = data[nowPos]
             adjList[fromW].append((toW, value))
             nowPos += 1
@@ -222,8 +226,8 @@ def loadAdjList(infile):
     return adjList
 
 if __name__ == '__main__':
-    if len(sys.argv) < 8:
-        print('Usage:', sys.argv[0], 'InWordMatrix InVolcFile beta step method value OutAdjList', file=sys.stderr)
+    if len(sys.argv) < 9:
+        print('Usage:', sys.argv[0], 'InWordMatrix InVolcFile beta step method value OutAdjFile OutMtxFile', file=sys.stderr)
         print('\t- InWordMatrix: sparse word-word transition matrix (.mtx)', file=sys.stderr)
         print('\t- method: to select edges when generating adj list (TopKEachRow: up to N words each row, TopK: top N*#words, Threshold: threshold of cosine similarity, None: do not propagate)', file=sys.stderr)
         exit(-1)
@@ -235,6 +239,7 @@ if __name__ == '__main__':
     method = sys.argv[5]
     value = int(sys.argv[6]) # (topK * #nodes) will be selected
     outAdjFile = sys.argv[7]
+    outMtxFile = sys.argv[8]
 
     # load sparse word-word transition matrix & volcabulary file
     W = mmread(WFile).tocsr() 
@@ -249,7 +254,8 @@ if __name__ == '__main__':
     else:
         F = runWordGraphProp(S, W, 1.0, 1, None, None)
     
-    adjList = getAdjList(F, volc)
+    mmwrite(outMtxFile, F)
+    adjList = getAdjList(F, volc=volc)
     with open(outAdjFile, 'w') as f:
         saveAdjList(adjList, f)
 

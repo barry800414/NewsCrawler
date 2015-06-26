@@ -63,9 +63,11 @@ class WordModel:
 
         # remove the words whose document frequency <= threshold
         if minCnt != None:
+            print('Before:', len(volc), file=sys.stderr)
             DF = countDFByCSRMatrix(X)
             X = shrinkCSRMatrixByDF(X, DF, minCnt)
             DF = volc.shrinkVolcByDocF(DF, minCnt)
+            print('After:', len(volc), file=sys.stderr)
 
         # get y
         y = np.array(getLabels(labelNewsList))
