@@ -234,7 +234,6 @@ if __name__ == '__main__':
     preprocess = config['preprocess']
     minCnt = config['minCnt']
     setting = config['setting']
-    targetScore = config['setting']['targetScore'] 
     paramsIter = ParameterGrid(config['params'])
 
     # print first line of results

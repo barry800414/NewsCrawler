@@ -318,6 +318,17 @@ def loadWordGraphFromConfig(config, topicSet):
 
     return (topicWordGraph, topicVolcDict, wgParams)
 
+def filterByVolc(X, XVolc, inVolc):
+    indexList = list()
+    newVolc = Volc()
+    for i in range(0, len(inVolc)):
+        w = inVolc.getWord(i)
+        if w in XVolc:
+            indexList.append(XVolc[w])
+            newVolc.addWord(w)
+    newX = X[indexList]
+    return (newX, newVolc)
+
 def test(W, volc):
 
     import time
@@ -355,8 +366,8 @@ def test(W, volc):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4:
-        print('Usage:', sys.argv[0], 'WordVectorFile SelectMethod value [OutWordMatrix [OutVolcFile]]', file=sys.stderr)
+    if len(sys.argv) < 6:
+        print('Usage:', sys.argv[0], 'WordVectorFile SelectMethod value OutWordMatrix OutVolcFile [inVolcFile]', file=sys.stderr)
         print('\t- WordVectorFile: word vector file from word2vec tool', file=sys.stderr)
         print('\t- SelectMethod: method of selecting edges (TopK: N*#word, Percent: p*#word^2, Threshold: threshold of cosine similarity)', file=sys.stderr)
         exit(-1)
@@ -364,19 +375,27 @@ if __name__ == '__main__':
     WVFile = sys.argv[1]
     method = sys.argv[2]
     methodValue = float(sys.argv[3])
-   
-    (volc, vectorList) = readWordVector(WVFile)
-    W = buildWordMatrix(vectorList, method, methodValue)
+    wordGraphFile = sys.argv[4]
+    volcFile = sys.argv[5]
+    
+    (volc, X) = readWordVector(WVFile)
+    if len(sys.argv) == 7:
+        print('filter by volc ...', file=sys.stderr)
+        inVolcFile = sys.argv[6]
+        inVolc = Volc()
+        inVolc.load(inVolcFile)
+        (newX, newVolc) = filterByVolc(X, volc, inVolc)
+    else:
+        newX = X
+        newVolc = volc
+
+    print('volc size:', len(newVolc), file=sys.stderr)
+    W = buildWordMatrix(newX, method, methodValue)
     #print(W)
     #printWordGraph(W, volc)
     
     # volc & W is the word graph
-    if len(sys.argv) == 5:
-        wordGraphFile = sys.argv[4]
-        mmwrite(wordGraphFile, W)
-
-    if len(sys.argv) == 6:
-        volcFile = sys.argv[5]
-        volc.save(volcFile)
+    mmwrite(wordGraphFile, W)
+    newVolc.save(volcFile)
 
 

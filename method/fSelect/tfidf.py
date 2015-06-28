@@ -61,14 +61,19 @@ if __name__ == '__main__':
     with open(inJsonFile, 'r') as f:
         taggedLN = json.load(f)
     taggedLNInTopic = divideLabelNewsByTopic(taggedLN)
-
+    
     allowedPOS = set(["VA", "VV", "NN", "NR", "AD", "JJ"])
+    allowedPOS = set(["NN", "NR"])
+    tfidfDict = calcTFIDF(taggedLN, tfType, allowedPOS)
+    with open(outFilePrefix + '_TAll.txt', 'w') as f:
+        printWordValue(tfidfDict, outfile=f)
+
     for topicId, lnList in sorted(taggedLNInTopic.items(), key=lambda x:x[0]):
         tfidfDict = calcTFIDF(lnList, tfType, allowedPOS)
         wvList = sorted(tfidfDict.items(), key=lambda x:x[1], reverse=True)
-        for i in range(1, 11):
-            p = i * 0.1
-            saveAsVolc(wvList, p, outFilePrefix + '_T%d_P%d.volc' % (topicId, int(p*100)))
+        #for i in range(1, 11):
+        #    p = i * 0.1
+        #    saveAsVolc(wvList, p, outFilePrefix + '_T%d_P%d.volc' % (topicId, int(p*100)))
         with open(outFilePrefix + '_T%d.txt' % (topicId), 'w') as f:
             printWordValue(tfidfDict, outfile=f)
 

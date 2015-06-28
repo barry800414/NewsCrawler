@@ -12,10 +12,22 @@ class TreePattern():
         self.rootId = rootId
         self.name = name
         for i, n in enumerate(nodeList):
+            if 'output_type' not in n:
+                n['output_type'] = 'word'
+            
             self.p.add_node(i, 
-                    tag=TreePattern.initAllowedSet(n['tag']), 
-                    word=TreePattern.initAllowedSet(n['word']),
-                    output_as=n['output_as'])
+                    output_as=n['output_as'],
+                    output_type=n['output_type'])
+            assert 'tag' in n or 'deniedTag' in n
+            assert 'word' in n or 'deniedWord' in n
+            if 'tag' in n:
+                self.p.node[i]['tag'] = TreePattern.initAllowedSet(n['tag'])
+            if 'word' in n:
+                self.p.node[i]['word'] = TreePattern.initAllowedSet(n['word'])
+            if 'denialTag' in n:
+                self.p.node[i]['deniedTag'] = TreePattern.initAllowedSet(n['deniedTag'])
+            if 'denialWord' in n:
+                self.p.node[i]['deniedWord'] = TreePattern.initAllowedSet(n['deniedWord'])
         
         for e in edgeList:
             self.p.add_edge(e['from'], e['to'], 
@@ -108,12 +120,20 @@ class TreePattern():
     # to check whether the node (in dependency tree) match the 
     # rules of the node (in pattern tree)
     def matchNode(tNode, pNode):
-        if pNode['word'] != None:
+        if 'word' in pNode and pNode['word'] is not None:
             if tNode['word'] not in pNode['word']:
                 return False
-        if pNode['tag'] != None:
+        elif 'denialWord' in pNode and pNode['denialWord'] is not None:
+            if tNode['word'] in pNode['denialWord']:
+                return False
+            
+        if 'tag' in pNode and pNode['tag'] is not None:
             if tNode['tag'] not in pNode['tag']:
                 return False
+        elif 'denialTag' in pNode and pNode['denialTag'] is not None:
+            if tNode['tag'] in pNode['denialTag']:
+                return False
+
         return True
 
     # to check whether the edge (in dependency tree) match the 
@@ -129,6 +149,9 @@ class TreePattern():
         r = dict()
         for pId, tId in mapping.items():
             r[pTree.p.node[pId]['output_as']] = tTree.t.node[tId]['word']
+            # only when output type is pos tagger, the tagger information will be captured
+            if pTree.p.node[pId]['output_type'] in ['tag', 'Tag', 'pos','POS']:
+                r[pTree.p.node[pId]['output_as'] + '_tag'] = tTree.t.node[tId]['tag']
         if returnMapping:
             r['mapping'] = dict(mapping)
         return r

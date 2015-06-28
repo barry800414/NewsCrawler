@@ -19,6 +19,7 @@ from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, f1_score, recall_score, accuracy_score, make_scorer
 from sklearn.feature_selection import SelectKBest, SelectPercentile, RFE, RFECV, chi2
+from sklearn.lda import LDA
 
 from sklearn.externals.joblib import Parallel, delayed
 from sklearn.base import clone
@@ -53,7 +54,7 @@ class RunExp:
             (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                     fSelectConfig['params'])
             if XTest is not None:
-                XTest = selector.transform(XTest)
+                XTest = selector.transform(XTest.toarray())
             print('after selection:', XTrain.shape, file=sys.stderr)
 
         # training using validation
@@ -497,7 +498,9 @@ class DataTool:
             return None
         if type(X1) != type(X2):
             print('X1(%s) and X2(%s) are different type of matrix' % (type(X1), type(X2)), file=sys.stderr)
-            return None
+            newX1 = X1.toarray() if type(X1) == csr_matrix else X1
+            newX2 = X2.toarray() if type(X2) == csr_matrix else X2
+            return np.concatenate((newX1, newX2), axis=1) 
 
         # concatenate XTrain Matrix
         xType = type(X1)
@@ -822,6 +825,12 @@ class ML:
             print('Selecting features using RandomForest ...', file=sys.stderr)
             selector = RandomForestClassifier().fit(XTrain, yTrain)
             newX = selector.transform(XTrain)
+        # the meaning of volcabulary will be missing
+        elif method in ['LDA', 'LinearDiscriminantAnalysis']:
+            print('dimension reduction using LinearDiscriminantAnalysis', file=sys.stderr)
+            if 'n_components' in params and 'solver' in params and 'shrinkage' in params:
+                selector = LDA(**params).fit(XTrain.toarray(), yTrain)
+                newX = selector.transform(XTrain.toarray())
         return (newX, selector)
 
 def fSelectIsBeforeClf(fSelectConfig):
@@ -829,7 +838,7 @@ def fSelectIsBeforeClf(fSelectConfig):
         return None
     method = fSelectConfig['method']
     if method in ["chi", "chi-square", 'LinearSVM', 'LinearSVC', 'rf', 'RF', 'RandomForest', 
-            "rfe", "RFE", 'RecursiveFeatureElimination', 'rfecv', 'RFECV']:
+            "rfe", "RFE", 'RecursiveFeatureElimination', 'rfecv', 'RFECV', 'LDA']:
         return True
     else:
         return None

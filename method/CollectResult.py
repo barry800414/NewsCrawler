@@ -228,7 +228,7 @@ def getParamFromRow(row, colNameMap, extractColType):
     return params
 
 if __name__ == '__main__':
-    if len(sys.argv) < 5:
+    if len(sys.argv) < 6:
         print('Usage:', sys.argv[0], 'targetScore framework methodName ResultCSV printBestRow(0/1) [mergeRowKeyPrefixNum]', file=sys.stderr)
         exit(-1)
     targetScore = sys.argv[1]

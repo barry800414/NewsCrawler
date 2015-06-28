@@ -93,7 +93,7 @@ class Volc:
     def __len__(self):
         return len(self.rVolc)
 
-    def getWord(self, index, usingJson=True, maxLength=-1):
+    def getWord(self, index, usingJson=False, maxLength=-1):
         wStr = ''
         if usingJson:
             for i, w in enumerate(self.rVolc[index]):

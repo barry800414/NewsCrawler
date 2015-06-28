@@ -124,7 +124,7 @@ def __printBinaryCoeff(clf, volcDict, classMap, sort=False, reverse=True, wordRa
             for ci in [0, 1]:
                 if ri < len(cValues[ci]):
                     (wIndex, value) = cValues[ci][ri]
-                    print(genOutStr(wIndex, volcDict, wordRank, value), end=',', file=outfile)
+                    print(genOutStr(wIndex, volcDict, wordRank, value), end='', file=outfile)
             print('', file=outfile)
 
     else:
@@ -133,7 +133,7 @@ def __printBinaryCoeff(clf, volcDict, classMap, sort=False, reverse=True, wordRa
         print('Class %s' % (classMap[1]), file=outfile)
         for ri in range(0, fNum):
             (wIndex, value) = cValues[0][ri]
-            print(genOutStr(wIndex, volcDict, wordRank, value), end=',', file=outfile)
+            print(genOutStr(wIndex, volcDict, wordRank, value), end='', file=outfile)
             print('', file=outfile)
 
 def genOutStr(wIndex, volcDict, wordRank, value):
@@ -142,10 +142,13 @@ def genOutStr(wIndex, volcDict, wordRank, value):
         rank = wordRank[word] if word in wordRank else None
         #if rank >= 3483 and rank <= 6986:
         #    return '\033[1;33m(%d / %s / %s)\033[0m, %f' % (wIndex, word, str(rank), value)
-        return '(%d / %s / %s), %f' % (wIndex, word, str(rank), value)
+        outStr = '%s / %s, %f' % (word, str(rank), value)
     else:
-        return '(%d / %s), %f' % (wIndex, word, value)
+        outStr = '%s, %f' % (word, value)
 
+    if len(outStr) < 60:
+        outStr += ' ' * (60 - len(outStr))
+    return outStr
 
 # X is CSR-Matrix
 def printXY(X, y, yPredict, volcDict, classMap, newsIdList=None, outfile=sys.stdout, showWordIndex=False):
@@ -260,7 +263,7 @@ def __recursiveGetWord(volcDict, word, usingJson=False):
     
     # OM
     if 'opinion' in volcDict:
-        t = word[0]
+        t = word[0][0] if type(word[0]) == tuple else word[0]
         p = None
         if t == 'HOT': p = 2
         elif t == 'HO': p = -1
@@ -269,7 +272,7 @@ def __recursiveGetWord(volcDict, word, usingJson=False):
             newW[p] = volcDict['opinion'].getWord(word[p], maxLength=15, usingJson=usingJson)
     
     if 'target' in volcDict:
-        t = word[0]
+        t = word[0][0] if type(word[0]) == tuple else word[0]
         p = None
         if t == 'HOT': p = -1
         elif t == 'HT': p = -1
@@ -279,7 +282,7 @@ def __recursiveGetWord(volcDict, word, usingJson=False):
             newW[p] = volcDict['target'].getWord(word[p], maxLength=15, usingJson=usingJson)
 
     if 'holder' in volcDict:
-        t = word[0]
+        t = word[0][0] if type(word[0]) == tuple else word[0]
         p = None
         if t == 'HOT': p = 1
         elif t == 'HT': p = 1
