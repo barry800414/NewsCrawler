@@ -18,7 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import MultinomialNB, GaussianNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix, f1_score, recall_score, accuracy_score, make_scorer
-from sklearn.feature_selection import SelectKBest, SelectPercentile, RFE, chi2
+from sklearn.feature_selection import SelectKBest, SelectPercentile, RFE, RFECV, chi2
 
 from sklearn.externals.joblib import Parallel, delayed
 from sklearn.base import clone
@@ -49,11 +49,12 @@ class RunExp:
         
         # do feature selection if config is given
         if fSelectIsBeforeClf(fSelectConfig) == True:
+            print('before selection:', XTrain.shape, file=sys.stderr)
             (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                     fSelectConfig['params'])
             if XTest is not None:
                 XTest = selector.transform(XTest)
-            #print('Dimension:', XTest.shape, file=sys.stderr)
+            print('after selection:', XTrain.shape, file=sys.stderr)
 
         # training using validation
         (clf, bestParam, bestValScore, yTrainPredict) = ML.train(XTrain, 
@@ -94,10 +95,10 @@ class RunExp:
             yTrain, yTest = y[trainIndex], y[testIndex]
             # do feature selection if config is given
             if fSelectIsBeforeClf(fSelectConfig) == True:
-                #print('before selection:', XTrain.shape, file=sys.stderr)
+                print('before selection:', XTrain.shape, file=sys.stderr)
                 (XTrain, selector) = ML.fSelect(XTrain, yTrain, fSelectConfig['method'], 
                         fSelectConfig['params'])
-                #print('after selection:', XTrain.shape, file=sys.stderr)
+                print('after selection:', XTrain.shape, file=sys.stderr)
                 if XTest is not None:
                     XTest = selector.transform(XTest)
 
@@ -223,6 +224,7 @@ class RunExp:
         targetScore, fSelectConfig, topicMap=None, topicId=None):
         print('X: (%d, %d)' % (X.shape[0], X.shape[1]), file=sys.stderr)
         expLog = { 'data': { 'X': X, 'y': y } , 'volcDict': volcDict, 'params': params, 'newsIdList': newsIdList }
+        #print(volcDict['main'].volc.keys(), file=sys.stderr)
         logList = list()
         for randSeed in randSeedList:
             if taskType == 'SelfTrainTest':
@@ -713,7 +715,14 @@ class ML:
                 'C': C,
                 'class_weight': ['auto'],
                 'dual': [True, False],
-            }
+                }
+            #parameters = {
+            #    'penalty': ['l1',],
+            #    'C': C,
+            #    'class_weight': ['auto'],
+            #    'dual': [False],
+            #    }
+
             clf = LogisticRegression()
         elif clfName == 'SVM':
             C = [math.pow(2, i) for i in range(-15,5,2)]
@@ -730,7 +739,8 @@ class ML:
                     'C': C,
                     'class_weight': ['auto'],
                     'loss': ['squared_hinge'],
-                    'dual': [True, False]
+                    'dual': [True, False],
+                    #'penalty': ['l1', 'l2']
                 }
             clf = svm.LinearSVC()
         elif clfName == 'RandomForest' or clfName == 'RF': #depricated: RF does not support sparse matrix
@@ -799,9 +809,9 @@ class ML:
             if 'clfConfig' in params and 'cvConfig' in params and 'step' in params:
                 print('Selecting features using RecursiveFeatureElimination and CrossValidation ...', file=sys.stderr)
                 clf = ML.genClf(params['clfConfig'])
-                cv = ML.genCV(params['cvConfig']) 
+                cv = ML.genCV(params['cvConfig'], yTrain) 
                 scorer = Evaluator.makeScorer(params['scorerName'])
-                selector = RFECV(clf, step=params['step'], cv=cv, scoring=scorer).fit(XTrain, yTrain)
+                selector = RFECV(clf, step=params['step'], cv=cv, scoring=scorer, verbose=1).fit(XTrain, yTrain)
                 newX = selector.transform(XTrain)
         elif method in ['LinearSVM', 'LinearSVC']:
             if 'C' in params:

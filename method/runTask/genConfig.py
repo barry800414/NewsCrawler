@@ -4,223 +4,523 @@ import copy
 import json
 
 configFolder = './config/'
+topicList = [2, 3, 4, 5, 13]
+
+####### generating basic volc configs #########
+volcFolder = './fSelect'
+basicVolcConfig = { "WM": dict(), "Dep_Full": dict(), "Dep_POS": dict(), "Dep_PP": dict(), "OM_noH":dict(), "OM_withH": dict() }
+k2 = 40
+k1 = 'tfidf'
+# for WM
+c = basicVolcConfig['WM']
+for t in topicList:
+    c[t] = dict()
+    c[t]['main'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+# for OM
+for model in ['Dep_Full', 'Dep_POS', 'Dep_PP', 'OM_noH', 'OM_withH']:
+    c = basicVolcConfig[model]
+    for t in topicList:
+        c[t] = dict()
+        c[t]['holder'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+        c[t]['opinion'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+        c[t]['target'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
 
 # default config of each model
+targetScore = "Accuracy"
+nfolds = 20
+testSize = 0.1
 defaultConfig={
         "WM": {
             "toRun": ["SelfTrainTest"],
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
             "minCnt": 2,
             "params":{ 
                 "feature": ["tfidf"],
                 "allowedPOS": [["VA", "VV", "NN", "NR", "AD", "JJ"]]
             },
             "setting":{
-                #"targetScore": "MacroF1",
-                "targetScore": "Accuracy",
+                "targetScore": targetScore,
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
-                "testSize": 0.2,
-                "n_folds": 3,
+                "testSize": testSize,
+                "n_folds": nfolds,
                 "fSelectConfig": None
             },
-            "fSelectConfig": None,
-            "volc": None,
+            "volc": basicVolcConfig['WM'],
             "wordGraph": None
         },
-        "OLDM": {
+        "Dep_Full": {
             "toRun": ["SelfTrainTest"],
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
             "minCnt": 2,
             "params":{ 
-                "seedWordType": [
-                    {"type": "tag", "allow": ["NR","NN","NP"]}
-                ],
-                "firstLayerType": [ 
-                    {"type": "tag", "allow": ["VV","JJ","VA"]}
-                ]
+                "keyTypeList": [["OT"]],
+                "opnNameList": [None],
+                "negSepList": [[True]],
+                "ignoreNeutral": [False],
+                "pTreeSepList": [[False]],
+                "countTreeMatched": [False]
             },
             "setting":{
-                #"targetScore": "MacroF1",
+                "targetScore": targetScore,
                 "targetScore": "Accuracy",
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
-                "testSize": 0.2,
-                "n_folds": 3,
+                "testSize": testSize,
+                "n_folds": nfolds,
                 "fSelectConfig": None
             },
-            "fSelectConfig": None,
-            "volc": None,
+            "treePattern": "./DepBased/pattern_Dep.json",
+            "volc":  basicVolcConfig['Dep_Full'],
             "phrase": None,
+            "wordGraph": None
         },
-        "OM": {
+        "Dep_POS": {
             "toRun": ["SelfTrainTest"],
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
-            "preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
+            "minCnt": 2,
+            "params":{ 
+                "keyTypeList": [["OT"]],
+                "opnNameList": [None],
+                "negSepList": [[True]],
+                "ignoreNeutral": [False],
+                "pTreeSepList": [[False]],
+                "countTreeMatched": [False]
+            },
+            "setting":{
+                "targetScore": targetScore,
+                "targetScore": "Accuracy",
+                "clfName": "MaxEnt",
+                "randSeedList": [i for i in range(1,31)],
+                "testSize": testSize,
+                "n_folds": nfolds,
+                "fSelectConfig": None
+            },
+            "treePattern": "./DepBased/pattern_DepPOS.json",
+            "volc":  basicVolcConfig['Dep_POS'],
+            "phrase": None,
+            "wordGraph": None
+        },
+        "Dep_PP": {
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
+            "minCnt": 2,
+            "params":{ 
+                "keyTypeList": [["T"]],
+                "opnNameList": [None],
+                "negSepList": [[True]],
+                "ignoreNeutral": [False],
+                "pTreeSepList": [[False]],
+                "countTreeMatched": [False]
+            },
+            "setting":{
+                "targetScore": targetScore,
+                "targetScore": "Accuracy",
+                "clfName": "MaxEnt",
+                "randSeedList": [i for i in range(1,31)],
+                "testSize": testSize,
+                "n_folds": nfolds,
+                "fSelectConfig": None
+            },
+            "treePattern": "./DepBased/pattern_Dep.json",
+            "volc":  basicVolcConfig['Dep_PP'],
+            "phrase": None,
+            "wordGraph": None
+        },
+        "OM_noH": {
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
+            "minCnt": 2,
+            "params":{ 
+                "keyTypeList": [["T", "OT"]],
+                "opnNameList": [None],
+                "negSepList": [[True]],
+                "ignoreNeutral": [False],
+                "pTreeSepList": [[False, True]],
+                "countTreeMatched": [True]
+            },
+            "setting":{
+                "targetScore": targetScore, 
+                "clfName": "MaxEnt",
+                "randSeedList": [i for i in range(1,31)],
+                "testSize": testSize,
+                "n_folds": nfolds,
+                "fSelectConfig": None
+            },
+            "treePattern": "./DepBased/pattern_noH.json",
+            "volc":  basicVolcConfig['OM_noH'],
+            "phrase": None,
+            "wordGraph": None
+        },
+        "OM_withH": {
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
             "minCnt": 2,
             "params":{ 
                 "keyTypeList": [["H", "T", "HT"]],
                 "opnNameList": [None],
                 "negSepList": [[True]],
-                "ignoreNeutral": [False]
+                "ignoreNeutral": [False],
+                "pTreeSepList": [[False, True]],
+                "countTreeMatched": [True]
             },
             "setting":{
-                #"targetScore": "MacroF1",
-                "targetScore": "Accuracy",
+                "targetScore": targetScore, 
                 "clfName": "MaxEnt",
                 "randSeedList": [i for i in range(1,31)],
-                "testSize": 0.2,
-                "n_folds": 3,
+                "testSize": testSize,
+                "n_folds": nfolds,
                 "fSelectConfig": None
             },
-            "treePattern": "./DepBased/my_pattern.json",
-            "volc": None,
+            "treePattern": "./DepBased/pattern_withH.json",
+            "volc": basicVolcConfig['OM_withH'],
             "phrase": None,
+            "wordGraph": None
         },
+        "WM_LDA": {
+            "toRun": ["SelfTrainTest"],
+            #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
+            #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
+            "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
+            "minCnt": 2,
+            "params":{ 
+                "nTopics": [100],
+                "nIters": [300],
+                "feature": ["tf"]
+            },
+            "setting":{
+                "targetScore": targetScore, 
+                "clfName": "MaxEnt",
+                "randSeedList": [i for i in range(1,31)],
+                "testSize": testSize,
+                "n_folds": nfolds,
+                "fSelectConfig": None
+            },
+            "volc": basicVolcConfig['WM'],
+        }
+
 }
 
+####### generate configs for word graph ########
+wgFolder = './WordClustering/wordGraph'
+k1 = 20
+beta = 0.75
+step = 2
 
-# generating configs for word clustering 
-volcFolder = './WordClustering/volc'
-topicList = [2, 3, 4, 5, 13, 'All']
-volcFileConfig = { "WM": dict(), "OLDM": dict(), "OM": dict() }
+wgConfigEachModel = dict()
 
+for model in ['WM', 'OLDM_Full', 'other']:
+    wgConfig = dict()
+    if model == 'WM':
+        k2Range = [2, 3, 5, 10]
+    else:
+        k2Range = [2, 3, 5]
+    for method in ['TopKEachRow', 'TopK']:
+        for k2 in k2Range:
+            name = 'wg7852_top%d_beta%d_step%d_%s%d' % (k1, round(beta*100), step, method, k2)
+            wgConfig[name] = dict()
+            for t in topicList:
+                wgVolcConfig = { 
+                    "WM": {
+                        "main": "%s/news7852Final_T%d_P40.volc" % (wgFolder, t) 
+                    },
+                    "OLDM_Full": {
+                        "seed": "%s/news7852Final_T%d_P40.volc" % (wgFolder, t), 
+                        "firstLayer": "%s/news7852Final_T%d_P40.volc" % (wgFolder, t) 
+                    },
+                    "other": {
+                        "holder":  "%s/news7852Final_T%d_P40.volc" % (wgFolder, t),
+                        "target": "%s/news7852Final_T%d_P40.volc" % (wgFolder, t),
+                        "opinion": "%s/news7852Final_T%d_P40.volc" % (wgFolder, t) 
+                    }
+                }
+                wgConfig[name][t] = { 
+                    "filename": "%s/%s.mtx" % (wgFolder, name),
+                    "params": {},
+                    "volcFile": wgVolcConfig[model]
+                }
+    name = 'wg7852_top%d_None' % (k1)
+    wgConfig[name] = dict()
+    for t in topicList:
+        wgConfig[name][t] = { 
+            "filename": "%s/%s.mtx" % (wgFolder, name),
+            "params": {},
+            "volcFile": wgVolcConfig[model]
+    }
+    wgConfigEachModel[model] = wgConfig
+
+####### generating configs for word clustering  #########
+volcFolder = './fSelect'
+volcFileConfig = { "WM": dict(), "OLDM_Full": dict(), "OLDM_PP": dict(), "OM_noH":dict(), "OM_withH": dict() }
 # for WM
 c = volcFileConfig['WM']
-#for type in ["c7852", "c7852_Gov"]:
-for type in ["c7852"]:
-    c[type] = dict()
-    for t in topicList:
-        c[type][t] = dict()
-        c[type][t]['main'] = '%s/WM_%s_T%s.volc' % (volcFolder, type, str(t))
-
+for k1 in ['tf', 'df', 'tfidf']:
+    for k2 in range(10, 101, 10):
+        type = '%s_P%03d' % (k1, k2)
+        c[type] = dict()
+        for t in topicList:
+            c[type][t] = dict()
+            c[type][t]['main'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
 # for OLDM
-c = volcFileConfig['OLDM']
-#for type in ['c7852_NTUSD', 'c7852_Tag', 'c7852_NTUSD_Gov', 'c7852_Tag_Gov']:
-for type in ['c7852_NTUSD', 'c7852_Tag']:
-    c[type] = dict()
-    for t in topicList:
-        c[type][t] = dict()
-        c[type][t]['seed'] = '%s/OLDM_%s_T%s_sW.volc' % (volcFolder, type, str(t))
-        c[type][t]['firstLayer'] = '%s/OLDM_%s_T%s_flW.volc' % (volcFolder, type, str(t))
-
+c = volcFileConfig['OLDM_Full']
+for k1 in ['tf', 'df', 'tfidf']:
+    for k2 in range(10, 101, 10):
+        type = '%s_P%03d' % (k1, k2)
+        c[type] = dict()
+        for t in topicList:
+            c[type][t] = dict()
+            c[type][t]['seed'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+            c[type][t]['firstLayer'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
 # for OM
-c = volcFileConfig['OM']
-#for type in ['c7852', 'c7852_Gov']:
-for type in ['c7852']:
-    c[type] = dict()
-    for t in topicList:
-        c[type][t] = dict()
-        c[type][t]['holder'] = '%s/OM_%s_T%s_hdW.volc' % (volcFolder, type, str(t))
-        c[type][t]['opinion'] = '%s/OM_%s_T%s_opnW.volc' % (volcFolder, type, str(t))
-        c[type][t]['target'] = '%s/OM_%s_T%s_tgW.volc' % (volcFolder, type, str(t))
-#print(volcFileConfig)
+for model in ['OLDM_PP', 'OM_noH', 'OM_withH']:
+    c = volcFileConfig[model]
+    for k1 in ['tf', 'df', 'tfidf']:
+        for k2 in range(10, 101, 10):
+            type = '%s_P%03d' % (k1, k2)
+            c[type] = dict()
+            for t in topicList:
+                c[type][t] = dict()
+                c[type][t]['holder'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+                c[type][t]['opinion'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
+                c[type][t]['target'] = '%s/%s_T%d_P%d.volc' % (volcFolder, k1, t, k2)
 
-# generate configs for word graph
-wgFolder = './WordClustering/wordGraph'
-wgConfig = dict()
-for topK in [5, 10, 20]:
-    for beta in [0.25, 0.5, 0.75]:
-        for step in [10]:
-            for selectTopK in [5, 10, 20]:
-                name = 'Top%d-beta%d-step%d-select%d' % (topK, int(beta * 100), step, selectTopK)
-                wgConfig[name] = dict()
-                for t in topicList:
-                    wgConfig[name][t] = { 
-                            "filename": "%s/wg7852_top%s.mtx" % (wgFolder, topK),
-                            "volcFile": { "main": "%s/news7852Final.volc" % (wgFolder) },
-                            "params": {
-                                "beta": beta,
-                                "step": step,
-                                "method": "TopK",
-                                "value": selectTopK
-                            }
-                        }
-#for k, v in wgConfig.items():
-#    print(k, v)
+# LDA:
+nTopicConfig = dict()
+for nTopics in [100]:
+#for nTopics in [20, 30, 40, 50, 75, 100, 200, 300, 500]:
+    nTopicConfig["nT%03d" % (nTopics)] = [nTopics]
+nIterConfig = dict()
+for nIters in [700, 900, 1100]:
+    nIterConfig["nI%03d" % (nIters)] = [nIters]
 
 # configuration for search parameters (one parameter a time)
 iterConfig={
     "WM": [
         { "path": ["preprocess"], 
-            "params": {"None": None,
-                       "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+            "params": { #"None": None,
+                       #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
-
-        { "path": ["setting", "clfName"], 
-            "params": { "RF": "RF" }
-            },
-        
-        { "path": ["params", "feature"], 
-            "params": { "01": ["0/1"], } 
-            },
-        { "path": ["volc"],
-            "params": volcFileConfig['WM']
-            #}
-            },
-        { "path": ["wordGraph"],
-            "params": wgConfig,
-        }
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['WM']
+        #    }
+        #    },
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['WM']
+        #}
     ],
-    "OLDM" :[
+    "Dep_Full" :[
         { "path": ["preprocess"], 
-            "params": {"None": None,
-                       "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+            "params": {#"None": None,
+                      #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
-
-        { "path": ["setting", "clfName"], 
-            "params": { "RF": "RF" }
-            },
-            
-        { "path": ["params", "firstLayerType"],
-            "params": { "NTUSD": [{"type": "word", "allow": "NTUSD_core"}] }
-            },
-        { "path": ["volc"],
-            "params": volcFileConfig['OLDM']
-        }
-
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OLDM_Full']
+        #}  
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['OLDM_Full']
+        #}
     ],
-    "OM":[  
+    "Dep_POS":[  
         { "path": ["preprocess"], 
-            "params": { "None": None,
-                        "binary": { "method": "binary", "params": { "threshold": 0.0 }},
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
                         "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
                        }
             },
-
-        { "path": ["setting", "clfName"], 
-            "params": { "RF": "RF" }
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OLDM_PP']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
+    "Dep_PP":[  
+        { "path": ["preprocess"], 
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+                       }
             },
-
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OLDM_PP']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
+    "Dep_PPAll":[  
+        { "path": ["preprocess"], 
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+                       }
+            },
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OLDM_PP']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
+    "OM_noH":[  
+        { "path": ["preprocess"], 
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+                       }
+            },
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        #{ "path": ["params", "keyTypeList"], 
+        #    "params": { "T": [["T"]], "OT": [["OT"]] },
+        #    },
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        { "path": ["params", "pTreeSepList"],
+            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
+        },
+        { "path": ["params", "countTreeMatched"],
+            "params": { "noCnt": [False] } 
+        },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OM_noH']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
+    "OM_withH":[  
+        { "path": ["preprocess"], 
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+                       }
+            },
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
         { "path": ["params", "keyTypeList"], 
             "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
-                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]]}
+                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
+                "Tall": [["OT", "T"]], "Hall": [["HO", "H"]] },
             },
-        
-        { "path": ["params", "ignoreNeutral"],
-            "params": { "iN": [True] }
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        { "path": ["params", "pTreeSepList"],
+            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
         },
-
-        { "path": ["volc"],
-            "params": volcFileConfig['OM']
+        { "path": ["params", "countTreeMatched"],
+            "params": { "noCnt": [False] } 
         },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OM_withH']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
+    "OM_stance":[  
+        { "path": ["preprocess"], 
+            "params": { #"None": None,
+                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+                       }
+            },
+        #{ "path": ["setting", "clfName"], 
+        #    "params": { "LinearSVM": "LinearSVM" }
+        #    },
+        { "path": ["params", "keyTypeList"], 
+            "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
+                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
+                "Tall": [["OT", "T"]], "Hall": [["HO", "H"]] },
+            },
+        #{ "path": ["params", "ignoreNeutral"],
+        #    "params": { "iN": [True] }
+        #},
+        { "path": ["params", "pTreeSepList"],
+            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
+        },
+        { "path": ["params", "countTreeMatched"],
+            "params": { "noCnt": [False] } 
+        },
+        #{ "path": ["volc"],
+        #    "params": volcFileConfig['OM_withH']
+        #},
+        #{ "path": ["wordGraph"],
+        #    "params": wgConfigEachModel['other']
+        #}
+    ],
 
-        { "path": ["treePattern"],
-            "params": { "OLDM": "./DepBased/my_pattern_OLDM.json" }
-        }
-    ]
+    #"WM_LDA":[  
+    #    { "path": ["params", "nTopics"],
+    #        "params": nTopicConfig
+    #    },
+    #    { "path": ["params", "nIters"],
+    #        "params": nIterConfig
+    #    }
+    #]
+
 }
 
 nameList= {
-    "WM": [ "binary", "MaxEnt", "tfidf", "N", "N"], #pre, clf, feature, volc, wg
-    "OLDM":  [ "binary", "MaxEnt", "Tag", "N"], #pre, clf, feature, volc
-    "OM": [ "binary", "MaxEnt", "H-T-HT", "N", "N", "v1"] # pre, clf, feature, neg, ignoreNeutral, volc, patternFile
+    "WM": [ "mm", "MaxEnt"], #pre, clf
+    "Dep_Full":  ["mm", "MaxEnt"], #pre, clf
+    "Dep_POS": [ "mm", "MaxEnt"],
+    "Dep_PP": [ "mm", "MaxEnt" ], #pre, clf
+    "OM_noH": [ "mm", "MaxEnt", "pTreeBoth", "cnt" ], #pre, clf
+    "OM_withH": ["mm", "MaxEnt", "H-T-HT", "pTreeBoth", "cnt" ], # pre, clf, keyType,
+    "WM_LDA": ["nT100", "nI300"]
+    #"OM_noH": [ "mm", "MaxEnt", "pTreeBoth" ], #pre, clf
+    #"OM_withH": ["mm", "MaxEnt", "H-T-HT", "pTreeBoth" ] # pre, clf, keyType,
+
+    #"WM": [ "binary", "N"], #pre, wg
+    #"OLDM_Full":  ["binary", "Tag", "N"], #pre, feature, wg
+    #"OLDM_PP": [ "binary", "igFalse", "N" ], #pre, ignore, wg
+    #"OM_noH": [ "binary", "Tall", "igFalse", "N"], #pre, keyType, ignore, wg
+    #"OM_withH": [ "binary", "H-T-HT", "igFalse", "N"] # pre, keyType, ignore, wg
 }
 
 
@@ -285,7 +585,8 @@ if __name__ == '__main__':
     #suffix = '_Filtered_5T_Merged'
 
     # for single model
-    for model in ["WM", "OLDM", "OM"]:
+    #for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "OM_noH", "OM_withH"]:
+    for model in ["WM_LDA"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
         print(model, len(configList))
         for name, config in configList:
@@ -294,94 +595,29 @@ if __name__ == '__main__':
             print(name)
             #print(config, '\n')
             pass
-    
-    suffix = '_5T_Merged_withWG'
+    '''
+    suffix = '_4T'
     # for merged model
     # WM+OLDM, WM+OM, WM is fixed
-    for model in ["OLDM", "OM"]:
+    for model in ["OLDM_PP", "OM_withH"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_' + model + suffix)
         print("WM_"+ model, len(configList))
         for name, config in configList:
-            with open(configFolder + name + '_config.json', 'w') as f:
-                json.dump(config, f, indent=2)
-            print(name)
+            #with open(configFolder + name + '_config.json', 'w') as f:
+            #    json.dump(config, f, indent=2)
+            #print(name)
             #print(config)
             pass
 
     # WM and OLDM is fixed
-    for model in ["OM"]:
-        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_' + model + suffix)
+    for model in ["OM_withH"]:
+        configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = 'WM_OLDM_PP_' + model + suffix)
         print("WM_OLDM_"+ model, len(configList))
         for name, config in configList:
-            with open(configFolder + name + '_config.json', 'w') as f:
-                json.dump(config, f, indent=2)
-            print(name)
+            #with open(configFolder + name + '_config.json', 'w') as f:
+            #    json.dump(config, f, indent=2)
+            #print(name)
             #print(config)
             pass
 
-
-
-if __name__ == '__main2__':
-    cnt = 0
-    # generate config first
-    for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:
-        for pre in [None, 'std', 'norm1', 'norm2', 'binary']:
-            c = copy.deepcopy(template[model])
-            p = c['preprocess']
-            prefix = '%s_%s_None' % (model, pre)
-            if pre == 'std':
-                p['method'] = 'std'
-                p['params'] = dict()
-                p['params']['with_mean'] = False
-                p['params']['with_std'] = True
-                c['taskName'] = prefix
-            elif pre == 'norm1':
-                p['method'] = 'norm'
-                p['params'] = dict()
-                p['params']['norm'] = 'l1'
-                c['taskName'] = prefix
-            elif pre == 'norm2':
-                p['method'] = 'norm'
-                p['params'] = dict()
-                p['params']['norm'] = 'l2'
-                c['taskName'] = prefix
-            elif pre == 'binary':
-                if model == 'WM':
-                    c['params']['feature'] = ['tf']
-                if model == 'OM':
-                    c['params']['negSepList'] = [[True]]
-                p['method'] = 'binary'
-                p['params'] = dict()
-                p['params']['threshold'] = 0.0
-                c['taskName'] = prefix
-            elif pre == None:
-                c['preprocess'] = None
-                c['taskName'] = prefix
-            c['setting']['fSelectConfig'] = None
-            fileName = configFolder + '%s_config.json' % (prefix)
-            with open(fileName, 'w') as f:
-                json.dump(c, f, indent = 1)
-            cnt += 1
-
-    for model in ['WM', 'OLDM', 'OM', 'WM_OLDM', 'WM_OM', 'WM_OLDM_OM']:
-        for fSelect in ['L1C1', 'RF']:
-            c = copy.deepcopy(template[model])
-            p = dict()
-            prefix = '%s_std_%s' % (model, fSelect)
-            if fSelect == 'L1C1':
-                p['method'] = 'LinearSVC'
-                p['params'] = dict()
-                p['params']['C'] = 1.0
-                c['taskName'] = prefix
-            elif fSelect == 'RF':
-                p['method'] = 'RF'
-                p['params'] = dict()
-                c['taskName'] = prefix
-            c['setting']['fSelectConfig'] = p
-            fileName = configFolder + '%s_config.json' % (prefix)
-            
-            with open(fileName, 'w') as f:
-                json.dump(c, f, indent=1)
-            cnt += 1
-
-    print(cnt)
+    '''
