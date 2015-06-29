@@ -265,7 +265,8 @@ defaultConfig={
                 "n_folds": nfolds,
                 "fSelectConfig": None
             },
-            "volc": basicVolcConfig['WM'],
+            #"volc": basicVolcConfig['WM'],
+            "volc": None
         },
         "Merged": {
             "toRun": ["SelfTrainTest"],
@@ -374,11 +375,11 @@ for model in ['OLDM_PP', 'OM_noH', 'OM_withH']:
 
 # LDA:
 nTopicConfig = dict()
-for nTopics in [100]:
+for nTopics in [20, 40, 60, 80, 100]:
 #for nTopics in [20, 30, 40, 50, 75, 100, 200, 300, 500]:
     nTopicConfig["nT%03d" % (nTopics)] = [nTopics]
 nIterConfig = dict()
-for nIters in [700, 900, 1100]:
+for nIters in [100, 300, 500]:
     nIterConfig["nI%03d" % (nIters)] = [nIters]
 
 # configuration for search parameters (one parameter a time)
@@ -503,14 +504,14 @@ iterConfig={
         #}
     ],
 
-    #"WM_LDA":[  
-    #    { "path": ["params", "nTopics"],
-    #        "params": nTopicConfig
-    #    },
-    #    { "path": ["params", "nIters"],
-    #        "params": nIterConfig
-    #    }
-    #]
+    "WM_LDA":[  
+        { "path": ["params", "nTopics"],
+            "params": nTopicConfig
+        },
+        { "path": ["params", "nIters"],
+            "params": nIterConfig
+        }
+    ]
 
 }
 
@@ -601,19 +602,20 @@ def genMergedConfig(modelNameList):
 if __name__ == '__main__':
     suffix = '_TwoClass'
     suffix = '_5T_Merged'
+    suffix = '_7T_Merged_withNoLabel'
     #suffix = '_4T'
     #suffix = '_Filtered_5T_Merged'
 
     # for single model
-    for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
-    #for model in ["WM_LDA"]:
+    #for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
+    for model in ["WM_LDA"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
         print(model, len(configList))
         for name, config in configList:
-            #with open(configFolder + name + '_config.json', 'w') as f:
-            #    json.dump(config, f, indent=2)
-            #print(name)
-            #print(config, '\n')
+            with open(configFolder + name + '_config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            print(name)
+            print(config, '\n')
             pass
 
     mList = [
@@ -629,10 +631,10 @@ if __name__ == '__main__':
 
     for m in mList:
         name, config = genMergedConfig(m)
-        with open(configFolder + name + '_config.json', 'w') as f:
-           json.dump(config, f, indent=2)
-        print(name)
-        print(config, '\n')
+        #with open(configFolder + name + '_config.json', 'w') as f:
+        #   json.dump(config, f, indent=2)
+        #print(name)
+        #print(config, '\n')
 
 
     '''
