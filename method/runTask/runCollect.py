@@ -7,6 +7,7 @@ suffix = ''
 suffix = '_4T_withWG'
 suffix = '_5T_Merged_withWG'
 suffix = '_5T_Merged'
+#suffix = '_7T_Merged_withNoLabel'
 #suffix = '_4T'
 #suffix = '_Filtered_5T_Merged'
 #suffix = '_Filtered_4T'
@@ -16,7 +17,7 @@ if __name__ == '__main__':
     
     #for scoreName in ["MacroF1", "Accuracy", "F1_agree", "F1_oppose"]:
     for scoreName in ["Accuracy"]:
-        scoreFile = './results20150628_new_%s_%s.csv' % (suffix, scoreName)
+        scoreFile = './results20150629_minCnt_%s_%s.csv' % (suffix, scoreName)
         #for framework in ["SelfTrainTest", "LeaveOneTest", "AllTrainTest"]:
         for framework in ["SelfTrainTest"]:
             for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
@@ -24,10 +25,12 @@ if __name__ == '__main__':
                 configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
                 print(len(configList))
                 for name, config in configList:
+                    #cmd = 'echo "topicId, model settings, column source, experimental settings, classifier, scorer, dimension, parameters, randSeed, valScore, testScore" > tmp; cat %s/%s_results.csv >> tmp;' % (resultFolder, name)
+                    #cmd += 'python3 ./CollectResult.py %s %s %s tmp 0 6 >> %s' %(scoreName, framework, name, scoreFile)
                     cmd = 'python3 ./CollectResult.py %s %s %s %s/%s_results.csv 0 6 >> %s' %(scoreName, framework, name, resultFolder, name, scoreFile)
-                    #print(cmd)
-                    #os.system(cmd)
-                #os.system('echo "" >> %s' %(scoreFile))
+                    print(cmd)
+                    os.system(cmd)
+                os.system('echo "" >> %s' %(scoreFile))
 
         
         mList = [
@@ -44,8 +47,8 @@ if __name__ == '__main__':
         for m in mList:
             name, config = genMergedConfig(m)
             cmd = 'python3 ./CollectResult.py %s %s %s %s/%s_results.csv 0 6 >> %s' %(scoreName, framework, name, resultFolder, name, scoreFile)
-            print(cmd)
-            os.system(cmd)
+            #print(cmd)
+            #os.system(cmd)
             #os.system('echo "" >> %s' %(scoreFile))
 
 

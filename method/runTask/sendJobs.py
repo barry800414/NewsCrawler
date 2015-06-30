@@ -48,6 +48,7 @@ configFolder = './config/'
 
 #suffix = '_4T'
 suffix = '_5T_Merged'
+#suffix = '_7T_Merged_withNoLabel'
 taggedFile = './zhtNewsData/taggedLabelNews%s_long.json' %(suffix)
 #depFile = './zhtNewsData/DepParsedLabelNews%s_short.json' %(suffix)
 depFile = './zhtNewsData/DepParsedLabelNews%s_long.json' %(suffix)
@@ -63,8 +64,8 @@ if __name__ == '__main__':
     
     # for single model
     #for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "OM_noH", "OM_withH"]:
-    #for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
-    for model in ["Dep_PPAll", "OM_stance"]:
+    for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
+    #for model in ["WM_LDA"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
         print(model, len(configList))
         for taskName, config in configList:
@@ -76,8 +77,8 @@ if __name__ == '__main__':
                 cmd = "python3 %s %s %s %s %s > %s" % (pyMap[model], depFile, configFile, negFile, dictFile, resultFile)
             else:
                 assert 1 != 1
-            #print(cmd)
-            #sender.putTask(cmd)
+            print(cmd)
+            sender.putTask(cmd)
     
     mList = [
             ['WM', 'Dep_Full', 'Dep_POS', 'Dep_PP'],
@@ -109,8 +110,8 @@ if __name__ == '__main__':
         for j, modelName in enumerate(m):
             cmd += ' -%s %s' % (modelName, pList[i][j])
         cmd += ' > %s' % (resultFile)
-        print(cmd)
-        sender.putTask(cmd)
+        #print(cmd)
+        #sender.putTask(cmd)
 
 
     '''

@@ -31,10 +31,10 @@ for t in [2, 3, 4, 5, 13]:
         for j, size in enumerate(sizeRange):
             avgScore = 0.0
             for fold in range(0, 10):
-                resultFolder = './T%dS%dF%d_result' % (t, seed, fold)
+                resultFolder = '../dataBackup/T%dS%dF%d_result' % (t, seed, fold)
                 resultFile = '%s/T%dS%dF%d_C%f_iter%d_size%d' % (resultFolder, t, seed, fold, c, iter, size)
                 avgScore += readResult(resultFile)
-            avgScore /= fold
+            avgScore /= 10
             scoreTable[i][j] = avgScore
     print('Topic %d:' % t)
     printTable(scoreTable, cRange, sizeRange)

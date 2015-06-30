@@ -37,7 +37,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "feature": ["tfidf"],
                 "allowedPOS": [["VA", "VV", "NN", "NR", "AD", "JJ"]]
@@ -58,7 +58,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "keyTypeList": [["OT"]],
                 "opnNameList": [None],
@@ -86,7 +86,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "keyTypeList": [["OT"]],
                 "opnNameList": [None],
@@ -114,7 +114,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "keyTypeList": [["T"]],
                 "opnNameList": [None],
@@ -142,7 +142,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "keyTypeList": [["T"]],
                 "opnNameList": [None],
@@ -170,13 +170,13 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "keyTypeList": [["T", "OT"]],
                 "opnNameList": [None],
                 "negSepList": [[True]],
                 "ignoreNeutral": [False],
-                "pTreeSepList": [[False, True]],
+                "pTreeSepList": [[False]],
                 "countTreeMatched": [True]
             },
             "setting":{
@@ -197,13 +197,13 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
-                "keyTypeList": [["H", "T", "HT"]],
+                "keyTypeList": [["H", "T", "HT", "HO", "OT"]],
                 "opnNameList": [None],
                 "negSepList": [[True]],
                 "ignoreNeutral": [False],
-                "pTreeSepList": [[False, True]],
+                "pTreeSepList": [[False]],
                 "countTreeMatched": [True]
             },
             "setting":{
@@ -224,13 +224,13 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
-                "keyTypeList": [["H", "T", "HT"]],
+                "keyTypeList": [["H", "T", "HT", "HO", "OT"]],
                 "opnNameList": [None],
                 "negSepList": [[True]],
                 "ignoreNeutral": [False],
-                "pTreeSepList": [[False, True]],
+                "pTreeSepList": [[False]],
                 "countTreeMatched": [True]
             },
             "setting":{
@@ -251,7 +251,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
                 "nTopics": [100],
                 "nIters": [300],
@@ -273,7 +273,7 @@ defaultConfig={
             #"toRun": ["SelfTrainTest", "AllTrainTest", "LeaveOneTest"],
             #"preprocess": { "method": "binary", "params": { "threshold": 0.0 }},
             "preprocess": { "method": "minmax", "params": { "feature_range": [0,1] }},
-            "minCnt": 3,
+            "minCnt": 4,
             "params":{ 
             },
             "setting":{
@@ -385,123 +385,155 @@ for nIters in [100, 300, 500]:
 # configuration for search parameters (one parameter a time)
 iterConfig={
     "WM": [
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                        #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                       "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #               "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['WM']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
     "Dep_Full" :[
-        { "path": ["preprocess"], 
-            "params": {#"None": None,
-                      #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                       "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #{ "path": ["preprocess"], 
+        #    "params": {#"None": None,
+        #              #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
+        #               "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['OLDM_Full']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
+
     ],
     "Dep_POS":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
+
     ],
     "Dep_PP":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
     "Dep_PPAll":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
     "OM_noH":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
         #{ "path": ["params", "keyTypeList"], 
         #    "params": { "T": [["T"]], "OT": [["OT"]] },
         #    },
-        { "path": ["params", "pTreeSepList"],
-            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
-        },
-        { "path": ["params", "countTreeMatched"],
-            "params": { "noCnt": [False] } 
-        },
+        #{ "path": ["params", "pTreeSepList"],
+        #    "params": { "pTreeBoth": [[False, True]], "pTreeSep": [[True]] }
+        #},
+        #{ "path": ["params", "countTreeMatched"],
+        #    "params": { "noCnt": [False] } 
+        #},
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
     "OM_withH":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
+        #{ "path": ["params", "keyTypeList"], 
+        #    "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
+        #        "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
+        #        "Tall": [["OT", "T"]], "Hall": [["HO", "H"]], "HTall": [["HO","H","T","OT"]] },
+        #    },
         { "path": ["params", "keyTypeList"], 
-            "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
-                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
-                "Tall": [["OT", "T"]], "Hall": [["HO", "H"]] },
+            "params": { "HTall": [["HO","H","T","OT"]] },
             },
-        { "path": ["params", "pTreeSepList"],
-            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
-        },
-        { "path": ["params", "countTreeMatched"],
-            "params": { "noCnt": [False] } 
-        },
+        #{ "path": ["params", "pTreeSepList"],
+        #    "params": { "pTreeBoth": [[False, True]], "pTreeSep": [[True]] }
+        #},
+        #{ "path": ["params", "countTreeMatched"],
+        #    "params": { "noCnt": [False] } 
+        #},
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
     "OM_stance":[  
-        { "path": ["preprocess"], 
-            "params": { #"None": None,
+        #{ "path": ["preprocess"], 
+        #    "params": { #"None": None,
                         #"binary": { "method": "binary", "params": { "threshold": 0.0 }},
-                        "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
-                       }
-            },
+        #                "minmax": { "method": "minmax", "params": { "feature_range": [0,1] }}
+        #               }
+        #    },
+        #{ "path": ["params", "keyTypeList"], 
+        #    "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
+        #        "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
+        #        "Tall": [["OT", "T"]], "Hall": [["HO", "H"]], "HTall": [["HO", "H", "T", "OT"]] },
+        #    },
         { "path": ["params", "keyTypeList"], 
-            "params": { "T": [["T"]], "H": [["H"]], "HT":[["HT"]], "HOT": [["HOT"]], 
-                "OT": [["OT"]], "HO":[["HO"]], "all": [["H", "T", "OT", "HO", "HOT", "HT"]],
-                "Tall": [["OT", "T"]], "Hall": [["HO", "H"]] },
+            "params": { "HTall": [["HO","H","T","OT"]] },
             },
-        { "path": ["params", "pTreeSepList"],
-            "params": { "pTreeNotSep": [[False]], "pTreeSep": [[True]] }
-        },
-        { "path": ["params", "countTreeMatched"],
-            "params": { "noCnt": [False] } 
-        },
+        #{ "path": ["params", "pTreeSepList"],
+        #    "params": { "pTreeBoth": [[False, True]], "pTreeSep": [[True]] }
+        #},
+        #{ "path": ["params", "countTreeMatched"],
+        #    "params": { "noCnt": [False] } 
+        #},
         #{ "path": ["wordGraph"],
         #    "params": wgConfigEachModel['other']
         #}
+        { "path": ["minCnt"], 
+            "params": { "m5": 6, "m7": 8, "m10": 11 }
+        }
     ],
 
     "WM_LDA":[  
@@ -516,23 +548,32 @@ iterConfig={
 }
 
 nameList= {
-    "WM": [ "mm"], #pre, clf
-    "Dep_Full":  ["mm" ], #pre, clf
-    "Dep_POS": [ "mm"],
-    "Dep_PP": [ "mm" ], #pre, clf
-    "Dep_PPAll": [ "mm" ], #pre, clf
-    "OM_noH": [ "mm", "pTreeBoth", "cnt" ], #pre, clf
-    "OM_withH": ["mm", "H-T-HT", "pTreeBoth", "cnt" ], # pre, clf, keyType,
-    "OM_stance": ["mm", "H-T-HT", "pTreeBoth", "cnt" ], # pre, clf, keyType,
-    "WM_LDA": ["nT100", "nI300"]
+    #"WM": [ "mm"], #pre, clf
+    #"Dep_Full":  ["mm" ], #pre, clf
+    #"Dep_POS": [ "mm"],
+    #"Dep_PP": [ "mm" ], #pre, clf
+    #"Dep_PPAll": [ "mm" ], #pre, clf
+    #"OM_noH": [ "mm", "pTreeBoth", "cnt" ], #pre, clf
+    #"OM_withH": ["mm", "H-T-HT", "pTreeBoth", "cnt" ], # pre, clf, keyType,
+    #"OM_stance": ["mm", "H-T-HT", "pTreeBoth", "cnt" ], # pre, clf, keyType,
+    #"WM_LDA": ["nT100", "nI300"]
+
     #"OM_noH": [ "mm", "MaxEnt", "pTreeBoth" ], #pre, clf
     #"OM_withH": ["mm", "MaxEnt", "H-T-HT", "pTreeBoth" ] # pre, clf, keyType,
-
     #"WM": [ "binary", "N"], #pre, wg
     #"OLDM_Full":  ["binary", "Tag", "N"], #pre, feature, wg
     #"OLDM_PP": [ "binary", "igFalse", "N" ], #pre, ignore, wg
     #"OM_noH": [ "binary", "Tall", "igFalse", "N"], #pre, keyType, ignore, wg
     #"OM_withH": [ "binary", "H-T-HT", "igFalse", "N"] # pre, keyType, ignore, wg
+
+    "WM": [ "m3" ], #pre, clf
+    "Dep_Full":  ["m3" ], #pre, clf
+    "Dep_POS": [ "m3"],
+    "Dep_PP": [ "m3" ], #pre, clf
+    "Dep_PPAll": [ "m3" ], #pre, clf
+    "OM_noH": [ "m3" ], #pre, clf
+    "OM_withH": [ "HTall", "m3" ], # pre, clf, keyType,
+    "OM_stance": [ "HTall", "m3" ] # pre, clf, keyType,
 }
 
 
@@ -602,20 +643,20 @@ def genMergedConfig(modelNameList):
 if __name__ == '__main__':
     suffix = '_TwoClass'
     suffix = '_5T_Merged'
-    suffix = '_7T_Merged_withNoLabel'
+    #suffix = '_7T_Merged_withNoLabel'
     #suffix = '_4T'
     #suffix = '_Filtered_5T_Merged'
 
     # for single model
-    #for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
-    for model in ["WM_LDA"]:
+    for model in ["WM", "Dep_Full", "Dep_POS", "Dep_PP", "Dep_PPAll", "OM_noH", "OM_withH", "OM_stance"]:
+    #for model in ["WM_LDA"]:
         configList = genConfig(defaultConfig[model], iterConfig[model], nameList[model], prefix = model + suffix)
         print(model, len(configList))
         for name, config in configList:
             with open(configFolder + name + '_config.json', 'w') as f:
                 json.dump(config, f, indent=2)
             print(name)
-            print(config, '\n')
+            #print(config, '\n')
             pass
 
     mList = [

@@ -13,54 +13,83 @@ from misc import *
 from Volc import *
 
 # converting news to doc-word matrix (CSRMatrix)
-def toDocWordMatrix(taggedLabelNewsList, volc=None, tfType='tf', allowedPOS=None, sentSep=",", wordSep=" ", tagSep='/'):
+def toDocWordMatrix(taggedLabelNewsList, volc=None, tfType='tf', allowedPOS=None,
+        minCnt=5, sentSep=",", wordSep=" ", tagSep='/'):
+    if volc is None:
+        volc = Volc()
     numDoc = len(taggedLabelNewsList)
     # calculate word count in each document
     docTF = [defaultdict(int) for i in range(0, numDoc)]
     df = defaultdict(int)
     for i, taggedLabelNews in enumerate(taggedLabelNewsList):
         content = taggedLabelNews['news']['content_pos']
-        wordIndexSet = set()
+        wordSet = set()
         for sent in content.split(sentSep):
             for wt in sent.split(wordSep):
                 (w, t) = wt.split(tagSep)
-                if volc is not None and w not in volc:
+                if w not in volc and volc.lockVolc:
                     continue
                 if allowedPOS != None and t not in allowedPOS:
                     continue
-                docTF[i][volc[w]] += 1
-                wordIndexSet.add(volc[w])
-        for wIndex in wordIndexSet:
-            df[wIndex] += 1
+                if w not in volc:
+                    volc.addWord(w)
+                docTF[i][w] += 1
+                wordSet.add(w)
+        for w in wordSet:
+            df[w] += 1
+        if (i+1) % 100 == 0:
+            print('%cProgress:(%d/%d)' % (13, i+1, len(taggedLabelNewsList)), end='', file=sys.stderr)
+    print('', file=sys.stderr)
 
     if tfType == 'tfidf':
         # get idf
         idf = getIDF(df, numDoc)
         # calc tfidf
         for tf in docTF:
-            for wi in tf.keys():
-                tf[wi] = tf[wi] * idf[wi]
+            for w in tf.keys():
+                tf[w] = tf[w] * idf[w]
+
+    if minCnt > 0:
+        print('Removing words by document frequency < %d' % minCnt, file=sys.stderr)
+        print('Original Volc size:', len(volc), file=sys.stderr)
+        DF = convertToWordIndexDF(df, volc)
+        DF = volc.shrinkVolcByDocF(DF, minCnt)
+        print('After removeing:', len(volc), file=sys.stderr)
 
     # convert to csr_matrix
     numV = len(volc)
     rows = list()
     cols = list()
     entries = list()
+    wordIndexSet = set()
     for i, wCnt in enumerate(docTF):
-        for wIndex, cnt in wCnt.items():
+        for w, cnt in wCnt.items():
+            if w not in volc:
+                continue
+            wordIndexSet.add(volc[w])
             rows.append(i)
-            cols.append(wIndex)
+            cols.append(volc[w])
             entries.append(cnt)
+    print(len(wordIndexSet), file=sys.stderr)
     W = csr_matrix((entries, (rows, cols)), shape=(numDoc, numV))
+    print('X.shape:', W.shape, file=sys.stderr)
     return W
+
+def convertToWordIndexDF(df, volc):
+    DF = defaultdict(int)
+    for w, cnt in df.items():
+        DF[volc[w]] += cnt
+    return DF
 
 def getIDF(df, numDoc):
     idf = dict()
-    for wi, f in df.items():
-        idf[wi] = math.log(float(numDoc + 1) / (f + 1))
+    for w, f in df.items():
+        idf[w] = math.log(float(numDoc + 1) / (f + 1))
     return idf
 
 def geti2W(volc):
+    if volc is None:
+        return None
     i2w = [volc.getWord(i) for i in range(0, len(volc))]
     return i2w
 
@@ -84,6 +113,16 @@ def printTWMatrix(model, i2w, encoding='utf-8', outfile=sys.stdout):
     for w in i2w:
         outfile.write((w + ',').encode(encoding))
     np.savetxt(outfile, model.topic_word_, delimiter=',')
+
+def getLabelIndex(lns):
+    labelIndex = list()
+    noLabelIndex = list()
+    for i,ln in enumerate(lns):
+        if ln['label'] == '':
+            noLabelIndex.append(i)
+        else:
+            labelIndex.append(i)
+    return (labelIndex, noLabelIndex)
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -115,13 +154,18 @@ if __name__ == '__main__':
     if 'SelfTrainTest' in toRun:
         for t, lns in sorted(lnListInTopic.items(), key=lambda x:x[0]):
             # convert the news to doc-word count matrix
-            volc = topicVolcDict[t]['main']
+            volc = topicVolcDict[t]['main'] if topicVolcDict[t] is not None and 'main' in topicVolcDict[t] else None
             i2w = geti2W(volc)
             for p in paramsIter:
+                print('Converting to doc-word matrix ...', file=sys.stderr)
                 W = toDocWordMatrix(lns, volc=volc, tfType=p['feature'])
                 model = runLDA(W, i2w, nTopics=p['nTopics'], nTopicWords = 100, nIter=p['nIters'], outfile=sys.stderr)
-                X = model.doc_topic_
-                y = np.array(getLabels(lns))
+                allX = model.doc_topic_
+                ally = np.array(getLabels(lns))
+                (labelIndex, noLabelIndex) = getLabelIndex(lns)
+                X = allX[labelIndex]
+                y = ally[labelIndex]
+
                 expLog = RunExp.runTask(X, y, topicVolcDict, newsIdList[t], 'SelfTrainTest', p, topicId=t, **setting)
             with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
                 pickle.dump(expLog, f)

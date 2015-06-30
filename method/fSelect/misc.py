@@ -7,7 +7,7 @@ import math
 import numpy as np
 from scipy.sparse import csr_matrix 
 
-label2i = { "neutral" : 2, "oppose": 0, "agree" : 1 } 
+label2i = { "neutral" : 2, "oppose": 0, "agree" : 1, "": -1 } 
 i2Label = ["oppose", "agree", "neutral"]
 
 def toStr(v, sep='**', ensure_ascii=True):
