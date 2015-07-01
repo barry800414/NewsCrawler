@@ -100,6 +100,13 @@ def splitTrainValTest(X, y, train, val):
     return (X[trainIndex], y[trainIndex]), (X[valIndex], y[valIndex]), (X[testIndex], y[testIndex])
 
 
+def readData(filename):
+    if filename.rfind('.mtx') != -1:
+        return mmread(filename).toarray()
+    elif filename.find('.npy') != -1:
+        return np.load(filename)
+
+
 if __name__ == '__main__':
     if len(sys.argv) < 4:
         print('Usage:', sys.argv[0], 'labelX.mtx label.npy middleLayer [pretrainModel]', file=sys.stderr)
@@ -113,8 +120,9 @@ if __name__ == '__main__':
     if len(sys.argv) == 5:
         modelName = sys.argv[4]
 
-    lX = mmread(lXFile).toarray()
-    ly = np.load(yFile)
+    lX = readData(lXFile)
+    ly = readData(yFile)
+    ly = ly.astype(np.uint8)
     print('labelData: ', lX.shape, file=sys.stderr)
 
     # cross validation
@@ -134,9 +142,9 @@ if __name__ == '__main__':
         exp.train(
             (XTrain, yTrain),
             optimize='rmsprop',
-            learning_rate=0.01,
+            learning_rate=0.001,
             momentum=0.5,
-            hidden_l1=0.5,
+            hidden_l1=2.0,
         )
         
         predict = exp.network.classify(XTest)

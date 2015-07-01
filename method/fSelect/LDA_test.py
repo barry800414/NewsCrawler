@@ -165,8 +165,14 @@ if __name__ == '__main__':
                 (labelIndex, noLabelIndex) = getLabelIndex(lns)
                 X = allX[labelIndex]
                 y = ally[labelIndex]
+             
+                nT = p['nTopics']
+                np.save('./lda_data/t%d_nT%d_allX.npy' % (t, nT), allX)
+                np.save('./lda_data/t%d_nT%d_labelX.npy' % (t, nT), X)
+                np.save('./lda_data/t%d_nT%d_unlabelX.npy' % (t, nT), allX[noLabelIndex])
+                np.save('./lda_data/t%d_nT%d_y.npy' % (t, nT), y)
 
-                expLog = RunExp.runTask(X, y, topicVolcDict, newsIdList[t], 'SelfTrainTest', p, topicId=t, **setting)
-            with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
-                pickle.dump(expLog, f)
+                #expLog = RunExp.runTask(X, y, topicVolcDict, newsIdList[t], 'SelfTrainTest', p, topicId=t, **setting)
+            #with open('%s_SelfTrainTest_topic%d.pickle' % (taskName, t), 'w+b') as f:
+            #    pickle.dump(expLog, f)
 

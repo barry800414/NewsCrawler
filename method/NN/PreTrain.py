@@ -11,6 +11,11 @@ from scipy.io import mmwrite, mmread
 
 from misc import *
 
+def readData(filename):
+    if filename.rfind('.mtx') != -1:
+        return mmread(filename).toarray()
+    elif filename.find('.npy') != -1:
+        return np.load(filename)
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:
@@ -22,7 +27,7 @@ if __name__ == '__main__':
     middleLayer = int(sys.argv[2])
     modelName = sys.argv[3]
 
-    allX = mmread(allXFile).toarray()
+    allX = readData(allXFile)
     print('AllData:', allX.shape)
     exp = theanets.Experiment( 
         theanets.Classifier,

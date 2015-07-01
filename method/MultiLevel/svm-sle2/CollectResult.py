@@ -2,11 +2,14 @@
 import sys, math
 
 def readResult(filename):
-    with open(filename, 'r') as f:
-        for line in f:
-           pass
-        entry = line.strip().split(' ')
-        score = float(entry[1])
+    try:
+        with open(filename, 'r') as f:
+            for line in f:
+                pass
+            entry = line.strip().split(' ')
+            score = float(entry[1])
+    except:
+        return 0.0
     return score
 
 def printTable(table, cRange, sizeRange):
